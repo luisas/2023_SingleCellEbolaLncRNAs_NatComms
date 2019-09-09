@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=Nextflow
+#SBATCH --time=00-01:00:00
+#SBATCH --workdir=.
+#SBATCH --error=Nextflow-%j.err
+#SBATCH --output=Nextflow-%j.out
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=48
+#SBATCH --exclusive
+
+module load nextflow
+module load java
+module load curl
+module load java picard/2.20.0
+
+srun nextflow run /gpfs/scratch/bsc83/bsc83024/ebola/src/quality_assesment.nf
