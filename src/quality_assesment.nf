@@ -12,6 +12,11 @@ params.output_dir = "/gpfs/scratch/bsc83/bsc83024/test_output/"
 
 // If set to true the quality assessment will be computed with fastqc
 params.fastqc = "true"
+// params needed for mapping
+params.assembly = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/indexes/hisat2/rheMac8_EBOV-Kikwit"
+// Annotation
+params.ss = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/rheMac8_EBOV-Kikwit.ss.txt"
+
 
 // -----------------------------------------------
 
@@ -39,12 +44,21 @@ dataset_bam = Channel
                            it.baseName.split('_')[2].split('-')[0] + it.baseName.split('_')[2].split('-')[1] + "l." +  it.parent.name.split('\\.')[1],
                            it ) }
 
+// Channel for the Assembly
+assemblyForMapping = Channel.fromPath("${params.assembly}")
+// Channel for Annotation
+annotationForMapping = Channel.fromPath("${params.annotation}")
+
+
+
+
 /*
 * STEP 1: Convert the unmapped bam files into fastq files.
 */
 process convert_bam_to_fastq {
 
-    publishDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$sample"
+    tag "${complete_id}"
+    storeDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$sample"
 
     input:
     set lane,lane_number, dataset_name, dayPostInfection, tissue, sample,complete_id, file(unmapped_bam) from dataset_bam
@@ -53,7 +67,7 @@ process convert_bam_to_fastq {
     set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
         file("${complete_id}.1.fq"),
         file("${complete_id}.2.fq"),
-        file("${complete_id}.unpaired.fq") into (fastq_files_for_qc, fastq_files)
+        file("${complete_id}.unpaired.fq") into (fastq_files_for_qc, fastq_files_for_mapping)
 
     script:
     """
@@ -63,11 +77,12 @@ process convert_bam_to_fastq {
 }
 
 /*
-* STEP 2: Generate quality assessment with fastqc.
+* STEP 2.1: Generate quality assessment with fastqc.
 */
 process generate_fastqc{
 
-  publishDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$sample"
+  tag "${complete_id}"
+  storeDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$sample"
 
   input:
   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
@@ -83,6 +98,31 @@ process generate_fastqc{
   """
   mkdir -p output_fastq_dir
   fastqc ${fastq_1} ${fastq_2} --extract
+  """
+
+}
+
+
+/*
+* STEP 2.2: Generate quality assessment with fastqc.
+*/
+process mapping_hisat{
+
+  tag "${complete_id}"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$sample"
+
+  input:
+  file assembly from assemblyForMapping.collect()
+  file ss from annotationForMapping.collect()
+  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
+
+  output:
+  file "*" into mapped_bams
+
+  script:
+  """
+  hisat2-align-s -x ${assembly} -1  ${fastq_1} -2 ${fastq_2} --phred33 --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR
   """
 
 }
