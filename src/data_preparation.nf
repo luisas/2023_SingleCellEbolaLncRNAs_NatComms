@@ -88,17 +88,17 @@ params.rheMac8_annotation_gz_file = "/gpfs/projects/bsc83/gene_annotation/ensemb
 rheMac8_annotation_gz_channel = Channel
                                   .fromPath("${params.rheMac8_annotation_gz_file}")
                                   .map{it.baseName.minus(".gtf.gz"),it)))}
-params.chromAlias = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/chromAlias.txt" 
+params.chromAlias = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/chromAlias.txt"
 chromAliasChannel = Channel.fromPath("${params.chromAlias}")
 
-process parse_identifiers{
+process parse_identifiers_correspondence{
   storeDir "${params.output_dir}/gene_annotations"
 
   input:
   file chromAlias from chromAliasChannel
 
   output:
-  file "ensembl.ucsc.chrom_names_correspondance.tab" into ensembl_correspondence
+  file "ensembl.ucsc.chrom_names_correspondance.tab" into ensembl_correspondence_channel
 
   script:
   """
@@ -135,6 +135,32 @@ process gene_annotation{
   # Parse to tab delimited
   cat rheMac8.ensembl_release97.gtf | ./gtf2bed.py > rheMac8.ensembl_release97.tab
   """
+}
+
+
+// missing
+// # 2. Concatenate ensembl release 97 macaque annotation with EBOV gene annotation
+// cat  rheMac8.ensembl_release97.gtf /gpfs/projects/bsc83/Ebola/data/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf > rheMac8_EBOV-Kikwit.gtf
+
+process merge_annotations{
+
+
+}
+
+// # 3. Extract exons and splice sites for annotated genes
+// sbatch extract_exons_ss.sh
+process extract_exons_ss{
+
+}
+
+//# 4. Convert GFT to BED12
+//#/gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred rheMac8.ensembl_release97.gtf rheMac8.ensembl_release97.bed
+//#/gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred /gpfs/projects/bsc83/Ebola/data/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf EBOV-Kikwit.bed
+///gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred rheMac8_EBOV-Kikwit.gtf rheMac8_EBOV-Kikwit.tmp.bed
+//awk '{OFS="\t";print $2,$4,$5,$1,0,$3,$6,$7,0,$8,$9,$10}' rheMac8_EBOV-Kikwit.tmp.bed > rheMac8_EBOV-Kikwit.bed # This is the format required by infer_experiment.py from RNASeqQC
+
+process convert_gtf_to_bed{
+
 }
 
 
