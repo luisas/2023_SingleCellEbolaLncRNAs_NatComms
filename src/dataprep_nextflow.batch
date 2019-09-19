@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowDataPrepPipeline
+#SBATCH --time=00-03:00:00
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=48
+#SBATCH --exclusive
+
+module load nextflow
+module load java
+module load curl
+
+
+# For index hisat2
+module load gcc/7.2.0 hisat2
+
+# for dictionary creation
+module load java picard/2.20.0
+
+
+srun nextflow run /gpfs/scratch/bsc83/bsc83024/ebola/src/data_preparation.nf
