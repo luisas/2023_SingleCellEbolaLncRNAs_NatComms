@@ -5,24 +5,22 @@
  */
 
 // ------------  INPUT PARAMETERS -------------
-// params.dataset_bam_dir = "/gpfs/projects/bsc83/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane"
-params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
+params.dataset_bam_dir = "/gpfs/projects/bsc83/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
+//params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
 
 // Folder where the output directories of the pipeline will be placed
-// params.output_dir = "/gpfs/projects/bsc83/Ebola/datafiles/"
-params.output_dir = "/gpfs/scratch/bsc83/bsc83024/test_output/"
+params.output_dir = "/gpfs/projects/bsc83/Ebola/data/"
+//params.output_dir = "/gpfs/scratch/bsc83/bsc83024/test_output_last/"
 
 // If set to true the quality assessment will be computed with fastqc
 params.fastqc = "true"
 // params needed for mapping
 params.assembly = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/indexes/hisat2/rheMac8_EBOV-Kikwit"
-params.assembly_prefix = "rheMac8_EBOV-Kikwit"
+params.assembly_prefix = "${params.assembly}".tokenize('/')[-1]
 // Annotation
 params.ss = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/rheMac8_EBOV-Kikwit.ss.txt"
 
 
-
-// TODO: Indexing in pipeline , Gene annotations in pipeline
 
 
 // -----------------------------------------------
@@ -66,7 +64,6 @@ annotationForMapping = Channel.fromPath("${params.ss}")
 */
 process convert_bam_to_fastq {
 
-    tag "${complete_id}"
     storeDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$sample"
 
     input:
@@ -90,7 +87,6 @@ process convert_bam_to_fastq {
 */
 process generate_fastqc{
 
-  tag "${complete_id}"
   storeDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$sample"
 
   input:
@@ -113,11 +109,10 @@ process generate_fastqc{
 
 
 /*
-* STEP 2.2: Generate quality assessment with fastqc.
+* STEP 2.2: Map, sort and index
 */
 process mapping_hisat{
 
-  tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$sample"
 
   input:
@@ -127,7 +122,8 @@ process mapping_hisat{
       file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
 
   output:
-  file "*" into mapped_bams
+  set file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
+      file("${complete_id}.sam"), file("${complete_id}.bam") into mapped_bams
 
   /*
   *  --known-splicesite-infile <path>   provide a list of known splice sites
@@ -135,11 +131,12 @@ process mapping_hisat{
   *  --dta                              reports alignments tailored for transcript assemblers
   *  --summary-file                     Print alignment summary to this file.
   */
- //  hisat2-align-s -x ${params.assembly} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR -S ${complete_id}.sam
 
   script:
   """
   hisat2-align-s -x ${params.assembly_prefix} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR > ${complete_id}.sam
+  samtools sort -T $TMPDIR/${complete_id}.tmp  -O bam -o ${complete_id}.bam ${complete_id}.sam
+  samtools index ${complete_id}.bam
   """
 
 }

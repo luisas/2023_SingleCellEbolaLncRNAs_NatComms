@@ -2,8 +2,8 @@
 #SBATCH --job-name=NextflowQAPipeline
 #SBATCH --time=00-03:00:00
 #SBATCH --workdir=.
-#SBATCH --error=Nextflow-%j.err
-#SBATCH --output=Nextflow-%j.out
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=48
