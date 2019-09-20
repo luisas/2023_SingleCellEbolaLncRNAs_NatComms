@@ -12,7 +12,7 @@ options(stringsAsFactors = F)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Variables
-inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/02_fastqc/Zyagen_samples"
+inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data_old_luisa/02_fastqc/Zyagen_samples"
 
 # FastqQC results column names
 hm_colnames<-c("Basic Statistics",
@@ -32,13 +32,11 @@ files <- list.files(path=inpath, pattern="summary.txt", full.names=TRUE, recursi
 
 for(file in unique(gsub("*.\\d_fastqc/summary.txt", "", files))){
   info <- strsplit(strsplit(file,"/", fixed = T)[[1]][12],".", fixed = T)[[1]]
- 
-  print(fastq_summary_1)
   fastq_summary_1<-paste0(file,".1_fastqc/summary.txt")
   qc_res_1<-read.delim(fastq_summary_1,sep="\t",header = F)
   qc_res_1$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_1$V1))))
   sample_data_r1<-c(info[1],info[2],info[3],"R1",qc_res_1$number)
-  print(qc_res_1)
+
   fastq_summary_2<-paste0(file,".2_fastqc/summary.txt")
   qc_res_2<-read.delim(fastq_summary_2,sep="\t",header = F)
   qc_res_2$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_2$V1))))
@@ -85,7 +83,8 @@ names(readpair_cols)<-c("R1","R2")
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
-
+# HEATMAP FASTQC QA PLOT SUMMARY
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
 ht <- Heatmap(as.matrix(res_fastqc_df[hm_colnames[-1],]),
               col=qc_cols,
               name="",
