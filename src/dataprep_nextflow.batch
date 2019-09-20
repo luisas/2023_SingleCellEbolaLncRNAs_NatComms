@@ -21,4 +21,4 @@ module load gcc/7.2.0 hisat2
 module load java picard/2.20.0
 
 
-srun nextflow run /gpfs/scratch/bsc83/bsc83024/ebola/src/data_preparation.nf
+srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/data_preparation.nf

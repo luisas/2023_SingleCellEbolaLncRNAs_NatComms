@@ -9,7 +9,7 @@ params.dataset_bam_dir = "/gpfs/projects/bsc83/Ebola/00_RawData/pardis_shared_da
 //params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
 
 // Folder where the output directories of the pipeline will be placed
-params.output_dir = "/gpfs/projects/bsc83/Ebola/data/"
+params.output_dir = "/gpfs/projects/bsc83/Ebola/data_new/"
 //params.output_dir = "/gpfs/scratch/bsc83/bsc83024/test_output_last/"
 
 // If set to true the quality assessment will be computed with fastqc
@@ -21,7 +21,7 @@ params.assembly_prefix = "${params.assembly}".tokenize('/')[-1]
 params.ss = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/rheMac8_EBOV-Kikwit.ss.txt"
 
 
-
+params.gene_annotation = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/rheMac8_EBOV-Kikwit.bed"
 
 // -----------------------------------------------
 
@@ -54,6 +54,7 @@ assemblyForMapping = Channel.fromPath("${params.assembly}*")
 // Channel for Annotation
 annotationForMapping = Channel.fromPath("${params.ss}")
 
+gene_annotation_channel = Channel.fromPath("${params.gene_annotation}")
 
 
 
@@ -64,6 +65,7 @@ annotationForMapping = Channel.fromPath("${params.ss}")
 */
 process convert_bam_to_fastq {
 
+    tag "${complete_id}"
     storeDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$sample"
 
     input:
@@ -87,6 +89,7 @@ process convert_bam_to_fastq {
 */
 process generate_fastqc{
 
+  tag "${complete_id}"
   storeDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$sample"
 
   input:
@@ -113,6 +116,8 @@ process generate_fastqc{
 */
 process mapping_hisat{
 
+  tag "${complete_id}"
+  label 'high_memory'
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$sample"
 
   input:
@@ -122,8 +127,9 @@ process mapping_hisat{
       file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
 
   output:
-  set file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
-      file("${complete_id}.sam"), file("${complete_id}.bam") into mapped_bams
+  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
+      file("${complete_id}.sam") into mapped_sam
 
   /*
   *  --known-splicesite-infile <path>   provide a list of known splice sites
@@ -135,8 +141,54 @@ process mapping_hisat{
   script:
   """
   hisat2-align-s -x ${params.assembly_prefix} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR > ${complete_id}.sam
-  samtools sort -T $TMPDIR/${complete_id}.tmp  -O bam -o ${complete_id}.bam ${complete_id}.sam
+  """
+
+}
+
+
+process sort_and_index_bam{
+
+  tag "${complete_id}"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$sample"
+
+  input:
+  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(ss), file(summary),
+      file(sam) from mapped_sam
+
+  output:
+  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(ss), file(summary),
+      file(sam), file(bam) into (sorted_and_index_bam, sorted_indexed_bams_for_stats)
+
+  script:
+  """
+  samtools sort -T $TMPDIR/${complete_id}.tmp  -O bam -o ${complete_id}.bam ${sam}
   samtools index ${complete_id}.bam
+  """
+
+
+}
+
+
+
+process infer_strandness{
+
+  tag "${complete_id}"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$sample"
+
+  input:
+  file gene_annotation from gene_annotation_channel.collect()
+  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(ss), file(summary),
+      file(sam), file(bam) from sorted_indexed_bams_for_stats
+
+  output:
+  file "${complete_id}.inferred_strandness.txt" into inferred_experiments
+
+  script:
+  """
+  infer_experiment.py -r ${gene_annotation}  -s 1000000 -i ${bam} > ${complete_id}.inferred_strandness.txt
   """
 
 }

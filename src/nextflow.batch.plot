@@ -7,8 +7,6 @@
 #SBATCH --nodes=2
 #SBATCH --cpus-per-task=48
 #SBATCH --exclusive
-#SBATCH --constraint=highmem
-
 
 module load nextflow
 module load java
@@ -21,8 +19,7 @@ module load fastqc/0.11.5
 # For Mapping
 module load gcc/7.2.0 hisat2 samtools
 
-# for infer_experiment
-module load python/3.6.1
+#For plotting the dag Graph
+module load Graphviz
 
-
-srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/quality_assesment.nf
+srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/quality_assesment.nf -with-dag flowchart.png
