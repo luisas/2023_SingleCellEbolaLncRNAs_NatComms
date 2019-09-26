@@ -12,8 +12,8 @@ options(stringsAsFactors = F)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Variables
-inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data_old_luisa/02_fastqc/Zyagen_samples"
-
+inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/02_fastqc/Zyagen/"
+outpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/plots/02_fastqc/Zyagen"
 # FastqQC results column names
 hm_colnames<-c("Basic Statistics",
                "Per base sequence quality",
@@ -31,16 +31,16 @@ res_fastqc<-list()
 files <- list.files(path=inpath, pattern="summary.txt", full.names=TRUE, recursive=TRUE)
 
 for(file in unique(gsub("*.\\d_fastqc/summary.txt", "", files))){
-  info <- strsplit(strsplit(file,"/", fixed = T)[[1]][12],".", fixed = T)[[1]]
+  info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
   fastq_summary_1<-paste0(file,".1_fastqc/summary.txt")
   qc_res_1<-read.delim(fastq_summary_1,sep="\t",header = F)
   qc_res_1$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_1$V1))))
-  sample_data_r1<-c(info[1],info[2],info[3],"R1",qc_res_1$number)
+  sample_data_r1<-c(info[3],info[4],info[5],"R1",qc_res_1$number)
 
   fastq_summary_2<-paste0(file,".2_fastqc/summary.txt")
   qc_res_2<-read.delim(fastq_summary_2,sep="\t",header = F)
   qc_res_2$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_2$V1))))
-  sample_data_r2<-c(info[1],info[2],info[3],"R2",qc_res_2$number)
+  sample_data_r2<-c(info[3],info[4],info[5],"R2",qc_res_2$number)
   
   res_fastqc[[length(res_fastqc)+1]]<-sample_data_r1
   res_fastqc[[length(res_fastqc)+1]]<-sample_data_r2
@@ -101,7 +101,7 @@ ht <- Heatmap(as.matrix(res_fastqc_df[hm_colnames[-1],]),
                                                  show_annotation_name = T),
               cluster_rows=T,cluster_columns = T,#d696bb
               show_column_names = F)
-png(paste0(inpath,"/fastqc_res.png"),width = 900,height = 400)
+png(paste0(outpath,"/fastqc_res.png"),width = 900,height = 400)
 draw(ht)
 dev.off()
 

@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=NextflowQAPipeline
-#SBATCH --time=00-03:00:00
 #SBATCH --workdir=.
 #SBATCH --error=err/Nextflow-%j.err
 #SBATCH --output=out/Nextflow-%j.out
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 #SBATCH --constraint=highmem

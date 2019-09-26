@@ -45,6 +45,36 @@ parse_hisat2_summaryFile = function(filepath) {
   close(con)
 }
 
+parse_infer_strandness = function(file_infer) {
+  # PARSE INFERRED STRANDNESS FILE
+  failed<- "Fraction of reads failed to determine"
+  stranded <- "1++"
+  n_stranded <- "2++"
+  name_correspondence <- list()
+  name_correspondence[failed] <- "Not identified"
+  name_correspondence[stranded] <- "Stranded"
+  name_correspondence[n_stranded] <- "NOT stranded"
+  strings_to_be_matched <- list(failed, stranded, n_stranded)
+  con = file(file_infer, "r")
+  summary <- list()
+  while ( TRUE ) {
+    line = readLines(con, n = 1)
+    if ( length(line) == 0 & length(summary) > 0 ) {
+      break
+    }
+    if ( length(line) > 0){
+      for( string_to_be_matched in names(name_correspondence) ){
+        if (str_detect(line, fixed(string_to_be_matched ))){
+          key <- as.character(name_correspondence[string_to_be_matched])
+          summary[key]  <- as.numeric(strsplit(trimws(line, which ="left"),":")[[1]][2])
+        }
+      }
+    }
+  }
+  return(summary)
+  close(con)
+}
+
 
 iterate_files <- function(inpath, pattern_string){
   files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
@@ -73,27 +103,30 @@ get_info_sample <- function(file, pattern){
 ## ---- BARPLOTS MAPPED READS
 # ---------------------------------------------------------------------------------------
 
-inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/Ebola_Raquel/hisat2/Zyagen_samples"
-outpath = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/code/ebola/src/scripts/"
+inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/03_hisat/Zyagen/"
+outpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/plots/03_hisat/Zyagen"
+
+#inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/Ebola_Raquel/hisat2/Zyagen_samples"
+#outpath = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/code/ebola/src/scripts/"
 mapping_stats<-list()
 files <- list.files(path=inpath, pattern="summary.txt", full.names=TRUE, recursive=TRUE)
 
 # Extract information from each summary file
 for(file in files){
   # Extract tissue, sample and lane from filename of the hisat2 mapping reports
-  info <- strsplit(strsplit(file,"/", fixed = T)[[1]][13],".", fixed = T)[[1]]
-  tissue <- info[1]
-  sample <- info[2]
-  lane <- info[3]
+  info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
+  tissue <- info[3]
+  sample <- info[4]
+  lane <- info[5]
   sample_name=paste(sample,tissue,lane,sep=".")
 
   res_path <- paste(inpath,tissue,sample,sep="/")
-  res_file <- paste0(res_path,"/",paste(tissue,sample,lane,"hisat2_summary.txt",sep="."))
+  #res_file <- paste0(res_path,"/",paste(tissue,sample,lane,"hisat2_summary.txt",sep="."))
   # Get mapped reads summary
-  summary <- parse_hisat2_summaryFile(res_file)
+  summary <- parse_hisat2_summaryFile(file)
   
   # Error handling 
-  if(! file.exists(res_file)){print(paste0("File does not exits ",file))}
+  if(! file.exists(file)){print(paste0("File does not exits ",file))}
   
   # Extract the informations
   mapping_stats[[sample_name]]<- c(as.numeric(summary[names(summary)[c(1:4)]])*2, 
@@ -103,8 +136,7 @@ for(file in files){
                                    as.numeric(summary[names(summary)[c(5:6)]])) 
                                    # only one mapped mate of the PE, here one mate (either R1 or R2) is one count
 }
-summary
-mapping_stats_df
+
 # Prepare data structure for plotting
 mapping_stats_df<-do.call(cbind.data.frame,mapping_stats)
 rownames(mapping_stats_df)<-  mapping_stats[[sample_name]]<-report <- names(summary)
@@ -113,7 +145,7 @@ mapping_stats_df["Unmapped",]<-as.numeric(mapping_stats_df[1,])-apply(mapping_st
 
 # -------- plot 
 create_barplots_reads_mapping <- function(mapping_stats_df) {
-  png(paste0(outpath,"hisat2_mapping_report.png"),width = 1200,height = 500)
+  png(paste0(outpath,"/hisat2_mapping_report.png"),width = 1200,height = 500)
   options(scipen=999)
   par(mfrow=c(1,2),oma=c(12,4,0,0),mar=c(2,2,2,2),xpd=NA)
   # First Barplot
@@ -127,52 +159,44 @@ create_barplots_reads_mapping <- function(mapping_stats_df) {
   legend(-50,-0.6,rownames(mapping_stats_df)[-1],bty="n",pch=15,col=brewer.pal(6,"Paired"),ncol=2,cex=1.1)
   dev.off() 
 }
+
 create_barplots_reads_mapping(mapping_stats_df)
 # -------- finish plot 
 # ---------------------------------------------------------------------------------------
 
 
 
-
-
-# ----------------- BARPLOT INFERREDN STRANDNESS 
+# ----------------- BARPLOT INFERRED STRANDNESS 
 ####### TO BE CHANGED
-inpath_batch1="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/Ebola_Raquel/hisat2/Batch_01"
+inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data_new_2/03_hisat/Zyagen"
 pattern_infer = "inferred_strandness.txt"
-infer_strandness_files <- iterate_files(inpath_batch1, pattern_infer)
+infer_strandness_files <- iterate_files(inpath, pattern_infer)
 
+infer_stat <- list()
 # Extract info strandness
-for(file in infer_strandness_files){
+for(file_infer in infer_strandness_files){
   # Extract tissue, sample and lane from filename of the hisat2 mapping reports
-  c(tissue,sample,lane, sample_name, res_file)  %<-% get_info_sample(file,pattern_infer )
+  c(tissue,sample,lane, sample_name, res_file)  %<-% get_info_sample(file_infer,pattern_infer )
   # Error handling 
-  if(! file.exists(res_file)){print(paste0("File does not exits ",file))}
-  
-  # PARSE INFERRED STRANDNESS FILE
-  
-  failed<- "Fraction of reads failed to determine:"
-  stranded <- "Fraction of reads explained by \"1++,1--,2+-,2-+\""
-  n_stranded <- "Fraction of reads explained by \"1+-,1-+,2++,2--\""
-  strings_to_be_matched <- list(failed, stranded, n_stranded)
-  con = file(res_file, "r")
-  summary <- list()
-  while ( TRUE ) {
-    line = readLines(con, n = 1)
-    if ( length(line) == 0 ) {
-      break
-    }
-    for( string_to_be_matched in strings_to_be_matched ){
-      if (str_detect(line, string_to_be_matched )){
-        summary[string_to_be_matched] <- as.numeric(strsplit(trimws(line, which ="left"),":")[[1]][1])
-      }
-    }
-  }
-  return(summary)
-  close(con)
+  if(! file.exists(file_infer)){print(paste0("File does not exits ",file_infer))}
+  summary <- parse_infer_strandness(file_infer)
+  infer_stat[[sample_name]]<- c(as.numeric(summary[c(1:3)])) 
 }
+# Prepare data structure for plotting
+infer_stat_df<-do.call(cbind.data.frame,infer_stat)
+rownames(infer_stat_df)<-  mapping_stats[[sample_name]]<-report <- names(summary)
 
-
-
+create_barplot_infer_strandness <- function(infer_stat) {
+  png(paste0(outpath,"infer_hisat2_report2.png"),width = 1400,height = 500)
+  # First Barplot
+  options(scipen=999)
+  par(mfrow=c(1,1),oma=c(12,4,0,0),mar=c(6,2,2,15),xpd=NA)
+  barplot(as.matrix(infer_stat_df),yaxt="n", col=brewer.pal(3,"Paired"),las=2,yaxt='n', main="Inferred strandness")
+  axis(2,at=seq(0,1,0.2))
+  legend(77,0.8,rownames(infer_stat_df),bty="n",pch=15,col=brewer.pal(3,"Paired"),cex=1.1)
+  dev.off() 
+}
+create_barplot_infer_strandness(infer_stat)
 
 
 

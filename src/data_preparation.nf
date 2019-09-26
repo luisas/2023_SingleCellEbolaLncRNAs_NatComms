@@ -7,16 +7,18 @@
 * Moreover it generates the index necessary for running hisat2.
 *
 */
-
+log.info "=============================================="
+log.info "Data preparation Pipeline"
+log.info "=============================================="
 
 // ------------ INPUT PARAMETERS -----------------------
 params.prefix_rawdata = "/gpfs/projects/bsc83/Ebola/00_RawData/"
 params.rhesus_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/rheMac8.fa"
 params.ebov_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
 params.rheMac8_annotation_gz_file = "/gpfs/projects/bsc83/gene_annotation/ensembl_release97/rheMac8/Macaca_mulatta.Mmul_8.0.1.97.gtf.gz"
-params.chromAlias = "/gpfs/projects/bsc83/Ebola/00_InformationFiles/gene_annotations/chromAlias.txt"
+params.chromAlias = "/gpfs/projects/bsc83/Ebola/data/00_RawInfoFiles/chromAlias.txt"
 
-params.output_dir = "/gpfs/projects/bsc83/Ebola/data/"
+params.output_dir = "/gpfs/projects/bsc83/Ebola/data/01_PreliminaryFiles/"
 params.prefix = "rheMac8_EBOV-Kikwit"
 params.scripts="${baseDir}/scripts/"
 
@@ -93,7 +95,7 @@ process create_hisat2_indexes{
 */
 process create_dictionary{
 
-  storeDir "${params.output_dir}/indexes/hisat2"
+  storeDir "${params.output_dir}/reference_assembly/"
 
   input:
   file assembly from merged_assembly_for_dictionary
@@ -118,7 +120,6 @@ process modify_identifiers_annotation_rheMac{
 
   input:
   set  annotation_name, file(rheMac8_annotation_gz) from rheMac8_annotation_gz_channel
-  file ensembl_correspondence from ensembl_correspondence_channel
   file chromAlias from chromAliasChannel
   file scripts
 
@@ -138,7 +139,7 @@ process modify_identifiers_annotation_rheMac{
   # Complete parsing
   cat <(zcat  ${rheMac8_annotation_gz} | awk '{if(\$1~/^#/)print}') <( paste ${annotation_name}.column1-8.ucsc_chrom_names.txt ${annotation_name}.column9.txt) > rheMac8.ensembl_release97.gtf
   # Parse to tab delimited
-  cat rheMac8.ensembl_release97.gtf |  ${scripts}/gtf2bed.py > rheMac8.ensembl_release97.tab
+  cat rheMac8.ensembl_release97.gtf | python ${scripts}/gtf2bed.py > rheMac8.ensembl_release97.tab
   """
 }
 
@@ -163,6 +164,24 @@ process merge_annotations{
 
 }
 
+
+process convert_gtf_to_bed12{
+  storeDir "${params.output_dir}/gene_annotations"
+
+  input:
+  file merged_annotation from merged_annotation_channel_2
+  file gtfToGenePred_script from gtfToGenePred_script_channel
+
+  output:
+  file "${params.prefix}.bed" into bed_channel
+
+  script:
+  """
+  ./${gtfToGenePred_script} ${merged_annotation} ${params.prefix}.tmp.bed
+  awk '{OFS="\t";print \$2,\$4,\$5,\$1,0,\$3,\$6,\$7,0,\$8,\$9,\$10}' ${params.prefix}.tmp.bed > ${params.prefix}.bed
+  """
+}
+
 /*
 * Extract exons and splice sites for annotated genes
 */
@@ -178,79 +197,30 @@ process extract_exons_ss{
 
  shell:
  '''
- pyhton !{extract_ss} !{merged_annotation} > !{params.prefix}.ss.txt
- python !{extract_exon} !{merged_annotation} > !{params.prefix}.exon.txt
+ ./!{extract_ss} !{merged_annotation} > !{params.prefix}.ss.txt
+ ./!{extract_exon} !{merged_annotation} > !{params.prefix}.exon.txt
  '''
 }
 
 
 
-/*
-* Create hisat2 indexes with exons and splicing sites information.
-*/
-process hisat2_ss_exon{
-
-  storeDir "${params.output_dir}/indexes/hisat2_ss_exon"
-
-  input:
-  set file(extracted_ss), file(extracted_exons) from extracted_exons_ss_channel
-  file merged_assembly from merged_assembly_2
-
-  output:
-  file "${params.prefix}.*" into hisat2_ss_exon_indexes
-
-  script:
-  """
-  hisat2-build -p 8 --ss ${extracted_ss}  --exon ${extracted_exons} ${merged_assembly_2} ${params.prefix}
-  """
-}
-
-
-
-
-// ------------------------------------
-// ------------------------------------
-// DO NOT DELETE YET!
-// ------------------------------------
-// ------------------------------------
-
-
-// process parse_identifiers_correspondence{
-//   storeDir "${params.output_dir}/gene_annotations"
+// /*
+// * Create hisat2 indexes with exons and splicing sites information.
+// */
+// process hisat2_ss_exon{
+//
+//   label 'big_mem'
+//   storeDir "${params.output_dir}/indexes/hisat2_ss_exon"
 //
 //   input:
-//   file chromAlias from chromAliasChannel
+//   set file(extracted_exons), file(extracted_ss) from extracted_exons_ss_channel
+//   file merged_assembly from merged_assembly_2
 //
 //   output:
-//   file "ensembl.ucsc.chrom_names_correspondance.tab" into ensembl_correspondence_channel
+//   file "${params.prefix}.*" into hisat2_ss_exon_indexes
 //
 //   script:
 //   """
-//   cat ${chromAlias}| awk '{ if (\$3 ~  /ensembl/) { print } }' | cut -f'1,2' > ensembl.ucsc.chrom_names_correspondance.tab
-//   """
-// }
-
-
-
-// //# 4. Convert GFT to BED12
-// //#/gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred rheMac8.ensembl_release97.gtf rheMac8.ensembl_release97.bed
-// //#/gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred /gpfs/projects/bsc83/Ebola/data/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf EBOV-Kikwit.bed
-// ///gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred rheMac8_EBOV-Kikwit.gtf rheMac8_EBOV-Kikwit.tmp.bed
-// //awk '{OFS="\t";print $2,$4,$5,$1,0,$3,$6,$7,0,$8,$9,$10}' rheMac8_EBOV-Kikwit.tmp.bed > rheMac8_EBOV-Kikwit.bed # This is the format required by infer_experiment.py from RNASeqQC
-//
-// process convert_gtf_to_bed12{
-//   storeDir "${params.output_dir}/gene_annotations"
-//
-//   input:
-//   file merged_assembly from merged_annotation_channel_2
-//   file gtfToGenePred_script from gtfToGenePred_script_channel
-//
-//   output:
-//   file "${params.prefix}.bed" into bed_channel
-//
-//   script:
-//   """
-//   bash ${gtfToGenePred_script} ${merged_assembly} ${params.prefix}.tmp.bed
-//   awk '{OFS="\t";print \$2,\$4,\$5,\$1,0,\$3,\$6,\$7,0,\$8,\$9,\$10}' ${params.prefix}.tmp.bed > ${params.prefix}.bed
+//   hisat2-build -p 8 --ss ${extracted_ss}  --exon ${extracted_exons} ${merged_assembly} ${params.prefix}
 //   """
 // }

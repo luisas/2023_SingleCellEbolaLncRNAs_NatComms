@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowQAPipeline
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --nodes=2
+#SBATCH --cpus-per-task=48
+#SBATCH --exclusive
+#SBATCH --qos=debug
+
+module load nextflow
+module load java
+module load curl
+
+# For conversion
+module load java picard/2.20.0
+# For quality assessment
+module load fastqc/0.11.5
+# For Mapping
+module load gcc/7.2.0 hisat2 samtools
+
+# for infer_experiment
+module load python/3.6.1
+
+
+srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/quality_assesment.nf

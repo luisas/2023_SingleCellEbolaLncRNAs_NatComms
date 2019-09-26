@@ -1,0 +1,10 @@
+src/plots/*
+*.log
+*.DS_Store
+src/work/*
+.nextflow*
+src/err/*
+src/out/*
+src/flowcharts/*
+*.png
+test.nf
