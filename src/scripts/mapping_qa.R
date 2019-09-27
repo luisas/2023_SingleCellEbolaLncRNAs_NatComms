@@ -92,6 +92,8 @@ get_info_sample <- function(file, pattern){
   res_file <- paste0(res_path,"/",paste(tissue,sample,lane,pattern,sep="."))
   return(c(tissue,sample,lane, sample_name, res_file))
 }
+
+
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # HISAT 2 MAPPING RESULTS
@@ -117,7 +119,7 @@ for(file in files){
   info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
   tissue <- info[3]
   sample <- info[4]
-  lane <- info[5]
+  lane <- strsplit(info[5],".", fixed = T)[[1]][1]
   sample_name=paste(sample,tissue,lane,sep=".")
 
   res_path <- paste(inpath,tissue,sample,sep="/")
@@ -156,7 +158,7 @@ create_barplots_reads_mapping <- function(mapping_stats_df) {
   axis(2,at=seq(0,1,0.2))
   # Plot
   ?legend
-  legend(-50,-0.6,rownames(mapping_stats_df)[-1],bty="n",pch=15,col=brewer.pal(6,"Paired"),ncol=2,cex=1.1)
+  legend(-35,-0.6,rownames(mapping_stats_df)[-1],bty="n",pch=15,col=brewer.pal(6,"Paired"),ncol=2,cex=1.1)
   dev.off() 
 }
 
@@ -187,7 +189,7 @@ infer_stat_df<-do.call(cbind.data.frame,infer_stat)
 rownames(infer_stat_df)<-  mapping_stats[[sample_name]]<-report <- names(summary)
 
 create_barplot_infer_strandness <- function(infer_stat) {
-  png(paste0(outpath,"infer_hisat2_report2.png"),width = 1400,height = 500)
+  png(paste0(outpath,"/inferred_strandness_hisat2.png"),width = 1400,height = 500)
   # First Barplot
   options(scipen=999)
   par(mfrow=c(1,1),oma=c(12,4,0,0),mar=c(6,2,2,15),xpd=NA)
@@ -201,20 +203,62 @@ create_barplot_infer_strandness(infer_stat)
 
 
 
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+
+# BARBLOT COUNTS
+inpath_counts="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/Ebola_Raquel/hisat2/Zyagen_samples"
+outpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/plots/03_hisat/Zyagen"
+pattern_counts = ".UMI.f3.q60.n_reads.txt"
+counts_files <- iterate_files(inpath_counts, pattern_counts)
+
+
+get_info_sample_counts <- function(file, pattern){
+  info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),".", fixed = T)[[1]]
+  tissue <- info[1]
+  sample <- info[2]
+  sample_name=paste(tissue,sample,sep=".")
+  return(c(tissue,sample, sample_name))
+}
+# Extract count files
+
+counts <- list()
+for(file_counts in counts_files){
+  # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+  c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+  # Error handling 
+  if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
+  counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
+}
+counts_df<-do.call(cbind.data.frame,
+                   lapply(1:length(counts), function(i) counts[[i]][,2]))
+rownames(counts_df)<-counts[[1]][,1]
+colnames(counts_df)<-names(counts)
 
 
 
+# Barplots 
+png(paste0(outpath,"/counts.png"),width = 1400,height = 500)
+options(scipen=999)
+par(mfrow=c(1,2))
+par(oma=c(8,2,0,0),xpd=NA)
+barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+#barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+
+barplot(as.matrix(apply(counts_df[-c(1,6),],2,function(x) x/sum(x))),las=2,col=brewer.pal(5,"Dark2"))
+axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+legend(-17,1.2,rownames(counts_df)[-c(1,6)],col=brewer.pal(5,"Dark2"),pch=15,bty="n",ncol=5)
+dev.off() 
 
 
-
-
-
-
-
-
-
-
-
-
+# Plotting read mapping to the ebov virus
+png(paste0(outpath,"/ebov_counts.png"),width = 1400,height = 500)
+par(oma=c(8,2,0,0))
+barplot(as.matrix(counts_df[6,]),las=2,yaxt='n',main="No. of filtered PE reads mapped to EBOV")
+axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+dev.off()
 
 

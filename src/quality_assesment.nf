@@ -1,35 +1,43 @@
 #!/usr/bin/env nextflow
 
 /*
- * Nextflow pipeline for quality assessment of RNA-seq data.
+ * TODO COPYRIGHT
  */
+
  log.info "=============================================="
  log.info "RNASeq analysis pipeline for Zyagen Samples"
  log.info "=============================================="
 
-// ------------  INPUT PARAMETERS -------------
-//params.dataset_bam_dir = "/gpfs/projects/bsc83/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
-params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
+ /* --------------------------------------
+  *  INPUT PARAMETERS defaults
+  * --------------------------------------
+  */
+// Unmapped bam files folder - RAW DATA
+params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
+//params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
 
 // Folder where the output directories of the pipeline will be placed
-//params.output_dir = "/gpfs/projects/bsc83/Ebola/data/02_RNA-Seq/"
-params.output_dir = "/gpfs/projects/bsc83/Ebola/test_data/02_RNA-Seq_2/"
+params.output_dir = "/gpfs/projects/bsc83/Ebola/data/02_RNA-Seq/"
+//params.output_dir = "/gpfs/projects/bsc83/Ebola/test_data/02_test/"
+
+
+params.preliminary_files_dir="/gpfs/projects/bsc83/Ebola/data/01_PreliminaryFiles"
+params.assembly_name = "rheMac8_EBOV-Kikwit"
+
+// This ones should be automatically retrieved but can be changed in need
+params.reference_assembly = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.fa"
+// Dictionary
+params.dict = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.dict"
+// Indexes
+params.hisat2_indexes = "${params.preliminary_files_dir}/indexes/hisat2/${params.assembly_name}"
+// Known splice sites
+params.ss = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.ss.txt"
+// Gene annotation
+params.gene_annotation = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed"
 
 // If set to true the quality assessment will be computed with fastqc
 params.fastqc=true
-params.mapping_statistics=true
-// params needed for mapping
-params.reference_assembly = "/gpfs/projects/bsc83/Ebola/data/01_PreliminaryFiles/reference_assembly/rheMac8_EBOV-Kikwit.fa"
-// TODO change naming
-params.preliminary_files_dir="/gpfs/projects/bsc83/Ebola/data/01_PreliminaryFiles"
-params.assembly = "${params.preliminary_files_dir}/indexes/hisat2/rheMac8_EBOV-Kikwit"
-params.assembly_prefix = "${params.assembly}".tokenize('/')[-1]
-// splicing
-params.ss = "${params.preliminary_files_dir}/gene_annotations/rheMac8_EBOV-Kikwit.ss.txt"
-// Gene annotation
-params.gene_annotation = "${params.preliminary_files_dir}/gene_annotations/rheMac8_EBOV-Kikwit.bed"
 
-params.dict = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_prefix}.dict"
 // -----------------------------------------------
 
 /* Channel for all the unmapped bam files present in any of the dataset_bam_dir
@@ -41,7 +49,7 @@ params.dict = "${params.preliminary_files_dir}/reference_assembly/${params.assem
 * - dayPostInfection
 * - tissue
 * - sample
-* - complete_id (${tissue}.${sample}.l${lane_number})
+* - complete_id (${dataset_name}_${dayPostInfection}_${tissue}_${sample}_l${lane_number})
 * - the file itself.
 */
 dataset_bam = Channel
@@ -53,23 +61,37 @@ dataset_bam = Channel
                            it.baseName.split('_')[1],
                            it.baseName.split('_')[2].split('-')[0],
                            it.baseName.split('_')[2].split('-')[1],
-                           it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                           it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
                            it ) }
 
+
+// the unmapped_bam channel contains the exact same files as the dataset_bam one.
+// It only differs in the values that it maps to it, in this case only the complete_id.
+// It is used for the add_unmapped_bam process.
 unmapped_bams = Channel
                 .fromPath("${params.dataset_bam_dir}/*_long.bam")
                 .ifEmpty('bam files directory is empty')
                 .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
                             it)}
 
-// Channel for the Assembly
-assemblyForMapping = Channel.fromPath("${params.assembly}*")
+// Channel for the Indexes
+indexesForMapping = Channel.fromPath("${params.hisat2_indexes}*")
+//Channel for the reference assembly
 reference_assembly_channel = Channel.fromPath("${params.reference_assembly}*")
-// Channel for Annotation
-annotationForMapping = Channel.fromPath("${params.ss}")
+// Channel for known splice sites
+known_ss = Channel.fromPath("${params.ss}")
 
-gene_annotation_channel = Channel.fromPath("${params.gene_annotation}")
+Channel.fromPath("${params.gene_annotation}")
+                                 .into{ gene_annotation_channel; gene_annotation_channel_2}
 dictionary_channel = Channel.fromPath("${params.dict}")
+
+
+/*  ----------------------------------------------------------------------
+*   ----------------------------------------------------------------------
+*                       BEGINNING OF THE PIPELINE
+*   ----------------------------------------------------------------------
+*   ----------------------------------------------------------------------
+*/
 
 
 /*
@@ -81,7 +103,7 @@ process convert_bam_to_fastq {
 
     tag "${complete_id}"
     //publishDir  "${params.output_dir}/01_fastq/$dataset_name/$tissue/$dayPostInfection/$sample"
-    storeDir "${params.output_dir}/01_fastq/${dataset_name}/$tissue/$dayPostInfection/$sample"
+    publishDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$dayPostInfection/$sample" , mode: 'copy'
 
     input:
     set lane,lane_number, dataset_name, dayPostInfection, tissue, sample,complete_id, file(unmapped_bam) from dataset_bam
@@ -100,12 +122,12 @@ process convert_bam_to_fastq {
 }
 
 /*
-* STEP 2.1: Generate quality assessment with fastqc.
+* STEP 2: Generate quality assessment with fastqc.
 */
 process generate_fastqc{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/02_fastqc/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   when:
   params.fastqc
@@ -127,17 +149,21 @@ process generate_fastqc{
 
 
 /*
-* STEP 2.2: Map, sort and index
+* STEP 3.1: Mapping with HISAT.
+* It maps the reads of the generated fastq files
+* to the assembly defined in params.assembly
+* The indexes were computed WITHOUT the help of known splice sites
+* the known splice sites are now used as input for the mapper.
 */
 process mapping_hisat{
 
   label 'big_mem'
   tag "${complete_id}"
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample" , mode: 'copy'
 
   input:
-  file assembly from assemblyForMapping.collect()
-  file ss from annotationForMapping.collect()
+  file indexes from indexesForMapping.collect()
+  file ss from known_ss.collect()
   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
 
@@ -155,18 +181,22 @@ process mapping_hisat{
 
   script:
   """
-  hisat2-align-s -x ${params.assembly_prefix} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR > ${complete_id}.sam
+  hisat2-align-s -x ${params.assembly_name} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR > ${complete_id}.sam
   """
 
 }
 
 /*
-* STEP 2.2: sort and index
+* STEP 3.2: Sort and index the mapped bam files
+*
+* The sorting is done with picard as we encountered some problems when running
+* samtools and afterwards other picardTools on top of the sorted bam.
+* TODO add the indexing
 */
 process sort_and_index_bam{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
 
   input:
@@ -177,49 +207,65 @@ process sort_and_index_bam{
   output:
   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(ss), file(summary),
-      file(sam), file("${complete_id}.bam") into (sorted_and_index_bam, sorted_indexed_bams_for_stats)
+      file(sam), file("${complete_id}.bam"), file("${complete_id}.bam.bai") into (sorted_and_index_bam, sorted_indexed_bams_for_stats)
 
 
   script:
   """
-  java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar SortSam INPUT=${sam} OUTPUT=${complete_id}.bam SORT_ORDER=coordinate
+  samtools sort ${sam} -T ${complete_id}.tmp  -O bam -o ${complete_id}.bam
+  samtools index ${complete_id}.bam
   """
-
-
 }
 
+//java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar SortSam INPUT=${sam} OUTPUT=${complete_id}.bam SORT_ORDER=cordinate
+//java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar BuildBamIndex I=${complete_id}.bam
+
 /*
-* Add UMIs
+* STEP 4: Merge bam alignments -  Add UMIs
+*
+* After having converted the unmapped bam files into fastq we have lost
+* relevant information like UMIs info.
+* We now merge the unmapped and the mapped bam files to retrieve information
+* about the UMIs.
 */
-//samtools sort -T $TMPDIR/${complete_id}.tmp -n -O bam -o ${complete_id}.bam ${sam}
-//samtools index ${complete_id}.bam
-// getting by complete_id
-// See how channel were built - complete id is always in the -2 position
+
+// We join the mapped and unmapped channel by complete_id.
+// See how channel were built at the beginning - complete id is always in the -2 position
 unmapped_and_mapped_bams = sorted_and_index_bam.join(unmapped_bams, by:-2)
 
-process MergeBamAlignment{
+process add_unmapped_bam{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04_hisatTest/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(ss), file(summary),
-      file(sam), file(bam),
+      file(sam), file(bam),file(bai),
       complete_id_unmapped, file(unmapped_bam) from unmapped_and_mapped_bams
-  file assembly from reference_assembly_channel
-  file dict from dictionary_channel
+  file assembly from reference_assembly_channel.collect()
+  file dict from dictionary_channel.collect()
 
   output:
   file ("${complete_id}.UMI.bam") into merged_bam_alignments_channel
 
   script:
   """
-  java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MergeBamAlignment UNMAPPED=${unmapped_bam} ALIGNED=${bam} O=${complete_id}.UMI.bam R=${assembly} SO=coordinate ALIGNER_PROPER_PAIR_FLAGS=true MAX_GAPS=-1 ORIENTATIONS=FR CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT
+  # sort and index the unmapped_bam
+  samtools sort ${unmapped_bam} -T ${complete_id}_long.tmp  -O bam -o ${complete_id}_unmapped.bam
+  samtools index ${complete_id}_unmapped.bam
+  java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MergeBamAlignment UNMAPPED=${complete_id}_unmapped.bam ALIGNED=${bam} O=${complete_id}.UMI.bam R=${assembly} SO=coordinate ALIGNER_PROPER_PAIR_FLAGS=true MAX_GAPS=-1 ORIENTATIONS=FR CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT
   """
 }
 
+//java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar SortSam INPUT=${unmapped_bam} OUTPUT=${complete_id_unmapped}-long-sorted.bam SORT_ORDER=coordinate
+//java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar BuildBamIndex -I=${complete_id_unmapped}-long-sorted.bam
 
+
+
+
+// In this channel we group the files by the complete_id after removing the lane.
+// We have now a set of bams per sample from all the lanes.
 merged_bam_alignments_channel.map { file ->
         def key = file.name.toString().tokenize('_').init()
         key_string = key.join("_")
@@ -235,21 +281,31 @@ merged_bam_alignments_channel.map { file ->
                  it.get(1))}
     .set{ groups_lanes }
 
-// Merge lanes in one
-process mergeBAMperLane{
+/*
+* Step 5 Merge lanes
+* Each sample has 4 lanes.
+* We need to merge all of them into one.
+*
+* Aaron's mail
+* We prepared both the old and new Zyagen samples at the same time with the s
+* same library prep. We introduce UMIs at the adaptor ligation step, prior to any PCR.
+* The bam files in the recent run folder represent a single library prep per
+* sample, sequenced over four lanes, for both the old and new Zyagen samples.
+* So we should merge bams for all four lanes, and then
+*/
+process merge_lanes{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04_hisatTest/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(samples) from groups_lanes
 
   output:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.bam"), file("${complete_id}.UMI.bai") into merged_bylanes
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.bam"), file("${complete_id}.UMI.bam.bai") into merged_bylanes
 
   script:
   """
-  #samtools merge -f ${key}.UMI.bam  ${outpath}/${sample_name}.l1.UMI.bam  ${outpath}/${sample_name}.l2.UMI.bam  ${outpath}/${sample_name}.l3.UMI.bam  ${outpath}/${sample_name}.l4.UMI.bam
   samtools merge -f ${complete_id}.UMI.bam  ${samples}
   # Merge mapped bam files with UMI info
   samtools index  ${complete_id}.UMI.bam
@@ -259,16 +315,24 @@ process mergeBAMperLane{
 
 // Filter put bams - now it is stringent
 
-process filterBam{
+/*
+*   STEP 6 filter bams
+*   Filter low-quality reads and retain properly-paired uniquely mapped reads
+*   f3 : read paired & read mapped in proper pair
+*   q60: 60 should be mapped TODO check properly
+*   Now it is a stringent filtering. We may wanna make it looser for the lncRNA
+*   annotation pipeline.
+*/
+process filter_bams_samtools{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04_hisatTest/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(merged_bam), file(bai_mereged_bam) from merged_bylanes
 
   output:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.f3.q60.bam") into (filtered_merged_bams_1, filtered_merged_bams_2)
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.f3.q60.bam"), file("${complete_id}.UMI.f3.q60.bam.bai") into (filtered_merged_bams_1, filtered_merged_bams_2)
 
   script:
   """
@@ -277,42 +341,46 @@ process filterBam{
   """
 }
 
+/*
+* STEP 7A : Mark duplicates with picard
+* we probably need to delete it.
+*/
 
-// Standard marking duplicates -- prob we need to delete it
-
-process MarkDuplicates{
+process MarkDuplicates_picard{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04_hisatTest/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam) from filtered_merged_bams_1
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) from filtered_merged_bams_1
 
   output:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,file("${complete_id}.md.bam"), file("${complete_id}.md_metrics.bam") into marked_d_bams
 
   script:
   """
-  java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${filtered_bam} O=${complete_id}.md.bam M=${complete_id}.md_metrics.bam REMOVE_DUPLICATES=false ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
+  java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${filtered_bam} O=${complete_id}.UMI.f3.q60.md.bam M=${complete_id}.UMI.f3.q60.md_metrics.bam REMOVE_DUPLICATES=false ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
   """
 }
 
 
-//dedup duplicates using UMI
+/*
+* STEP 7B : Dedup duplicate using UMIs
+*/
 
 process dedupUmi{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04_hisatTest/$dataset_name/$tissue/$dayPostInfection/$sample"
+  label 'big_mem'
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam) from filtered_merged_bams_2
-
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) from filtered_merged_bams_2
 
   output:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file("${complete_id}.UMI.f3.q60.umi_dedup.bam"),
-      file("${complete_id}.UMI.f3.q60.umi_dedup.bai") into dedup_umi_bams
+      file("${complete_id}.UMI.f3.q60.umi_dedup.bam.bai") into (dedup_umi_bams, dedup_umi_bams_for_count, dedup_umi_bams_for_distr)
 
   script:
   """
@@ -322,13 +390,17 @@ process dedupUmi{
 
 }
 
-
+/*
+*  STEP 8.1 count reads per chromosome to grasp an overview.
+*/
 process getCountsUMIs{
+
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(umi_bam),
-      file(umi_bai) from dedup_umi_bams
+      file(umi_bai) from dedup_umi_bams_for_count
 
   output:
   file "counts/*" into counts_umis
@@ -348,64 +420,46 @@ process getCountsUMIs{
   n_EBOV=`samtools view  ${umi_bam} EBOV_Kikwit -c`
   n_chrUn=`samtools view ${umi_bam} | awk '{if(\$3~/chrUn/)print}' | wc -l | awk '{print \$1}'`
 
-  echo -e "Total\t"\${n} > counts/${complete_id}.n_reads.txt
-  echo -e "Autosomes\t"\${n_autosomes} >> counts/${complete_id}.n_reads.txt
-  echo -e "chrX\t"\${n_chrX} >> counts/${complete_id}.n_reads.txt
-  echo -e "chrY\t"\${n_chrY} >> counts/${complete_id}.n_reads.txt
-  echo -e "chrM\t"\${n_chrM} >> counts/${complete_id}.n_reads.txt
-  echo -e "EBOV\t"\${n_EBOV} >> counts/${complete_id}.n_reads.txt
+  echo -e "Total\t"\${n} > counts/${complete_id}.UMI.f3.q60.n_reads.txt
+  echo -e "Autosomes\t"\${n_autosomes} >> counts/${complete_id}.UMI.f3.q60.n_reads.txt
+  echo -e "chrX\t"\${n_chrX} >> counts/${complete_id}.UMI.f3.q60.n_reads.txt
+  echo -e "chrY\t"\${n_chrY} >> counts/${complete_id}.UMI.f3.q60.n_reads.txt
+  echo -e "chrM\t"\${n_chrM} >> counts/${complete_id}.UMI.f3.q60.n_reads.txt
+  echo -e "EBOV\t"\${n_EBOV} >> counts/${complete_id}.UMI.f3.q60.n_reads.txt
   """
 }
 
+
 /*
-* STEP 3: stats
+*  STEP 8.2 get read distribution numbers
 */
 
-// process mapping_stats{
-//
-//   tag "${complete_id}"
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
-//
-//   when:
-//   params.mapping_statistics
-//
-//   input:
-//   file gene_annotation from gene_annotation_channel.collect()
-//   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(ss), file(summary),
-//       file(sam), file(bam) from sorted_indexed_bams_for_stats
-//
-//   output:
-//   set file("infer_experiment/*"), file("clipping_profile/*") into reseqstats
-//
-//
-//   script:
-//   """
-//
-//   geneBody_coverage.py -i ${bam_files} -r /gpfs/projects/bsc83/Ebola/data/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8_EBOV-Kikwit/RefSeq/rheMac8_EBOV-Kikwit.bed -o geneBody_coverage
-//
-//   ## INFER EXPERIMENT
-//   mkdir infer_experiment
-//   infer_experiment.py -r ${gene_annotation}  -s 1000000 -i ${bam} > infer_experiment/${complete_id}.inferred_strandness.txt
-//
-//
-//   # CLIPPING PROFILE
-//   # hisat2 only 3 mapping qualities: 0 (unmapped), 1(multiply mapped) and 60(uniquely mapped)
-//   mkdir clipping_profile
-//   clipping_profile.py -i ${bam} -o clipping_profile/${complete_id} -q 60 -s PE
-//
-//   #FPKM count
-//   mkdir fpkmCount
-//   FPKM_count.py -i ${bam}-o fpkmCount/${complete_id} -r ${gene_annotation} -d '1++,1--,2+-,2-+' -u -e -q 60 --single-read=0
-//
-//
-//   # MARK duplicates
-//   # duplicates are marked with flagstat 1024
-//   mdkir markedDuplicates
-//   java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${bam} O=markedDuplicates/${complete_id}.md.bam M=markedDuplicates/${complete_id}.md_metrics.bam REMOVE_DUPLICATES=false ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
-//   """
-//
-// }
+process getReadDistribution{
+
+  publishDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample", mode: 'copy'
+
+  input:
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(umi_bam),
+      file(umi_bai) from dedup_umi_bams_for_distr
+  file(gene_annotation) from gene_annotation_channel_2.collect()
+
+  output:
+  file "read_distribution/*" into read_distribution_channel
+
+  script:
+  """
+  mkdir read_distribution
+  read_distribution.py -i ${umi_bam} -r ${gene_annotation} > read_distribution/${complete_id}.UMI.f3.q60.read_distribution.txt
+  """
+}
+// -----------------------------------------------------------------------------
+
+
+/*   -------------------------------
+*           Groovy Functions
+*    -------------------------------
+*/
 
 def remove_lane_from_id(String id){
   return id.split("_").init().join("_")

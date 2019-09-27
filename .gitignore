@@ -7,4 +7,5 @@ src/err/*
 src/out/*
 src/flowcharts/*
 *.png
+work/*
 test.nf
