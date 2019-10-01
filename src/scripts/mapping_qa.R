@@ -262,3 +262,8 @@ axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
 dev.off()
 
 
+
+# To be tested 
+# Plotting read distribution 
+
+

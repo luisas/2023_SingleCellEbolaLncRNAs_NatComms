@@ -3,7 +3,7 @@
 #SBATCH --workdir=.
 #SBATCH --error=err/Nextflow-%j.err
 #SBATCH --output=out/Nextflow-%j.out
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 #SBATCH --constraint=highmem
@@ -23,5 +23,9 @@ module load gcc/7.2.0 hisat2 samtools
 # for infer_experiment
 module load python/3.6.1
 
+# for the novo assembly
+module load stringtie/1.3.6
 
-srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/quality_assesment.nf
+
+
+srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/RnaSeqAnalysis.nf
