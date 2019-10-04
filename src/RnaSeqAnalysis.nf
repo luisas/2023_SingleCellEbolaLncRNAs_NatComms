@@ -89,7 +89,7 @@ dictionary_channel = Channel.fromPath("${params.dict}")
 
 Channel.fromPath("${params.gtf}").into{ gtfChannel; gtfChannel2; gtfChannel3; gtfChannel4 }
 Channel.fromPath("${params.bed_rheMac}").into{ gene_annotation_rheMac_bed}
-Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel}
+Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel; gtf_rheMac_channel2}
 /*  ----------------------------------------------------------------------
 *   ----------------------------------------------------------------------
 *                       BEGINNING OF THE PIPELINE
@@ -335,7 +335,7 @@ process filter_bams_samtools{
 * we probably need to delete it.
 */
 
-process MarkDuplicates_picard{
+process removeDuplicates_picard{
 
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
@@ -349,7 +349,7 @@ process MarkDuplicates_picard{
 
   script:
   """
-  java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${filtered_bam} O=${complete_id}.UMI.f3.q60.md.bam M=${complete_id}.UMI.f3.q60.md_metrics.bam REMOVE_DUPLICATES=false ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
+  java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${filtered_bam} O=${complete_id}.UMI.f3.q60.md.bam M=${complete_id}.UMI.f3.q60.md_metrics.bam REMOVE_DUPLICATES=true ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
   """
 }
 
@@ -414,7 +414,7 @@ process dedupUmi{
 process getHTseqCountsMD{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseqCounts"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,file(md_bam), file(md_metrics_bam) from marked_d_bams
@@ -427,14 +427,14 @@ process getHTseqCountsMD{
   md_file_prefix = get_file_name_no_extension(md_bam.name)
   """
   # Calc the counts for the md duplicates
-  htseq-count -f bam -r pos -s yes -t gene -i gene_id --additional-attr gene_name ${md_bam} ${gtf} > ${md_file_prefix}.HTseq.gene_counts.tab
+  htseq-count -f bam -r pos -s yes -t gene -i gene_id ${md_bam} ${gtf} > ${md_file_prefix}.HTseq.gene_counts.tab
   """
 }
 
 process getHTseqCountsFilter{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseqCounts"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) from filtered_merged_bams_3
@@ -447,14 +447,14 @@ process getHTseqCountsFilter{
   filtered_file_prefix = get_file_name_no_extension(filtered_bam.name)
   """
   # Calc the counts for the md duplicates
-  htseq-count -f bam -r pos -s yes -t gene -i gene_id --additional-attr gene_name ${filtered_bam} ${gtf} > ${filtered_file_prefix}.HTseq.gene_counts.tab
+  htseq-count -f bam -r pos -s yes -t gene -i gene_id ${filtered_bam} ${gtf} > ${filtered_file_prefix}.HTseq.gene_counts.tab
   """
 }
 
 process getHTseqCountsUMI{
 
   tag "${complete_id}"
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseqCounts"
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(umi_dedup_bam), file(umi_dedup_bai) from dedup_umi_bams_for_count
@@ -467,7 +467,7 @@ process getHTseqCountsUMI{
   umi_dedup_file_prefix = get_file_name_no_extension(umi_dedup_bam.name)
   """
   # Calc the counts for the umi_dedup
-  htseq-count -f bam -r pos -s yes -t gene -i gene_id --additional-attr gene_name ${umi_dedup_bam} ${gtf} > ${umi_dedup_file_prefix}.HTseq.gene_counts.tab
+  htseq-count -f bam -r pos -s yes -t gene -i gene_id ${umi_dedup_bam} ${gtf} > ${umi_dedup_file_prefix}.HTseq.gene_counts.tab
   """
 }
 
@@ -508,6 +508,7 @@ process getCountsUMIs{
   echo -e "chrY\t"\${n_chrY} >> ${file_prefix}.n_reads.txt
   echo -e "chrM\t"\${n_chrM} >> ${file_prefix}.n_reads.txt
   echo -e "EBOV\t"\${n_EBOV} >> ${file_prefix}.n_reads.txt
+  echo -e "chrUn\t"\${n_chrUn} >> ${file_prefix}.n_reads.txt
   """
 }
 
@@ -565,26 +566,30 @@ process DeNovoAssembly{
 }
 
 /*
-* Merge all the assemblies
+* Merge all the assemblies Reference Guided
 */
+process StringTie_Merge_Reference_Guided{
 
-// process StringTie_Merge{
-//
-//   tag "${complete_id}"
-//   storeDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample"
-//
-//   input:
-//   stringTie_channel.collect()
-//
-//   output:
-//   file "*" from
-//
-//   script:
-//   """
-//   stringtie --merge -p 8 -o stringtie_merged.gtf -G $RNA_REF_GTF assembly_GTF_list.txt
-//   """
-// }
+  cpus 48
+  storeDir "${params.output_dir}/04_stringtie"
 
+  when:
+  params.transcriptome_assembly
+
+  input:
+  file stringtie_gtfs from stringTie_channel.collect()
+  file reference_gtf from gtf_rheMac_channel2
+
+  output:
+  file "stringtie_merged_reference_guided.gtf" into merged_denovo_assmebly
+
+  script:
+  """
+  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
+  """
+}
+//  echo "${file_list}" > assembly_GTF_list.txt
+//  String file_list =  collection.toString().minus("[").minus("]").replaceAll(",", "\n")
 // process StringTie_computeCoverage{
 //
 //   input:
@@ -597,6 +602,9 @@ process DeNovoAssembly{
 //   """
 // }
 
+workflow.onComplete {
+	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )
+}
 
 /*   -------------------------------
 *           Groovy Functions

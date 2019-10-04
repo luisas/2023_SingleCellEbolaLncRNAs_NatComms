@@ -1,4 +1,5 @@
 src/plots/*
+._*
 *.log
 *.DS_Store
 src/work/*
