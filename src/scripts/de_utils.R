@@ -1,4 +1,6 @@
 #  ------------------  Utils 
+library(pheatmap)
+
 iterate_files <- function(inpath, pattern_string){
   files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
   return(files)
@@ -55,8 +57,8 @@ add_gene_sizes <- function(dds,gene_lengths){
   return(dds)
 }
 
-plot_fpkm_heatmap <- function(dds, outpath,method = "pearson"){
-  df <- as.data.frame(assays(dds)$fpkm)
+plot_counts_heatmap <- function(dds, outpath,method = "pearson"){
+  df <- as.data.frame(assays(dds)$counts)
   colnames(df) <- dds$complete_id
   png(outpath,width = 1400,height = 500)
   pheatmap(cor(df,method=method))

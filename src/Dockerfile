@@ -39,7 +39,6 @@ RUN wget https://github.com/broadinstitute/picard/releases/download/2.20.0/picar
 # -----------------------------
 # part of the commands taken from kathrinklee/rna-seq-pipeline-hisat2
 # Install hisat2
-
 RUN apt-get update  && apt-get install -y \
     build-essential \
     gcc-multilib \
@@ -66,19 +65,18 @@ RUN apt-get update  && apt-get install -y \
     git \
     apt-utils \
     pigz
-
+# Install Python
 RUN add-apt-repository ppa:jonathonf/python-3.6 -y &&\
     apt-get update &&\
     apt-get install python3.6 -y &&\
     cd /usr/bin && unlink python && ln -s /usr/bin/python3.6 python && cd
 
-WORKDIR /docker
+
 RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
     unzip hisat2-2.1.0-Linux_x86_64.zip
 RUN cp -p hisat2-2.1.0/hisat2 hisat2-2.1.0/hisat2-* /usr/bin
 
 # Install samtools
-WORKDIR /docker
 RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && \
     tar -jxf samtools-1.9.tar.bz2 && \
     cd samtools-1.9 && \
@@ -87,15 +85,19 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9
     cp samtools /usr/bin/
 
 # Install stringtie
-WORKDIR /docker
 RUN wget http://ccb.jhu.edu/software/stringtie/dl/stringtie-1.3.6.Linux_x86_64.tar.gz && \
     tar zxf stringtie-1.3.6.Linux_x86_64.tar.gz && \
     cp ./stringtie-1.3.6.Linux_x86_64/stringtie /usr/bin/
 
+# Remove useless things
+RUN rm -rf hisat2-2.1.0
+RUN rm -rf samtools-1.9
+RUN rm -rf stringtie-1.3.6.Linux_x86_64
 
-RUN rm -rf /docker/hisat2-2.1.0
-RUN rm -rf /docker/samtools-1.9
-RUN rm -rf /docker/stringtie-1.3.6.Linux_x86_64
+RUN apt-get update &&\
+	  apt-get -y install python3-pip
+
+RUN pip install umi_tools
 
 
 

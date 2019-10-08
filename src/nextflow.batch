@@ -27,5 +27,4 @@ module load python/3.6.1
 module load stringtie/1.3.6
 
 
-
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/RnaSeqAnalysis.nf

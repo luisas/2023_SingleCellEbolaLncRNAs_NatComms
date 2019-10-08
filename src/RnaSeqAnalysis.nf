@@ -4,17 +4,18 @@
  * TODO COPYRIGHT
  */
 
- log.info "=============================================="
- log.info "RNASeq analysis pipeline for Zyagen Samples"
- log.info "=============================================="
+ log.info "=================================================================================="
+ log.info "     RNASeq analysis pipeline & de Novo Transcriptome assembly"
+ log.info "=================================================================================="
 
  /* --------------------------------------
   *  INPUT PARAMETERS defaults
   * --------------------------------------
   */
 // Unmapped bam files folder - RAW DATA
-params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
+//params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
 //params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
+params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
 
 // Folder where the output directories of the pipeline will be placed
 params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/data/02_RNA-Seq/"
@@ -54,27 +55,51 @@ params.fastqc=true
 * - complete_id (${dataset_name}_${dayPostInfection}_${tissue}_${sample}_l${lane_number})
 * - the file itself.
 */
-dataset_bam = Channel
-              .fromPath("${params.dataset_bam_dir}/*_long.bam")
-              .ifEmpty('bam files directory is empty')
-              .map { tuple(it.parent.name,
-                           it.parent.name.split('\\.')[1],
-                           it.baseName.split('_')[0],
-                           it.baseName.split('_')[1],
-                           it.baseName.split('_')[2].split('-')[0],
-                           it.baseName.split('_')[2].split('-')[1],
-                           it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
-                           it ) }
 
-
-// the unmapped_bam channel contains the exact same files as the dataset_bam one.
-// It only differs in the values that it maps to it, in this case only the complete_id.
-// It is used for the add_unmapped_bam process.
-unmapped_bams = Channel
+params.zyagen = "false"
+if("${params.zyagen}" != "false"){
+  dataset_bam = Channel
                 .fromPath("${params.dataset_bam_dir}/*_long.bam")
                 .ifEmpty('bam files directory is empty')
-                .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
-                            it)}
+                .map { tuple(it.parent.name,
+                             it.parent.name.split('\\.')[1],
+                             it.baseName.split('_')[0],
+                             it.baseName.split('_')[1],
+                             it.baseName.split('_')[2].split('-')[0],
+                             it.baseName.split('_')[2].split('-')[1],
+                             it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                             it ) }
+  // the unmapped_bam channel contains the exact same files as the dataset_bam one.
+  // It only differs in the values that it maps to it, in this case only the complete_id.
+  // It is used for the add_unmapped_bam process.
+  unmapped_bams = Channel
+                  .fromPath("${params.dataset_bam_dir}/*_long.bam")
+                  .ifEmpty('bam files directory is empty')
+                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                              it)}
+}else{
+    dataset_bam = Channel
+                  .fromPath("${params.dataset_bam_dir}*.bam", followLinks:true)
+                  .map { tuple(it.baseName.split('_')[4].split('\\.')[0],
+                               it.baseName.split('_')[4].split('\\.')[1],
+                               it.baseName.split('_')[0],
+                               it.baseName.split('_')[2],
+                               it.baseName.split('_')[1],
+                               it.baseName.split('_')[3],
+                               it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+                               it ) }
+    // the unmapped_bam channel contains the exact same files as the dataset_bam one.
+    // It only differs in the values that it maps to it, in this case only the complete_id.
+    // It is used for the add_unmapped_bam process.
+    unmapped_bams = Channel
+                    .fromPath("${params.dataset_bam_dir}/*.bam")
+                    .ifEmpty('bam files directory is empty')
+                    .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+                                it)}
+}
+
+
+
 
 // Channel for the Indexes
 indexesForMapping = Channel.fromPath("${params.hisat2_indexes}*")
@@ -89,7 +114,7 @@ dictionary_channel = Channel.fromPath("${params.dict}")
 
 Channel.fromPath("${params.gtf}").into{ gtfChannel; gtfChannel2; gtfChannel3; gtfChannel4 }
 Channel.fromPath("${params.bed_rheMac}").into{ gene_annotation_rheMac_bed}
-Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel; gtf_rheMac_channel2}
+Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel; gtf_rheMac_channel2; gtf_rheMac_channel3}
 /*  ----------------------------------------------------------------------
 *   ----------------------------------------------------------------------
 *                       BEGINNING OF THE PIPELINE
@@ -321,7 +346,7 @@ process filter_bams_samtools{
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(merged_bam), file(bai_mereged_bam) from merged_bylanes
 
   output:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.f3.q60.bam"), file("${complete_id}.UMI.f3.q60.bam.bai") into (filtered_merged_bams_1, filtered_merged_bams_2)
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.f3.q60.bam"), file("${complete_id}.UMI.f3.q60.bam.bai") into (filtered_merged_bams_1, filtered_merged_bams_2,filtered_merged_bams_3, filtered_merged_bams_4)
 
   script:
   """
@@ -344,12 +369,12 @@ process removeDuplicates_picard{
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) from filtered_merged_bams_1
 
   output:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,file("${complete_id}.UMI.f3.q60.md.bam"), file("${complete_id}.UMI.f3.q60.md_metrics.bam") into marked_d_bams
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) into filtered_merged_bams_3
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,file("${complete_id}.UMI.f3.q60.md.bam"), file("${complete_id}.UMI.f3.q60.md.bam.bai") into  (marked_d_bams, md_bams )
 
   script:
   """
   java -Xmx10g -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar MarkDuplicates I=${filtered_bam} O=${complete_id}.UMI.f3.q60.md.bam M=${complete_id}.UMI.f3.q60.md_metrics.bam REMOVE_DUPLICATES=true ASSUME_SORTED=true  CREATE_INDEX=true MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000
+  samtools index ${complete_id}.UMI.f3.q60.md.bam
   """
 }
 
@@ -379,34 +404,6 @@ process dedupUmi{
   """
 
 }
-
-
-
-// -------------------------------
-// -------------------------------
-// -------------------------------
-// -------------------------------
-// ----- STATS
-// TODO change input channel
-// process calcFPKM{
-//
-//   tag "${complete_id}"
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/fpkm"
-//
-//   input:
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(bam), file(bai) from dedup_umi_bams_for_fpkm
-//   file gene_annotation from gene_annotation_channel_2.collect()
-//
-//   output:
-//   file "${file_prefix}.FPKM.xls" into fpkm_channel
-//
-//   script:
-//
-//   """
-//   FPKM_count.py -i ${bam} -o ${complete_id} -r ${gene_annotation} -d '1++,1--,2+-,2-+' -u -e -q 60 --single-read=0
-//   """
-// }
-
 
 /*
 *  Compute the HTseq Counts for all the
@@ -481,37 +478,51 @@ process getCountsUMIs{
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(umi_bam),
-      file(umi_bai) from dedup_umi_bams_for_count_2
+      file(bam),
+      file(bai) from dedup_umi_bams_for_count_2
 
   output:
   file "*.n_reads.txt" into counts_umis
 
   script:
-  file_prefix = get_file_name_no_extension(umi_bam.name)
-  """
-  # Create all the chrom names
-  chroms=""
-  for i in {1..20};do chroms=\${chroms}" chr"\${i};done
-
-  n=`samtools view ${umi_bam} -c`
-  n_autosomes=`samtools view  ${umi_bam} \${chroms} -c`
-  n_chrX=`samtools view  ${umi_bam} chrX -c`
-  n_chrY=`samtools view  ${umi_bam} chrY -c`
-  n_chrM=`samtools view  ${umi_bam} chrM -c`
-  n_EBOV=`samtools view  ${umi_bam} EBOV_Kikwit -c`
-  n_chrUn=`samtools view ${umi_bam} | awk '{if(\$3~/chrUn/)print}' | wc -l | awk '{print \$1}'`
-
-  echo -e "Total\t"\${n} > ${file_prefix}.n_reads.txt
-  echo -e "Autosomes\t"\${n_autosomes} >> ${file_prefix}.n_reads.txt
-  echo -e "chrX\t"\${n_chrX} >> ${file_prefix}.n_reads.txt
-  echo -e "chrY\t"\${n_chrY} >> ${file_prefix}.n_reads.txt
-  echo -e "chrM\t"\${n_chrM} >> ${file_prefix}.n_reads.txt
-  echo -e "EBOV\t"\${n_EBOV} >> ${file_prefix}.n_reads.txt
-  echo -e "chrUn\t"\${n_chrUn} >> ${file_prefix}.n_reads.txt
-  """
+  file_prefix = get_file_name_no_extension(bam.name)
+  template 'getcounts'
 }
 
+process getCountsFiltered{
+
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/count_stats"
+
+  input:
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(bam),
+      file(bai) from filtered_merged_bams_4
+
+  output:
+  file "*.n_reads.txt" into counts_filtered
+
+  script:
+  file_prefix = get_file_name_no_extension(bam.name)
+  template 'getcounts'
+}
+
+process getCountsMDs{
+
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/count_stats"
+
+  input:
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(bam),
+      file(bai) from md_bams
+
+  output:
+  file "*.n_reads.txt" into counts_md
+
+  script:
+  file_prefix = get_file_name_no_extension(bam.name)
+  template 'getcounts'
+
+}
 
 /*
 *  STEP 8.2 get read distribution numbers
@@ -588,19 +599,25 @@ process StringTie_Merge_Reference_Guided{
   stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
   """
 }
-//  echo "${file_list}" > assembly_GTF_list.txt
-//  String file_list =  collection.toString().minus("[").minus("]").replaceAll(",", "\n")
-// process StringTie_computeCoverage{
+
+
+// process gffCompare{
+//
+//   storeDir "${params.output_dir}/04_stringtie/01_gffCompare"
 //
 //   input:
+//   file merged_gtf from merged_denovo_assmebly
+//   file reference_gtf from gtf_rheMac_channel3
 //
 //   output:
+//   file("merged*") into gff_compare_output_channel
 //
 //   script:
 //   """
-//   StringTie -eB
+//   gffcompare –r ${reference_gtf} –G –o merged ${merged_gtf}
 //   """
 // }
+
 
 workflow.onComplete {
 	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )
