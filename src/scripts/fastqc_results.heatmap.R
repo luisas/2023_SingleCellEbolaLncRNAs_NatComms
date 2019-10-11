@@ -63,8 +63,8 @@ plot_heatmap_fast_zyagen <- function(inpath,outpath){
   names(qc_cols)<-c(2,1,0)
   
   # Tissue Colors
-  tissue_cols<-c("#2B061E","#775253", "#4392F1","#7180AC", "#2B4570","#8AEA92", "#F6E27F","#E2C391", "#EB5160", "#7E52A0" )
-  names(tissue_cols)<-c("Adrenal","Brain","Kidney","LN", "Liver","Ovary","Skin","SpinalCord","Spleen", "Testis")
+  tissue_cols<-c("#2B061E","#2B061E","#775253", "#4392F1","#7180AC", "#2B4570","#8AEA92", "#F6E27F","#E2C391", "#EB5160", "#7E52A0" )
+  names(tissue_cols)<-c("Blood","Adrenal","Brain","Kidney","LN", "Liver","Ovary","Skin","SpinalCord","Spleen", "Testis")
   
   # Sample colors
   samples<-unique(as.factor(as.character(res_fastqc_df["Sample",])))

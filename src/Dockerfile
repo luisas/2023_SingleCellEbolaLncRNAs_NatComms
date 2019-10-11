@@ -71,7 +71,6 @@ RUN add-apt-repository ppa:jonathonf/python-3.6 -y &&\
     apt-get install python3.6 -y &&\
     cd /usr/bin && unlink python && ln -s /usr/bin/python3.6 python && cd
 
-
 RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
     unzip hisat2-2.1.0-Linux_x86_64.zip
 RUN cp -p hisat2-2.1.0/hisat2 hisat2-2.1.0/hisat2-* /usr/bin

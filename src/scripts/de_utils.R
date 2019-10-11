@@ -64,3 +64,26 @@ plot_counts_heatmap <- function(dds, outpath,method = "pearson"){
   pheatmap(cor(df,method=method))
   dev.off()
 }
+
+extract_total <- function(count_files,method){
+  total <- list()
+  df_total_counts <- data.frame()
+  for(file in count_files){
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file,"" )
+    total <- read.csv(file,sep="\t",header =F)[[2]][1]
+    df_total_counts <- rbind(df_total_counts, list(sample_name,total,method))
+  }
+  names(df_total_counts) <- c("id", "total","method")
+  return(df_total_counts)
+}
+
+
+parse_count_file = function(file_counts){
+  counts <- list()
+  # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+  c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+  # Error handling 
+  if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
+  counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
+  return(counts)
+}
