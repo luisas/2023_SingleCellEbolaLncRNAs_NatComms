@@ -6,6 +6,8 @@ params.prefix_rawdata="/gpfs/projects/bsc83/Data/Ebola/00_RawData/"
 
 params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/data/02_RNA-Seq/"
 params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}.gtf"
+//params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}_mrnas.gtf"
+//params.merged_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}.gtf"
 params.merged_gtf = "${params.data_folder}/02_RNA-Seq/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
 
 //params.known_mrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_nolong.gtf"
@@ -18,7 +20,7 @@ params.rhesus_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomi
 
 Channel.fromPath("${params.rhesus_genome}").into{ fasta_reference_channel; fasta_reference_channel2}
 Channel.fromPath("${params.merged_gtf}").into{ merged_gtf_channel; merged_gtf_channel_2 }
-Channel.fromPath("${params.ref_gtf}").set{ ref_gtf_channel }
+Channel.fromPath("${params.ref_gtf}").into{ ref_gtf_channel; ref_gtf_channel_2 }
 Channel.fromPath("${params.known_mrna}").set{ known_mrna_channel}
 Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
 
@@ -29,7 +31,7 @@ log.info "=============================================="
 
 process feelnc_filter{
 
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc"
+  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_two_cut_offs"
 
   input:
   file merged_gtf from merged_gtf_channel
@@ -47,8 +49,8 @@ process feelnc_filter{
 }
 
 process feelnc_codpot{
-  cpus 1
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc"
+  cpus 48
+  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_two_cut_offs_pred"
 
   input:
   file candidate_lncrna from candidates
@@ -62,30 +64,54 @@ process feelnc_codpot{
   script:
   """
   FEELnc_codpot.pl -i ${candidate_lncrna} -a ${known_mrna} -l ${known_lncrna} \
-                   -g ${reference_genome} --proc ${task.cpus}
+                   -g ${reference_genome} --proc ${task.cpus} \
+                   --spethres 0.96,0.96
   """
 
 }
 
-// --------------
-// lncADeep
 
-process get_fasta_from_gtf{
 
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/lncadeep"
 
-  input:
-  file gtf from merged_gtf_channel_2
-  file fasta_reference from fasta_reference_channel2
+// process feelnc_classifier{
+//   storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_lncrna"
+//
+//   input:
+//   file(cod_pot_dir) from coding_potentials
+//   file reference_gtf from ref_gtf_channel_2
+//
+//   output:
+//   file("lncRNA_classes.txt") into classification_ch
+//
+//   script:
+//   """
+//   FEELnc_classifier.pl -i ${cod_pot_dir}/candidate_lncRNA.gtf.lncRNA.gtf -a  ${reference_gtf} > lncRNA_classes.txt
+//   """
+//
+// }
 
-  output:
-  file("extracted.fa") into fasta_to_predict_channel
 
-  script:
-  """
-  bedtools getfasta -fi ${fasta_reference} -bed ${gtf} -fo extracted.fa
-  """
-}
+
+
+// // --------------
+// // lncADeep
+//
+// process get_fasta_from_gtf{
+//
+//   storeDir "${params.output_dir}/05_lncrnaAnnotation/lncadeep"
+//
+//   input:
+//   file gtf from merged_gtf_channel_2
+//   file fasta_reference from fasta_reference_channel2
+//
+//   output:
+//   file("extracted.fa") into fasta_to_predict_channel
+//
+//   script:
+//   """
+//   bedtools getfasta -fi ${fasta_reference} -bed ${gtf} -fo extracted.fa
+//   """
+// }
 
 // process lncadeep{
 //

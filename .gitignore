@@ -9,4 +9,13 @@ src/out/*
 src/flowcharts/*
 *.png
 work/*
+*/out
+*/err
 test.nf
+src/01_CLUSTER_Marenostrum/err
+src/01_CLUSTER_Marenostrum/out
+src/00_CLUSTER_Nord3/out
+src/00_CLUSTER_Nord3/err
+src/00_CLUSTER_Nord3/work
+src/01_CLUSTER_Marenostrum/work
+singularity

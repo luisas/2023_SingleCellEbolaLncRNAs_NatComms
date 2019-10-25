@@ -1,0 +1,44 @@
+---
+title: "DE_analysis"
+author: "Luisa Santus"
+date: "10/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Needed
+```{r echo=FALSE}
+library(ggplot2)
+library(GenomicFeatures)
+library(zeallot)
+library(tidyverse)
+library(tximport)
+library(tximportData)
+library(edgeR)
+library(SummarizedExperiment)
+library(DESeq2)
+library("RColorBrewer")
+library("dplyr")
+library(plyr)
+
+# Load Utils
+baseDir = "/home/luisas/Desktop/cluster/proj"
+scripts_dir = file.path(baseDir,"code/ebola/src/scripts/")
+source(paste0(scripts_dir,"de_utils.R"))
+# Dirs
+directory_zyagen = file.path(baseDir,"data/02_RNA-Seq/04_stringtie_counts/Zyagen")
+```
+
+## Create Summarized Experiment
+```{r echo=FALSE, results='hide'}
+ctabs<- iterate_files(directory_zyagen, 't_data.ctab')
+ctabs_zyagen_umis <-ctabs[sapply(ctabs, function(str) str_detect(str,"umis"))]
+se <-extract_se(ctabs_zyagen_umis)
+```
+```{r echo=FALSE, results='hide'}
+rowData(se)
+```
+

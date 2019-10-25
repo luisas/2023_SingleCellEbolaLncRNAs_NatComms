@@ -13,8 +13,9 @@ options(stringsAsFactors = F)
 
 
 # Output Path 
-scripts_dir = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/code/ebola/src/scripts/"
-out_dir = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/plots/"
+baseDir = "/home/luisas/Desktop/cluster/proj"
+scripts_dir = file.path(baseDir,"code/ebola/src/scripts/")
+out_dir = file.path(baseDir,"data/plots/")
 
 
 # -----------------------
@@ -22,19 +23,23 @@ out_dir = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/plots/
 # -----------------------
 source(paste0(scripts_dir,"fastqc_results.heatmap.R"))
 
-inpath_fqc="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/02_fastqc/Zyagen"
+inpath_fqc=file.path(baseDir,"data/02_RNA-Seq/02_fastqc/Zyagen")
 outpath_fqc= paste0(out_dir,"02_fastqc/Zyagen")
 
 plot_heatmap_fast_zyagen(inpath_fqc,outpath_fqc)
 
-inpath_fqc_trimmomatic="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/02_fastqc_filtered/Zyagen"
+inpath_fqc_trimmomatic=file.path(baseDir,"data/02_RNA-Seq/02_fastqc_filtered/Zyagen")
 outpath_fqc_trimmomatic= paste0(out_dir,"02b_fastqc/Zyagen")
 
 plot_heatmap_fast_zyagen(inpath_fqc_trimmomatic,outpath_fqc_trimmomatic)
 
-inpath_fqc_batch="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/02_fastqc/Batch01"
+inpath_fqc_batch=file.path(baseDir,"data/02_RNA-Seq/02_fastqc/Batch01")
 outpath_fqc_batch= paste0(out_dir,"02_fastqc/Batch01")
 
+plot_heatmap_fast_zyagen(inpath_fqc_batch,outpath_fqc_batch)
+
+inpath_fqc_batch=file.path(baseDir,"data/02_RNA-Seq/02_fastqc_filtered/Batch01")
+outpath_fqc_batch= paste0(out_dir,"02b_fastqc/Batch01")
 plot_heatmap_fast_zyagen(inpath_fqc_batch,outpath_fqc_batch)
 
 # -----------------------
@@ -42,18 +47,24 @@ plot_heatmap_fast_zyagen(inpath_fqc_batch,outpath_fqc_batch)
 # -----------------------
 source(paste0(scripts_dir,"mapping_qa.R"))
 
-inpath_hisat="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/03_hisat/Zyagen/"
+inpath_hisat=file.path(baseDir,"data/02_RNA-Seq/03_hisat/Zyagen/")
 outpath_hisat= paste0(out_dir,"03_hisat/Zyagen")
-inpath_hisat_trimmed="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/03b_hisat/Zyagen/"
+
+inpath_hisat_trimmed=file.path(baseDir,"data/02_RNA-Seq/03b_hisat/Zyagen/")
 outpath_hisat_trimmed= paste0(out_dir,"03b_hisat/Zyagen")
-inpath_hisat_batch="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/03_hisat/Batch01/"
+
+inpath_hisat_batch=file.path(baseDir,"data/02_RNA-Seq/03_hisat/Batch01/")
 outpath_hisat_batch= paste0(out_dir,"03_hisat/Batch01")
+
+inpath_hisat_batch_trimmed=file.path(baseDir,"data/02_RNA-Seq/03b_hisat/Batch01/")
+outpath_hisat_batch_trimmed= paste0(out_dir,"03b_hisat/Batch01")
 
 # Mapped reads
 barplot_mapped_reads(inpath_hisat,outpath_hisat)
 barplot_mapped_reads(inpath_hisat_trimmed,outpath_hisat_trimmed)
-
 barplot_mapped_reads(inpath_hisat_batch,outpath_hisat_batch)
+barplot_mapped_reads(inpath_hisat_batch_trimmed,outpath_hisat_batch)
+
 
 # Infer Strandness
 plot_infer_strandness(inpath_hisat,outpath_hisat)
