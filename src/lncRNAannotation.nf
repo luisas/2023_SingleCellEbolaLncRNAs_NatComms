@@ -73,22 +73,22 @@ process feelnc_codpot{
 
 
 
-// process feelnc_classifier{
-//   storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_lncrna"
-//
-//   input:
-//   file(cod_pot_dir) from coding_potentials
-//   file reference_gtf from ref_gtf_channel_2
-//
-//   output:
-//   file("lncRNA_classes.txt") into classification_ch
-//
-//   script:
-//   """
-//   FEELnc_classifier.pl -i ${cod_pot_dir}/candidate_lncRNA.gtf.lncRNA.gtf -a  ${reference_gtf} > lncRNA_classes.txt
-//   """
-//
-// }
+process feelnc_classifier{
+  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_lncrna"
+
+  input:
+  file(cod_pot_dir) from coding_potentials
+  file reference_gtf from ref_gtf_channel_2
+
+  output:
+  file("lncRNA_classes.txt") into classification_ch
+
+  script:
+  """
+  perl /apps/FEELNC/0.1.1/scripts/FEELnc_classifier.pl -i ${cod_pot_dir}/candidate_lncRNA.gtf.lncRNA.gtf -a  ${reference_gtf} > lncRNA_classes.txt
+  """
+
+}
 
 
 

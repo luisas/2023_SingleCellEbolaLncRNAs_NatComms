@@ -1,0 +1,377 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={DE\_analysis},
+            pdfauthor={Luisa Santus},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\providecommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{DE\_analysis}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Luisa Santus}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{10/24/2019}
+
+
+\begin{document}
+\maketitle
+
+\hypertarget{exploratory-analysis-zyagen-vs-batch}{%
+\section{Exploratory analysis Zyagen vs
+Batch}\label{exploratory-analysis-zyagen-vs-batch}}
+
+\hypertarget{load-needed}{%
+\subsection{Load Needed}\label{load-needed}}
+
+Expression MDS from Zyagen and
+
+\begin{verbatim}
+## Loading required package: BiocGenerics
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: parallel
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'BiocGenerics'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:parallel':
+## 
+##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+##     clusterExport, clusterMap, parApply, parCapply, parLapply,
+##     parLapplyLB, parRapply, parSapply, parSapplyLB
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:stats':
+## 
+##     IQR, mad, sd, var, xtabs
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     anyDuplicated, append, as.data.frame, basename, cbind,
+##     colnames, dirname, do.call, duplicated, eval, evalq, Filter,
+##     Find, get, grep, grepl, intersect, is.unsorted, lapply, Map,
+##     mapply, match, mget, order, paste, pmax, pmax.int, pmin,
+##     pmin.int, Position, rank, rbind, Reduce, rownames, sapply,
+##     setdiff, sort, table, tapply, union, unique, unsplit, which,
+##     which.max, which.min
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: S4Vectors
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: stats4
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'S4Vectors'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:base':
+## 
+##     expand.grid
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: IRanges
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: GenomeInfoDb
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: GenomicRanges
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: AnnotationDbi
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: Biobase
+\end{verbatim}
+
+\begin{verbatim}
+## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     'browseVignettes()'. To cite Bioconductor, see
+##     'citation("Biobase")', and for packages 'citation("pkgname")'.
+\end{verbatim}
+
+\begin{verbatim}
+## -- Attaching packages ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- tidyverse 1.2.1 --
+\end{verbatim}
+
+\begin{verbatim}
+## v tibble  2.1.3     v purrr   0.3.2
+## v tidyr   1.0.0     v dplyr   0.8.3
+## v readr   1.3.1     v stringr 1.4.0
+## v tibble  2.1.3     v forcats 0.4.0
+\end{verbatim}
+
+\begin{verbatim}
+## -- Conflicts ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- tidyverse_conflicts() --
+## x dplyr::collapse()        masks IRanges::collapse()
+## x dplyr::combine()         masks Biobase::combine(), BiocGenerics::combine()
+## x dplyr::desc()            masks IRanges::desc()
+## x tidyr::expand()          masks S4Vectors::expand()
+## x dplyr::filter()          masks stats::filter()
+## x dplyr::first()           masks S4Vectors::first()
+## x dplyr::lag()             masks stats::lag()
+## x BiocGenerics::Position() masks ggplot2::Position(), base::Position()
+## x purrr::reduce()          masks GenomicRanges::reduce(), IRanges::reduce()
+## x dplyr::rename()          masks S4Vectors::rename()
+## x dplyr::select()          masks AnnotationDbi::select()
+## x dplyr::slice()           masks IRanges::slice()
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: limma
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'limma'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:BiocGenerics':
+## 
+##     plotMA
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: DelayedArray
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: matrixStats
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'matrixStats'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:dplyr':
+## 
+##     count
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:Biobase':
+## 
+##     anyMissing, rowMedians
+\end{verbatim}
+
+\begin{verbatim}
+## Loading required package: BiocParallel
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'DelayedArray'
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:matrixStats':
+## 
+##     colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:purrr':
+## 
+##     simplify
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:base':
+## 
+##     aperm, apply, rowsum
+\end{verbatim}
+
+\begin{verbatim}
+## -------------------------------------------------------------------------
+\end{verbatim}
+
+\begin{verbatim}
+## You have loaded plyr after dplyr - this is likely to cause problems.
+## If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
+## library(plyr); library(dplyr)
+\end{verbatim}
+
+\begin{verbatim}
+## -------------------------------------------------------------------------
+\end{verbatim}
+
+\begin{verbatim}
+## 
+## Attaching package: 'plyr'
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:matrixStats':
+## 
+##     count
+\end{verbatim}
+
+\begin{verbatim}
+## The following objects are masked from 'package:dplyr':
+## 
+##     arrange, count, desc, failwith, id, mutate, rename, summarise,
+##     summarize
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:purrr':
+## 
+##     compact
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:IRanges':
+## 
+##     desc
+\end{verbatim}
+
+\begin{verbatim}
+## The following object is masked from 'package:S4Vectors':
+## 
+##     rename
+\end{verbatim}
+
+\hypertarget{create-explorative-mds-plots-from-htseq-counts-on-cpms}{%
+\subsection{Create Explorative MDS plots from HTSeq counts on
+CPMs}\label{create-explorative-mds-plots-from-htseq-counts-on-cpms}}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-4-1.pdf}
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-4-2.pdf}
+
+\begin{verbatim}
+## Warning in brewer.pal(n = length(levels(dge$samples$group)), name = "Paired"): minimal value for n is 3, returning requested palette with 3 different levels
+\end{verbatim}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-5-1.pdf}
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-5-2.pdf}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-6-1.pdf}
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-6-2.pdf}
+
+\begin{verbatim}
+## Warning in brewer.pal(n = length(levels(dge$samples$group)), name = "Paired"): minimal value for n is 3, returning requested palette with 3 different levels
+\end{verbatim}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-7-1.pdf}
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-7-2.pdf}
+
+\hypertarget{explore-library-sizes}{%
+\section{Explore library sizes}\label{explore-library-sizes}}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+\begin{verbatim}
+## Warning in bxp(list(stats = structure(c(-2.48191900696043,
+## -2.48191900696043, : some notches went outside hinges ('box'): maybe set
+## notch=FALSE
+\end{verbatim}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-10-1.pdf}
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-10-2.pdf}
+
+\begin{verbatim}
+## Warning in bxp(list(stats = structure(c(-1.46771759667685,
+## -1.46771759667685, : some notches went outside hinges ('box'): maybe set
+## notch=FALSE
+\end{verbatim}
+
+\includegraphics{De_analysis_files/figure-latex/unnamed-chunk-10-3.pdf}
+
+
+\end{document}

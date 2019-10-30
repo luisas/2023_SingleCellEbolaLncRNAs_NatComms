@@ -300,9 +300,7 @@ barplot_counts_stats <- function(inpath_counts,outpath){
 
 
 # Plot for read distribution 
-plot_read_distribution <- function (inpath_hisat,outpath){
-  pattern_distr = ".read_distribution.txt"
-  distr_files <- iterate_files(inpath_hisat, pattern_distr)
+plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
   distr_stat <- list()
   for(distr_file in distr_files){
     c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
@@ -312,11 +310,11 @@ plot_read_distribution <- function (inpath_hisat,outpath){
   distr_df <- do.call(rbind, distr_stat)
   distr_df = t(distr_df)
   # Barplots 
-  png(paste0(outpath,"/read_distribution.png"),width = 1400,height = 500)
+  png(paste0(outpath,"/",name),width = 1400,height = 500)
   options(scipen=999)
   par(mfrow=c(1,2))
   par(oma=c(8,2,0,0),xpd=NA)
-  barplot(as.matrix(distr_df),las=2,col=brewer.pal(10,"Paired"),yaxt='n',ylim=c(0,80000000))
+  barplot(as.matrix(distr_df),las=2,col=brewer.pal(10,"Paired"),yaxt='n',ylim=c(0,yli))
   #barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
   axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
   

@@ -2,14 +2,20 @@
 title: "DE_analysis"
 author: "Luisa Santus"
 date: "10/24/2019"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Exploratory analysis Zyagen vs Batch 
+
 ## Load Needed
+
+Expression MDS from Zyagen and 
 ```{r echo=FALSE}
 library(ggplot2)
 library(GenomicFeatures)
@@ -23,22 +29,115 @@ library(DESeq2)
 library("RColorBrewer")
 library("dplyr")
 library(plyr)
-
 # Load Utils
 baseDir = "/home/luisas/Desktop/cluster/proj"
 scripts_dir = file.path(baseDir,"code/ebola/src/scripts/")
 source(paste0(scripts_dir,"de_utils.R"))
 # Dirs
-directory_zyagen = file.path(baseDir,"data/02_RNA-Seq/04_stringtie_counts/Zyagen")
+dir_hisat_zyagen = file.path(baseDir,"data/02_RNA-Seq/03_hisat")
 ```
 
-## Create Summarized Experiment
+## Create Explorative MDS plots from HTSeq counts on CPMs
+
 ```{r echo=FALSE, results='hide'}
-ctabs<- iterate_files(directory_zyagen, 't_data.ctab')
-ctabs_zyagen_umis <-ctabs[sapply(ctabs, function(str) str_detect(str,"umis"))]
-se <-extract_se(ctabs_zyagen_umis)
+dir_hisat_all = file.path(baseDir,"data/02_RNA-Seq/03_hisat")
+htseq_files <- iterate_files(dir_hisat_all, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
+directory = "/home/luisas/Desktop/cluster/proj/data/02_RNA-Seq/03_hisat/"
+dds <- create_dds(htseq_files,directory)
+dge <- DGEList(counts = assays(dds)$counts, group = dds$condition, genes = rownames(dds), samples = colData(dds))
+```
+
+
+```{r echo=FALSE, results='hide'}
+filter_and_plotMDS <- function(dds,dge,title){
+  # Filter lowly expressed genes
+  assays(dds)$logCPM <- cpm(dge, log = TRUE)
+  mask <- rowMeans(assays(dds)$logCPM) > 1
+  dds <- dds[mask, ]
+  dge <- dge[mask, ]
+  print(length(levels(dge$samples$group)))
+  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
+  col.cell <- colors[dge$samples$group]
+  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main="Zyagen samples on genes CPM")
+  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$id , col=col.cell,main="Zyagen samples on genes CPM")
+
+}
+```
+
+```{r echo=FALSE, results='hide'}
+mask <- dds$condition == "Zyagen"
+dds_zyagen <- dds[,mask]
+dge_zyagen <- DGEList(counts = assays(dds_zyagen)$counts, group = dds_zyagen$tissue, genes = rownames(dds_zyagen), samples = colData(dds_zyagen))
+
+# Filters out lowly expressed genes, calc CPM, plot
+filter_and_plotMDS(dds_zyagen,dge_zyagen)
+```
+
+```{r echo=FALSE, results='hide'}
+mask <- dds$condition == "Batch01"
+dds_filtered <- dds[,mask]
+dge_batch <- DGEList(counts = assays(dds_filtered)$counts, group = dds_filtered$tissue, genes = rownames(dds_filtered), samples = colData(dds_filtered))
+
+# Filters out lowly expressed genes, calc CPM, plot
+filter_and_plotMDS(dds_filtered,dge_batch)
+```
+
+```{r echo=FALSE, results='hide'}
+mask1 <- dds$condition == "Batch01" 
+mask2 <- dds$tissue == "Blood"
+mask <- mask1 & mask2 
+dds_filtered <- dds[,mask]
+dds_filtered$tissue
+dge_batch_blood <- DGEList(counts = assays(dds_filtered)$counts, group = dds_filtered$dpo, genes = rownames(dds_filtered), samples = colData(dds_filtered))
+# Filters out lowly expressed genes, calc CPM, plot
+filter_and_plotMDS(dds_filtered,dge_batch_blood)
 ```
 ```{r echo=FALSE, results='hide'}
-rowData(se)
+# Filters out lowly expressed genes, calc CPM, plot
+filter_and_plotMDS(dds,dge)
+```
+
+
+# Explore library sizes
+```{r echo=FALSE, results='hide'}
+# Check distributions of samples using boxplots
+par(mar=c(10,10,4,2)) # increase y-axis margin.
+colors <- brewer.pal(n = length(levels(dge$samples$tissue)), name = 'Paired')
+col.cell <- colors[dge$samples$tissue]
+
+density.group <- c(20,90)[dge$samples$group]
+colnames(dge) <-  paste(dge$samples$tissue,dge$samples$id,sep="_")
+barplot(dge$samples$lib.size,names=colnames(dge),las=2,  col = col.cell, density=density.group)
+
+# Add a title to the plot
+title("Library Sizes")
+```
+
+
+```{r echo=FALSE, results='hide'}
+
+barplot_logcpms <- function(dge){
+  logcounts <- cpm(dge,log=TRUE)
+  # Check distributions of samples using boxplots
+  colors <- brewer.pal(n = length(levels(dge$samples$tissue)), name = 'Paired')
+  col.cell <- colors[dge$samples$group]
+  
+  colnames(logcounts) <- dge$samples$tissue
+  boxplot(logcounts, xlab="", ylab="Log2 counts per million"
+          ,las=2,
+          col = col.cell,
+          notch = TRUE
+          )
+  # Let's add a blue horizontal line that corresponds to the median logCPM
+  abline(h=median(logcounts),col="blue")
+  title("Boxplots of logCPMs")
+}
+
+```
+
+```{r echo=FALSE, results='hide'}
+barplot_logcpms(dge)
+barplot_logcpms(dge_zyagen)
+barplot_logcpms(dge_batch)
 ```
 

@@ -94,8 +94,34 @@ extract_coldata <- function(files){
     row <- c(dataset,tissue,dpo,sample,completeid, method)%<-%get_info_from_file_path(file)
     samples <- samples %>% add_row(dataset = dataset, tissue = tissue, dpo = dpo, sample=sample, completeid = completeid, method = method) 
   }
+  rownames(samples) <- samples$completeid
   return(samples)
 }
+
+
+get_colData <- function(matrix){
+  samples <- data.frame(dataset=character(),
+                        tissue=character(), 
+                        dpo=character(), 
+                        sample=character(),
+                        completeid=character(), 
+                        stringsAsFactors=FALSE) 
+  for (file in colnames(matrix)){
+    infos = strsplit(file, "_")
+    index = 1
+    dataset =  infos[[1]][index]
+    tissue = infos[[1]][index + 1]
+    dpo = infos[[1]][index + 2]
+    sample = infos[[1]][index + 3]
+    completeid=paste(dataset,tissue,dpo,sample,sep="_")
+    samples <- samples %>% add_row(dataset = dataset, tissue = tissue, dpo = dpo, sample=sample, completeid = completeid) 
+  }
+  rownames(samples) <- samples$completeid
+  return(samples)
+}
+
+
+
 
 get_info_from_file_path <- function(file){
   infos = strsplit( dirname(file), "/")

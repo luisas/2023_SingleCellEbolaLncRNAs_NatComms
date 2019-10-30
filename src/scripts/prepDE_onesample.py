@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-import re, csv, sys, os, glob, warnings, itertools
+import re, csv, sys, glob, warnings, itertools
 from math import ceil
 from optparse import OptionParser
 from operator import itemgetter
@@ -9,6 +9,7 @@ if sys.version_info < MIN_PYTHON:
     sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
 
 parser=OptionParser(description='Generates two CSV files containing the count matrices for genes and transcripts, using the coverage values found in the output of `stringtie -e`')
+parser.add_option('-sid', '--sampleid', '--sampid', help="sample id")
 parser.add_option('-i', '--input', '--in', default='ballgown', help="the parent directory of the sample sub-directories or a textfile listing the paths to GTF files [default: %default]")
 parser.add_option('-g', default='gene_count_matrix.csv', help="where to output the gene count matrix [default: %default")
 parser.add_option('-t', default='transcript_count_matrix.csv', help="where to output the transcript count matrix [default: %default]")
@@ -20,40 +21,42 @@ parser.add_option('-k', '--key', default="prepG", help="if clustering, what pref
 parser.add_option('--legend', default="legend.csv", help="if clustering, where to output the legend file mapping transcripts to assigned geneIDs [default: %default]")
 (opts, args)=parser.parse_args()
 
-samples = [] # List of tuples. If sample list, (first column, path). Else, (subdirectory name, path to gtf file in subdirectory)
-if (os.path.isfile(opts.input)):
-    # gtfList = True
-    try:
-        fin = open(opts.input, 'r')
-        for line in fin:
-            if line[0] != '#':
-                lineLst = tuple(line.strip().split())
-                if (len(lineLst) != 2):
-                    print "Error: Text file with sample ID and path invalid (%s)" % (line.strip())
-                    exit(1)
-                if lineLst[0] in samples:
-                    print "Error: Sample ID duplicated (%s)" % (lineLst[0])
-                    exit(1)
-                if not os.path.isfile(lineLst[1]):
-                    print "Error: GTF file not found (%s)" % (lineLst[1])
-                    exit(1)
-                samples.append(lineLst)
-    except IOError:
-        print "Error: List of .gtf files, %s, doesn't exist" % (opts.input)
-        exit(1)
-else:
-    # gtfList = False
-    ## Check that opts.input directory exists
-    if not os.path.isdir(opts.input):
-      parser.print_help()
-      print " "
-      print "Error: sub-directory '%s' not found!" % (opts.input)
-      sys.exit(1)
+# samples = [] # List of tuples. If sample list, (first column, path). Else, (subdirectory name, path to gtf file in subdirectory)
+# if (os.path.isfile(opts.input)):
+#     # gtfList = True
+#     try:
+#         fin = open(opts.input, 'r')
+#         for line in fin:
+#             if line[0] != '#':
+#                 lineLst = tuple(line.strip().split())
+#                 if (len(lineLst) != 2):
+#                     print "Error: Text file with sample ID and path invalid (%s)" % (line.strip())
+#                     exit(1)
+#                 if lineLst[0] in samples:
+#                     print "Error: Sample ID duplicated (%s)" % (lineLst[0])
+#                     exit(1)
+#                 if not os.path.isfile(lineLst[1]):
+#                     print "Error: GTF file not found (%s)" % (lineLst[1])
+#                     exit(1)
+#                 samples.append(lineLst)
+#     except IOError:
+#         print "Error: List of .gtf files, %s, doesn't exist" % (opts.input)
+#         exit(1)
+# else:
+#     # gtfList = False
+#     ## Check that opts.input directory exists
+#     if not os.path.isdir(opts.input):
+#       parser.print_help()
+#       print " "
+#       print "Error: sub-directory '%s' not found!" % (opts.input)
+#       sys.exit(1)
 
     #####
     ## Collect all samples file paths and if empty print help message and quit
     #####
-    samples = [(i,glob.iglob(os.path.join(opts.input,i,"*.gtf")).next()) for i in next(os.walk(opts.input))[1] if re.search(opts.pattern,i)]
+samples = [(opts.sampleid, opts.input)]
+
+
 
 if len(samples) == 0:
   parser.print_help()
@@ -219,7 +222,6 @@ for q, s in enumerate(samples):
 
 ##            transcriptList=[]
         transcript_len=0
-        print s[1]
         for l in f:
             if l.startswith("#"):
                 continue

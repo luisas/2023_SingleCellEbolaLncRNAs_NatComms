@@ -1,0 +1,342 @@
+digraph "flowchart_rnaseq_zyagen" {
+p0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p0 -> p1;
+
+p1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p2 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p1 -> p2;
+
+p2 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p44 [label="convert_bam_to_fastq"];
+p2 -> p44 [label="dataset_bam"];
+
+p3 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p3 -> p4;
+
+p4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="ifEmpty"];
+p5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p4 -> p5;
+
+p5 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p54 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p5 -> p54 [label="unmapped_bams"];
+
+p6 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p48 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p6 -> p48 [label="indexesForMapping"];
+
+p7 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p8 [shape=point];
+p7 -> p8 [label="indexesForMapping2"];
+
+p9 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p55 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p9 -> p55 [label="reference_assembly_channel"];
+
+p10 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p10 -> p11;
+
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p14 [shape=point];
+p11 -> p14 [label="reference_genome_ch"];
+
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p13 [shape=point];
+p11 -> p13 [label="reference_genome_ch_2"];
+
+p11 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p12 [shape=point];
+p11 -> p12 [label="reference_genome_ch_3"];
+
+p15 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p16 [shape=point];
+p15 -> p16 [label="reference_genome_fai_ch"];
+
+p17 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p49 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p17 -> p49 [label="known_ss"];
+
+p18 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p19 [shape=point];
+p18 -> p19 [label="known_ss_2"];
+
+p20 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p20 -> p21;
+
+p21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p24 [shape=point];
+p21 -> p24 [label="gene_annotation_channel"];
+
+p21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p23 [shape=point];
+p21 -> p23 [label="gene_annotation_channel_2"];
+
+p21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p22 [shape=point];
+p21 -> p22 [label="gene_annotation_channel_3"];
+
+p25 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p56 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p25 -> p56 [label="dictionary_channel"];
+
+p26 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p27 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p26 -> p27;
+
+p27 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p30 [shape=point];
+p27 -> p30 [label="gtf_transcriptonly_channel"];
+
+p27 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p29 [shape=point];
+p27 -> p29 [label="gtf_transcriptonly_channel_2"];
+
+p27 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p28 [shape=point];
+p27 -> p28 [label="gtf_transcriptonly_channel_3"];
+
+p31 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p31 -> p32;
+
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p37 [shape=point];
+p32 -> p37 [label="gtfChannel"];
+
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p36 [shape=point];
+p32 -> p36 [label="gtfChannel2"];
+
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p35 [shape=point];
+p32 -> p35 [label="gtfChannel3"];
+
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p34 [shape=point];
+p32 -> p34 [label="gtfChannel4"];
+
+p32 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p33 [shape=point];
+p32 -> p33 [label="gtfChannel5"];
+
+p38 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p39 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p38 -> p39;
+
+p39 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p41 [shape=point];
+p39 -> p41 [label="gene_annotation_rheMac_bed"];
+
+p39 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p40 [shape=point];
+p39 -> p40 [label="gene_annotation_rheMac_bed_2"];
+
+p42 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+p43 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p42 -> p43;
+
+p43 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p76 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p43 -> p76 [label="gtf_rheMac_channel"];
+
+p43 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p79 [label="StringTie_Merge_Reference_Guided"];
+p43 -> p79 [label="gtf_rheMac_channel2"];
+
+p43 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p80 [label="gffCompare"];
+p43 -> p80 [label="gtf_rheMac_channel3"];
+
+p44 [label="convert_bam_to_fastq"];
+p46 [label="generate_fastqc"];
+p44 -> p46 [label="fastq_files_for_qc"];
+
+p44 [label="convert_bam_to_fastq"];
+p50 [label="mapping_hisat"];
+p44 -> p50 [label="fastq_files_for_mapping"];
+
+p44 [label="convert_bam_to_fastq"];
+p45 [shape=point];
+p44 -> p45 [label="fastqfiles_for_trimmomatic"];
+
+p46 [label="generate_fastqc"];
+p47 [shape=point];
+p46 -> p47 [label="fastqcs"];
+
+p48 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p50 [label="mapping_hisat"];
+p48 -> p50;
+
+p49 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p50 [label="mapping_hisat"];
+p49 -> p50;
+
+p50 [label="mapping_hisat"];
+p51 [label="sort_bam"];
+p50 -> p51 [label="mapped_sam"];
+
+p51 [label="sort_bam"];
+p54 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p51 -> p54 [label="sorted_and_index_bam"];
+
+p51 [label="sort_bam"];
+p53 [shape=point];
+p51 -> p53 [label="sorted_indexed_bams_for_stats"];
+
+p51 [label="sort_bam"];
+p52 [shape=point];
+p51 -> p52 [label="hisat2_bams"];
+
+p54 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+p57 [label="add_unmapped_bam"];
+p54 -> p57 [label="unmapped_and_mapped_bams"];
+
+p55 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p57 [label="add_unmapped_bam"];
+p55 -> p57;
+
+p56 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p57 [label="add_unmapped_bam"];
+p56 -> p57;
+
+p57 [label="add_unmapped_bam"];
+p58 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p57 -> p58 [label="merged_bam_alignments_channel"];
+
+p58 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p59 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+p58 -> p59;
+
+p59 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+p60 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p59 -> p60;
+
+p60 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+p61 [label="merge_lanes"];
+p60 -> p61 [label="groups_lanes"];
+
+p61 [label="merge_lanes"];
+p63 [label="filter_bams_samtools"];
+p61 -> p63 [label="merged_bylanes"];
+
+p61 [label="merge_lanes"];
+p62 [shape=point];
+p61 -> p62 [label="raw_bams"];
+
+p63 [label="filter_bams_samtools"];
+p67 [label="removeDuplicates_picard"];
+p63 -> p67 [label="filtered_merged_bams_1"];
+
+p63 [label="filter_bams_samtools"];
+p71 [label="dedupUmi"];
+p63 -> p71 [label="filtered_merged_bams_2"];
+
+p63 [label="filter_bams_samtools"];
+p66 [shape=point];
+p63 -> p66 [label="filtered_merged_bams_3"];
+
+p63 [label="filter_bams_samtools"];
+p65 [shape=point];
+p63 -> p65 [label="filtered_merged_bams_4"];
+
+p63 [label="filter_bams_samtools"];
+p64 [shape=point];
+p63 -> p64 [label="filtered_merged_bams_5"];
+
+p67 [label="removeDuplicates_picard"];
+p70 [shape=point];
+p67 -> p70 [label="marked_d_bams"];
+
+p67 [label="removeDuplicates_picard"];
+p69 [shape=point];
+p67 -> p69 [label="md_bams"];
+
+p67 [label="removeDuplicates_picard"];
+p68 [shape=point];
+p67 -> p68 [label="md_bams_3"];
+
+p71 [label="dedupUmi"];
+p77 [label="DeNovoAssembly"];
+p71 -> p77 [label="dedup_umi_bams"];
+
+p71 [label="dedupUmi"];
+p75 [shape=point];
+p71 -> p75 [label="dedup_umi_bams_for_count"];
+
+p71 [label="dedupUmi"];
+p74 [shape=point];
+p71 -> p74 [label="dedup_umi_bams_for_distr"];
+
+p71 [label="dedupUmi"];
+p73 [shape=point];
+p71 -> p73 [label="dedup_umi_bams_for_count_2"];
+
+p71 [label="dedupUmi"];
+p86 [label="StringTie_abundances"];
+p71 -> p86 [label="dedup_umis_3"];
+
+p71 [label="dedupUmi"];
+p72 [shape=point];
+p71 -> p72 [label="dedup_umis_4"];
+
+p76 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p77 [label="DeNovoAssembly"];
+p76 -> p77;
+
+p77 [label="DeNovoAssembly"];
+p79 [label="StringTie_Merge_Reference_Guided"];
+p77 -> p79 [label="dataset_name_ch"];
+
+p77 [label="DeNovoAssembly"];
+p78 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p77 -> p78 [label="stringTie_channel"];
+
+p78 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p79 [label="StringTie_Merge_Reference_Guided"];
+p78 -> p79;
+
+p79 [label="StringTie_Merge_Reference_Guided"];
+p80 [label="gffCompare"];
+p79 -> p80 [label="merged_denovo_assmebly"];
+
+p79 [label="StringTie_Merge_Reference_Guided"];
+p82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p79 -> p82 [label="merged_de_novo_assembly_2"];
+
+p79 [label="StringTie_Merge_Reference_Guided"];
+p80 [label="gffCompare"];
+p79 -> p80 [label="dataset_name_ch2"];
+
+p80 [label="gffCompare"];
+p81 [shape=point];
+p80 -> p81 [label="gff_compare_output_channel"];
+
+p82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p85 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p82 -> p85 [label="merged_de_novo_assembly_3"];
+
+p82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p84 [shape=point];
+p82 -> p84 [label="merged_de_novo_assembly_4"];
+
+p82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="into"];
+p83 [shape=point];
+p82 -> p83 [label="merged_de_novo_assembly_5"];
+
+p85 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+p86 [label="StringTie_abundances"];
+p85 -> p86;
+
+p86 [label="StringTie_abundances"];
+p88 [shape=point];
+p86 -> p88 [label="abundances_stringtie_umis"];
+
+p86 [label="StringTie_abundances"];
+p87 [shape=point];
+p86 -> p87 [label="ctabs_umis"];
+
+}

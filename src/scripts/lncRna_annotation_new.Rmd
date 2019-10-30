@@ -37,16 +37,23 @@ source(paste0(scripts_dir,"de_utils.R"))
 
 dir<- "/home/luisas/Desktop/cluster/proj/data"
 dir_hisat_zyagen <- file.path(dir,"02_RNA-Seq/03_hisat/Zyagen")
+dir_abundances_zyagen <- file.path(dir,"02_RNA-Seq/06_abundances/Zyagen")
 
+# The lncRNAs and mRNAs in the reference
 lncRNAs_ref <- import(file.path(dir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(dir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
-lncRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+
+# Candidates lncRNAs 
 candidates_lncRNA <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/candidate_lncRNA.gtf"))
+
+# Prediction 
+lncRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
 mRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
 stringtie_gtf <- import(file.path(dir, "02_RNA-Seq/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
 ```
+
 We first Check if we have multiple isoforms per gene, we do we want to collapse them.
-```{r duplicates}
+```{r multiple_isoforms_check}
 df <- data.frame("gene" =  lncRNAs_out$gene_id, "transcript" = lncRNAs_out$transcript_id, stringsAsFactors = FALSE)
 df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
 df[df$gene == "ENSMMUG00000037508",]
@@ -56,30 +63,6 @@ df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(n
 df[df$gene == "ENSMMUG00000000801",]
 ```
 
-do we have any lncrnas which have gene id as merged, but known transcript? YES! In that case we add the refernce id as gene id to the ones that have it.
-```{r duplicates}
-# For each 
-stringtie_gtf <- import(file.path(dir, "02_RNA-Seq/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
-length(stringtie_gtf$gene_id)
-stringtie_gtf[str_detect(stringtie_gtf$gene_id,"MSTRG") & !is.na(stringtie_gtf$ref_gene_id),]$gene_id <- stringtie_gtf[str_detect(stringtie_gtf$gene_id,"MSTRG") & !is.na(stringtie_gtf$ref_gene_id),]$ref_gene_id
-length(stringtie_gtf$gene_id)
-
-lncRNAs_out[str_detect(lncRNAs_out$gene_id,"MSTRG") & !is.na(lncRNAs_out$ref_gene_id),]$gene_id <- lncRNAs_out[str_detect(lncRNAs_out$gene_id,"MSTRG") & !is.na(lncRNAs_out$ref_gene_id),]$ref_gene_id
-
-unique(lncRNAs_out$gene_id)
-```
-Keep Track of the number of novel genes identified: 
-```{r}
-get_novels <- function(lncRNAs_out, stringtie_gtf, lncRNAs_ref){
-  intersect_feelnc_stringtie <- intersect(lncRNAs_out$gene_id, stringtie_gtf$gene_id)
-  intersect_reflnrna_out <- intersect(lncRNAs_ref$gene_id, lncRNAs_out$gene_id)
-  novel_lncrnas = setdiff(intersect_feelnc_stringtie,intersect_reflnrna_out )
-  return(novel_lncrnas)
-}
-novels <- list()
-novel_lncrnas <- get_novels(lncRNAs_out, stringtie_gtf, lncRNAs_ref)
-novels <- cbind(novels,"raw" = length(novel_lncrnas ))
-```
 
 ## Remove unconcordant predictions
 Since there are unconcordant predictions (same gene - multiple transcripts - assigned to different classes : lncRNA AND mRNA)
@@ -89,7 +72,6 @@ Since there are unconcordant predictions (same gene - multiple transcripts - ass
 df <- data.frame()
 df <- rbind(df, data.frame(gene_id = lncRNAs_out$gene_id, transcript_id = lncRNAs_out$transcript_id, pred = "lncrna" ))
 df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
-
 
 unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
 
@@ -103,39 +85,112 @@ mRNAs_out <- mRNAs_out[!(mRNAs_out$gene_id %in% unconcordant_prediction$gene_id)
 df <- data.frame()
 df <- rbind(df, data.frame(gene_id = lncRNAs_out$gene_id, transcript_id = lncRNAs_out$transcript_id, pred = "lncrna" ))
 df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
-unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarize(Unique_Elements = n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
-nrow(unconcordant_prediction)
+#unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarize(Unique_Elements = n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
+#nrow(unconcordant_prediction)
 
 # NOVELS after filtering unconcordant predictions
-novel_lncrnas <- get_novels(lncRNAs_out, stringtie_gtf, lncRNAs_ref)
-novels <- cbind(novels,"after-unconcordant prediction" = length(novel_lncrnas ))
+#novel_lncrnas <- get_novels(lncRNAs_out, stringtie_gtf, lncRNAs_ref)
+#novels <- cbind(novels,"after-unconcordant prediction" = length(novel_lncrnas ))
+
+```
+do we have any lncrnas which have gene id as merged, but known transcript? YES! In that case we add the refernce id as gene id to the ones that have it.
+```{r duplicates}
+# For each 
+
+# Collect all the gene ids - merged and reference gene ids 
+stringtie_gene_ids_withref <- union(stringtie_gtf$gene_id, stringtie_gtf$ref_gene_id)
+stringtie_gene_ids_withref <- stringtie_gene_ids_withref[!is.na(stringtie_gene_ids_withref)]
+lncRNAs_out_gene_ids_withref <- union(lncRNAs_out$gene_id, lncRNAs_out$ref_gene_id)
+lncRNAs_out_gene_ids_withref <- lncRNAs_out_gene_ids_withref[!is.na(lncRNAs_out_gene_ids_withref)]
+candidates_lncRNA_gene_ids_withref <- union(candidates_lncRNA$gene_id, candidates_lncRNA$ref_gene_id)
+candidates_lncRNA_gene_ids_withref <- candidates_lncRNA_gene_ids_withref[!is.na(candidates_lncRNA_gene_ids_withref)]
+mRNAs_out_gene_ids_withref <- union(mRNAs_out$gene_id, mRNAs_out$ref_gene_id)
+mRNAs_out_gene_ids_withref <- mRNAs_out_gene_ids_withref[!is.na(mRNAs_out_gene_ids_withref)]
+
+#length(unique(stringtie_gtf$gene_id))
+#stringtie_gtf_withrefasgeneid <- stringtie_gtf
+#stringtie_gtf_withrefasgeneid[str_detect(stringtie_gtf_withrefasgeneid$gene_id,"MSTRG") & !is.na(stringtie_gtf_withrefasgeneid$ref_gene_id),]$gene_id <- #stringtie_gtf_withrefasgeneid[str_detect(stringtie_gtf_withrefasgeneid$gene_id,"MSTRG") & !is.na(stringtie_gtf_withrefasgeneid$ref_gene_id),]$ref_gene_id
+
+get_geneids_with_refids <- function(gr){
+  gr_ref_ids <- unique(gr[str_detect(gr$gene_id,"MSTRG") &
+                                          !is.na(gr$ref_gene_id),]$ref_gene_id)
+  
+  return(unique(union(gr_ref_ids, gr$gene_id)))
+}
+stringtie_gene_ids_withref <- get_geneids_with_refids(stringtie_gtf)
+lncRNAs_out_gene_ids_withref <-  get_geneids_with_refids(lncRNAs_out)
+candidates_lncRNA_gene_ids_withref <- get_geneids_with_refids(candidates_lncRNA)
+mRNAs_out_gene_ids_withref <- get_geneids_with_refids(mRNAs_out)
+
+
+#length(stringtie_gtf_withrefasgeneid$gene_id)
+# Just to double check it worked
+#stringtie_gtf[str_detect(stringtie_gtf$gene_id,"MSTRG") & !is.na(stringtie_gtf$ref_gene_id),]$gene_id 
+#stringtie_gtf_withrefasgeneid[str_detect(stringtie_gtf_withrefasgeneid$gene_id,"MSTRG") & !is.na(stringtie_gtf_withrefasgeneid$ref_gene_id),]$gene_id 
+
+# Apply the same to the prediction
+# lncRNAs_out_withrefasgeneid <- lncRNAs_out
+# lncRNAs_out_withrefasgeneid[str_detect(lncRNAs_out_withrefasgeneid$gene_id,"MSTRG") & !is.na(lncRNAs_out_withrefasgeneid$ref_gene_id),]$gene_id <- #lncRNAs_out_withrefasgeneid[str_detect(lncRNAs_out_withrefasgeneid$gene_id,"MSTRG") & !is.na(lncRNAs_out_withrefasgeneid$ref_gene_id),]$ref_gene_id
+
+#Check 
+#lncRNAs_out_withrefasgeneid[str_detect(lncRNAs_out_withrefasgeneid$gene_id,"MSTRG") & !is.na(lncRNAs_out_withrefasgeneid$ref_gene_id),]$gene_id 
+
+# Check for the ref
+#lncRNAs_ref[str_detect(lncRNAs_ref$gene_id,"MSTRG") & !is.na(lncRNAs_ref$ref_gene_id),]$gene_id 
+
+#candidates_original <- candidates_lncRNA
+#candidates_lncRNA[str_detect(candidates_lncRNA$gene_id,"MSTRG") & !is.na(candidates_lncRNA$ref_gene_id),]$gene_id <- candidates_lncRNA[str_detect(candidates_lncRNA$gene_id,"MSTRG") & #!is.na(candidates_lncRNA$ref_gene_id),]$ref_gene_id
+
+#mRNAs_out[str_detect(mRNAs_out$gene_id,"MSTRG") & !is.na(mRNAs_out$ref_gene_id),]$gene_id <- mRNAs_out[str_detect(mRNAs_out$gene_id,"MSTRG") & !is.na(mRNAs_out$ref_gene_id),]$ref_gene_id
+
+#stringtie_gtf_original <- stringtie_gtf
+#lncRNAs_out_original <- lncRNAs_out
+#stringtie_gtf <- stringtie_gtf_withrefasgeneid
+#lncRNAs_out <- lncRNAs_out_withrefasgeneid
+```
+Keep Track of the number of novel genes identified. For the moment we just save the raw number.
+They are calculated trough overlap of gene_ids.
+```{r}
+
+get_novels <- function(lncRNAs_out, stringtie_gtf, lncRNAs_ref){
+  intersect_feelnc_stringtie <- intersect(lncRNAs_out, stringtie_gtf)
+  intersect_reflnrna_out <- intersect(lncRNAs_ref$gene_id, lncRNAs_out)
+  novel_lncrnas = setdiff(intersect_feelnc_stringtie,intersect_reflnrna_out )
+  return(novel_lncrnas)
+}
+novels <- list()
+novel_lncrnas <- get_novels(lncRNAs_out_gene_ids_withref, stringtie_gene_ids_withref, lncRNAs_ref)
+length(unique(novel_lncrnas))
+novels <- cbind(novels,"raw" = length(novel_lncrnas ))
+
+# Here we retrieve the ranges 
+novel_lncrnas_ranges <- lncRNAs_out[lncRNAs_out$gene_id %in% novel_lncrnas]
+novel_lncrnas_ranges[str_detect(novel_lncrnas_ranges$gene_id,"MSTRG"),]
 ```
 ## Overlap of Gene_ids
-
 we separate 
-
 ```{r}
 grid::grid.newpage()
-vd_draw(list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out$gene_id), unique(stringtie_gtf$gene_id),unique(mRNAs_ref$gene_id)), c("LNCRNA-ref","feelnc","stringtie","MRNA-ref"))
+vd_draw(list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out_gene_ids_withref), unique(stringtie_gene_ids_withref), unique(mRNAs_ref$gene_id)), c("LNCRNA-ref","feelnc","stringtie", "mrnas ref"))
 ```
 
 ```{r}
 grid::grid.newpage()
-vd_draw(list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out$gene_id), unique(stringtie_gtf$gene_id)), c("LNCRNA-ref","feelnc","stringtie"))
+vd_draw(list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out_gene_ids_withref), unique(stringtie_gene_ids_withref)), c("LNCRNA-ref","feelnc","stringtie"))
 ```
 
 
 ```{r}
 grid::grid.newpage()
-vd_draw(list(lncRNAs_ref$gene_id, lncRNAs_out$gene_id, stringtie_gtf$gene_id, mRNAs_ref$gene_id, mRNAs_out$gene_id), c("LNCRNA-ref","feelnc","stringtie","MRNA-ref", "Feelnc-mrna"))
+grid::grid.newpage()
+vd_draw(list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out_gene_ids_withref), unique(stringtie_gene_ids_withref), unique(mRNAs_ref$gene_id), unique(mRNAs_out_gene_ids_withref)), c("LNCRNA-ref","feelnc","stringtie", "mrnas ref", "mrnapred"))
 ```
-
 
 
 ```{r}
 grid::grid.newpage()
 
-lt <-list(lncRNAs_ref$gene_id, lncRNAs_out$gene_id, stringtie_gtf$gene_id, mRNAs_ref$gene_id, mRNAs_out$gene_id) 
+lt <-list(unique(lncRNAs_ref$gene_id), unique(lncRNAs_out_gene_ids_withref), unique(stringtie_gene_ids_withref),  unique(mRNAs_ref$gene_id), unique(mRNAs_out_gene_ids_withref))
 names(lt) <- c("LNCRNA-ref","feelnc","stringtie","MRNA-ref", "Feelnc-mrna")
 m1 = make_comb_mat(lt)
 UpSet(m1)
@@ -144,53 +199,80 @@ UpSet(m1)
 
 ```{r}
 grid::grid.newpage()
+# Old 
 intersect_reflnrna_out <- intersect(lncRNAs_ref$gene_id, lncRNAs_out$gene_id)
 intersect_reflnrna_stringtie <- intersect(lncRNAs_ref$gene_id, stringtie_gtf$gene_id)
 intersect_feelnc_stringtie <- intersect(lncRNAs_out$gene_id, stringtie_gtf$gene_id)
-intersect_reflnrna_mrnaout<- intersect(lncRNAs_ref$gene_id, mRNAs_out$gene_id)
-
+intersect_reflnrna_mrnaout<- intersect(lncRNAs_ref$gene_id, unique(mRNAs_out$gene_id))
 correctly_identified = intersect(intersect_reflnrna_stringtie,lncRNAs_out$gene_id)
 missed = setdiff(intersect_reflnrna_stringtie,correctly_identified)
+intersect_missed_mrnaout<- intersect(missed, unique(mRNAs_out$gene_id))
+# new
+intersect_reflnrna_out <- intersect(lncRNAs_ref$gene_id, lncRNAs_out_gene_ids_withref)
+intersect_reflnrna_stringtie <- intersect(lncRNAs_ref$gene_id, stringtie_gene_ids_withref)
+intersect_feelnc_stringtie <- intersect(lncRNAs_out_gene_ids_withref, stringtie_gene_ids_withref)
+intersect_reflnrna_mrnaout<- intersect(lncRNAs_ref$gene_id, mRNAs_out_gene_ids_withref)
+
+
+correctly_identified = intersect(intersect_reflnrna_stringtie,lncRNAs_out_gene_ids_withref)
+missed = setdiff(intersect_reflnrna_stringtie,correctly_identified)
+intersect_missed_mrnaout<- intersect(missed, mRNAs_out_gene_ids_withref)
+
 total = intersect_reflnrna_stringtie
 df <- data.frame()
-df <- rbind(df, data.frame(dataset = "total", number = length(total), type = "lncrna"))
-df <- rbind(df, data.frame(dataset = "correctly identified", number = length(correctly_identified), type = "lncrna"))
-df <- rbind(df, data.frame(dataset = "missed", number = length(missed), type = "lncrna"))
-df <- rbind(df, data.frame(dataset = "predicted as Mrna", number = length(intersect_reflnrna_mrnaout), type = "lncrna"))
-
+df <- rbind(df, data.frame(dataset = "NOVEL", number = length(novel_lncrnas), type = "lncrna"))
+df <- rbind(df, data.frame(dataset = "Total in Reference", number = length(total), type = "lncrna"))
+df <- rbind(df, data.frame(dataset = "Correctly identified", number = length(correctly_identified), type = "lncrna"))
+df <- rbind(df, data.frame(dataset = "Missed", number = length(missed), type = "lncrna"))
+df <- rbind(df, data.frame(dataset = "Predicted as Mrna", number = length(intersect_missed_mrnaout), type = "lncrna"))
 
 p1 <- ggplot(data=df, aes(x=type, y=number, fill=dataset)) +
   geom_bar(stat="identity", position=position_dodge())+
-  geom_text(aes(label=number), vjust=1.6, color="white",
+  geom_text(aes(label=number), vjust=-0.9, color="black",
             position = position_dodge(0.9), size=3.5)+
   scale_fill_brewer(palette="Paired")+
   theme_minimal() + 
-  labs(title="Number genes identified as lncRNAs")
+  labs(title="lncRNAs Prediction vs Reference") +
+  ylab("Count") +
+  xlab("") +
+  theme(legend.title=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))
+p1 + coord_flip()
 
 prop_missed = (length(missed)/length(total))*100
 prop_correctly = (length(correctly_identified)/length(total))*100
 
 df <- data.frame()
-df <- rbind(df, data.frame(dataset = "correctly identified", number = prop_correctly, type = "lncrna"))
 df <- rbind(df, data.frame(dataset = "missed", number = prop_missed, type = "lncrna"))
+df <- rbind(df, data.frame(dataset = "correctly identified", number = prop_correctly, type = "lncrna"))
+
 p2 <- ggplot(data=df, aes(x=type, y=number, fill=dataset)) +
   geom_bar(stat="identity")+
-  geom_text(aes(label=number), vjust=1.8, color="white", size=3)+
-  labs(title="Proportion of genes identified as lncRNAs")
+  geom_text(aes(label=format(round(number, 2), nsmall = 2)), vjust=1.8, color="white", size=3)+
+  labs(title="Proportion of genes identified as lncRNAs")+
+  theme(legend.title=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))
 
-grid.arrange(p1, p2, nrow = 1)
-   
+p2+ coord_flip()
 ```
 
 ## About the novel ones
 
-How many of the genes which were missed, were filtered out in the filter step? 
+How many of the genes which were missed, were filtered out in the filter step?
+The 118 that are in the candidates but are not predicted as mrnas? might be for unconcordant prediction
 ```{r}
 grid::grid.newpage()
-missed = setdiff(intersect_reflnrna_stringtie,correctly_identified)
-candidates = candidates_lncRNA$gene_id
-vd_draw(list(missed, candidates),c("missed","candidates"))
+#lncRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+#mRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+candidates = unique(candidates_lncRNA_gene_ids_withref)
+
+vd_draw(list(missed, candidates,mRNAs_out_gene_ids_withref),c("missed","candidates","predmrna"))
+
+missed_for <- setdiff(intersect(missed,candidates), mRNAs_out$gene_id)
+
+length(intersect(missed_for, stringtie_gtf_original$gene_id))
 missed_because_of_filtering <- setdiff(missed,candidates)
+
 print("Missed because of filtering")
 print(length(missed_because_of_filtering))
 ```
@@ -202,13 +284,33 @@ print(length(missed_because_of_filtering))
 # Instead of collapsing we select the longest transcript among the transcripts in one gene
 get_only_max_transcript <- function(gr){
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+#  df <- df[!is.na(df$gene_id), ]
+#  df <- df[!is.na(df$transcript_id), ]
   gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1) 
-  collapsed <-df[df$gene_id %in% gene_with_multiple_isoforms$gene_id,]%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
-  gr <- gr[gr$transcript_id %in% collapsed$transcript_id,]
+  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
+  
+  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
+  
+  
+  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
   return(gr)
 }
-lncRNAs_out <- get_only_max_transcript(lncRNAs_out)
-mRNAs_out <-  get_only_max_transcript(mRNAs_out)
+
+df <- data.frame("gene" =  lncRNAs_out$gene_id, "transcript" = lncRNAs_out$transcript_id, stringsAsFactors = FALSE)
+a <-df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+df[df$gene == "ENSMMUG00000037508",]
+
+gr <- lncRNAs_out
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1) 
+
+collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
+  
+gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
+lncRNAs_out <- gr
+
+return(gr)
+
 ```
 # About the Novel ones
 
@@ -216,31 +318,51 @@ mRNAs_out <-  get_only_max_transcript(mRNAs_out)
 Distribution of number of exons in newly predicted ones
 ```{r}
 grid::grid.newpage()
+#lncRNAs_out <- get_only_max_transcript(lncRNAs_out)
+#mRNAs_out <-  get_only_max_transcript(mRNAs_out)
+colors <- c("#D16103","#4E84C4")
+
 get_nr_exons <- function(gr){
+  gr <- get_only_max_transcript(gr)
   df <- data.frame("gene_id" = gr$gene_id,"exon_number" = as.numeric(gr$exon_number))
   number_exons <- df %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))
   return(number_exons)
 }
 
-lncrnas_ref_exons <- lncRNAs_ref[lncRNAs_ref$type =="exon",]
-lncrnas_ref_collapsed <- get_only_max_transcript(lncrnas_ref_exons)
 
-df_l <- data.frame(get_nr_exons(lncRNAs_out))
-df_l$type <- "pred"
-df_ref_lncrnas <- get_nr_exons(lncrnas_ref_collapsed)
-df_ref_lncrnas$type <- "ref"
+lncrnas_ref_exons <- lncRNAs_ref[lncRNAs_ref$type =="exon",]
+#lncrnas_ref_collapsed <- get_only_max_transcript(lncrnas_ref_exons)
+
+length(novel_lncrnas_ranges$gene_id)
+
+df_l <- data.frame(get_nr_exons(novel_lncrnas_ranges))
+nrow(df_l)
+df_l$type <- "Novel"
+df_ref_lncrnas <- get_nr_exons(lncrnas_ref_exons)
+df_ref_lncrnas$type <- "Reference"
 df <- rbind(df_ref_lncrnas, df_l)
 
-p1 <- ggplot(df, aes(x=max_exon,col =type, fill=type)) + 
-  geom_histogram(position="identity", alpha=0.5, binwidth =1)
+p1 <- ggplot(df, aes(x=max_exon, fill=type)) + 
+  geom_histogram(position="identity", alpha=0.7, binwidth =1)+
+  xlim(1,15)+
+  theme(legend.title=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))+
+  xlab("Number of exons")+
+  ylab("Count")+
+  labs(title="Number of Exons")
 p1 <- p1 + scale_fill_manual(values=colors)
+p1
 
-p2 <- ggplot(df, aes(x=max_exon,col =type, fill=type)) + 
+p2 <- ggplot(df, aes(x=max_exon, fill=type)) + 
   geom_histogram(aes(y=c(..count..[..group..==1]/sum(..count..[..group..==1]),
-                         ..count..[..group..==2]/sum(..count..[..group..==2]))*100),position="identity", alpha=0.5,binwidth = 1)+
-  labs(title="Number of exons Novel vs REF ")+ ylab ("Percentage of #exons") 
+                         ..count..[..group..==2]/sum(..count..[..group..==2]))*100),position="identity", alpha=0.7,binwidth = 1)+
+  labs(title="% Number of exons ")+ ylab ("Percentage of #exons")+
+  theme(legend.title=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))+
+  xlab("Number of exons")+
+  xlim(1,15)
 p2 <- p2 + scale_fill_manual(values=colors)
-
+p2
 grid.arrange(p1,p2,nrow=1)
 
 df_m <- data.frame(get_nr_exons(mRNAs_out))
@@ -263,10 +385,6 @@ df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(n
 
 # LENGTH OF GENES 
 ```{r}
-
-# Double checking we have no duplicates - so we ave one transcript per gene - we sum up the length of the exons --> Length of the gene
-df <- data.frame("gene" =  lncRNAs_out$gene_id, "transcript" = lncRNAs_out$transcript_id, stringsAsFactors = FALSE)
-df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
 # same for reference
 df <- data.frame("gene" =  lncrnas_ref_collapsed$gene_id, "transcript" = lncrnas_ref_collapsed$transcript_id, stringsAsFactors = FALSE)
 df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
@@ -278,11 +396,9 @@ colors <- c("#D16103","#4E84C4")
 histo_length <- function(gr,title,color){
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
   collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-  p1 <- ggplot(collapsed, aes(x=range)) + 
-    geom_histogram(position="identity", alpha=0.5, fill = color, binwidth = 40)+ 
-    xlim(0,8000)+
-    ylim(0,50)+
-    labs(title=title)
+  p1 <- ggplot(collapsed, aes(x=range)) + geom_histogram(position="identity", alpha=0.5, fill = color, binwidth = 50)+labs(title=title) + scale_y_log10()+ 
+    ylab("Log10 Count") + xlab("#Bases")+  theme(legend.title=element_blank())+
+  theme(plot.title = element_text(hjust = 0.5))+xlim(0,20000)
   return(p1)
 }
 
@@ -297,27 +413,34 @@ plot_all <- function(ref, gr, colors){
   all <- rbind(data.frame(collapsed_ref),data.frame(collapsed))
   mu <- ddply(all, "type", summarise, grp.mean=mean(range))
   print(mu[mu$type == "novel",]$grp.mean)
-  p3 <- ggplot(all, aes(x=range, col= type)) + 
-    geom_histogram(position="identity",alpha=0.5, binwidth = 20) +
-    ylim(0,50)+
+  p3 <- ggplot(all, aes(x=range, col= type))  + 
+    geom_histogram(position="identity",alpha=0.5, binwidth = 50) +
     geom_vline(data=mu, aes(xintercept=grp.mean, color=type),
              linetype="dashed")+
-    geom_text(aes(x = (mu[mu$type == "novel",]$grp.mean ), y = 20, label = as.integer(mu[mu$type == "novel",]$grp.mean))) +
-    geom_text(aes(x = (mu[mu$type == "ref",]$grp.mean), y = 40, label = as.integer(mu[mu$type == "ref",]$grp.mean)), colour = colors[2]) +
-    labs(title="GeneLength distribution NOVEL vs REFERENCE")
+    geom_text(aes(x = (mu[mu$type == "novel",]$grp.mean)+ 5000, y = 120, label = as.integer(mu[mu$type == "novel",]$grp.mean))) +
+    geom_text(aes(x = (mu[mu$type == "ref",]$grp.mean)+ 5000, y = 340, label = as.integer(mu[mu$type == "ref",]$grp.mean)), colour = colors[2]) +
+    labs(title="Length distribution NOVEL vs REFERENCE")+
+    theme(legend.title=element_blank())+
+    theme(plot.title = element_text(hjust = 0.5))+xlim(0,20000)+ ylab("Log10 Count") + xlab("#Bases")
   p3 <- p3 + scale_color_manual(values=colors)
   return(p3)
 }
 
-plot_all(lncrnas_ref_collapsed,lncRNAs_out,colors)
-p1 <-histo_length(lncRNAs_out,"GeneLength distribution  of NOVEL lncrnas",colors[1])
-p2 <-histo_length(lncrnas_ref_collapsed,"GeneLength distribution  of REF lncrnas",colors[2])
-p3 <- plot_all(lncrnas_ref_collapsed,lncRNAs_out,colors)
-p3  
+lncrnas_ref_exons <- lncRNAs_ref[lncRNAs_ref$type =="exon",]
+lncrnas_ref_collapsed <- get_only_max_transcript(lncrnas_ref_exons)
+
+novel_lncrnas_ranges <- get_only_max_transcript(novel_lncrnas_ranges)
+
+plot_all(lncrnas_ref_collapsed,novel_lncrnas_ranges,colors)
+
+p1 <-histo_length(novel_lncrnas_ranges,"Length distribution NOVEL",colors[1])
+
+p2 <-histo_length(lncrnas_ref_collapsed,"Length distribution REFERENCE",colors[2])
+p3 <- plot_all(lncrnas_ref_collapsed,novel_lncrnas_ranges,colors)
+
 # plot ALL 
 g1 <- as.grob(p1)
 g2 <- as.grob(p2)
-
 g3 <- as.grob(p3)
 
 grid.arrange(
@@ -326,7 +449,11 @@ grid.arrange(
                         c(3,3))
 )
 
-
+gr <- novel_lncrnas_ranges
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+max(collapsed$range)
+collapsed[collapsed$range == 81247,]
 
 ```
 The novel seem much longer or at least we have some VERY BIG outliers
@@ -339,7 +466,7 @@ collapsed_ref <-df_ref%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summ
 maximum_length_reference <- max(collapsed_ref$range)
 
 
-gr <- lncRNAs_out
+gr <- novel_lncrnas_ranges
 df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
 collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
 collapsed[collapsed$range == max(collapsed$range),]
@@ -350,14 +477,14 @@ ranges(max_transcript)
 
 #filter the ones too long
 collapsed <- collapsed[collapsed$range <maximum_length_reference,]
-lncRNAs_out_outliers_filtered <- lncRNAs_out[lncRNAs_out$gene_id %in% collapsed$gene_id, ]
+lncRNAs_out_outliers_filtered <- novel_lncrnas_ranges[novel_lncrnas_ranges$gene_id %in% collapsed$gene_id, ]
 # how many we filtered out
-length(lncRNAs_out$gene_id)- length(lncRNAs_out_outliers_filtered$gene_id)
+length(novel_lncrnas_ranges$gene_id)- length(lncRNAs_out_outliers_filtered$gene_id)
 
 
 lncRNAs_out_outliers_filtered
 p1 <-histo_length(lncRNAs_out_outliers_filtered,"GeneLength distribution  of NOVEL lncrnas",colors[1])
-p2 <-histo_length(lncrnas_ref_collapsed,"GeneLength distribution  of REF lncrnas",colors[2])
+p2 <-histo_length(lncrnas_ref_collapsed,"Length distribution  of REF lncrnas",colors[2])
 p3 <- plot_all(lncrnas_ref_collapsed,lncRNAs_out_outliers_filtered,colors)
   
 # plot ALL 
@@ -374,21 +501,104 @@ grid.arrange(
 ```
 
 ## Expression Levels of the novel ones
-- novel_gene_ids: filtered set of gene ids which are considered novel by stringtie
-Extra question: are all the novel MRG? if they are not, are they in mrna? if yes REMOVE. No they are not in mrna, there is one annotated and is a pseudogene
-```{r}
-length(novel_lncrnas)
-# Check just to be suer if there is any novel one which is not a merged transcript
-not_merged_but_novel <-novel_lncrnas[!str_detect(novel_lncrnas,"MSTRG")]
-candidates_lncRNA[candidates_lncRNA$gene_id == "ENSMMUG00000045895",]
-# it is a pseudogene
+
+First we need to get the counts into a readable format.
+```{r echo=FALSE,  results='hide'}
+directory_zyagen = file.path(baseDir,"data/02_RNA-Seq/06_quantification_stringtie_prepde")
+count_matrix<- iterate_files(directory_zyagen, 'gene_count_matrix.csv')
+
+# Load gene(/transcript) count matrix and labels
+countData <- as.matrix(read.csv(count_matrix, row.names="gene_id"))
+
+colData <- get_colData(countData)
+all(rownames(colData) %in% colnames(countData))
+countData <- countData[, rownames(colData)]
+all(rownames(colData) == colnames(countData))
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
+dds <- DESeq(dds)
 ```
+
+```{r echo=FALSE,  results='hide'}
+dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
+
+assays(dds)$logCPM <- cpm(dge, log = TRUE)
+mask <- rowMeans(assays(dds)$logCPM) > 1
+length(mask[mask == FALSE])
+dds <- dds[mask, ]
+dge <- dge[mask, ]
+dim(dge)
+mds <- plotMDS(dge, label = dge$samples$group)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r echo=FALSE,  results='hide'}
+extract_se <- function(ctabs, id = "transcript"){
+  coldata = extract_coldata(ctabs)
+  print(ctabs)
+  # get tx2gene table 
+  tx2gene <- read_tsv(ctabs[1])[, c("t_name","gene_id", "gene_name")]
+  rowdata = tx2gene
+  tx2gene = rowdata[,1:2]
+  # Import tx 
+  txi <- tximport(ctabs, type = "stringtie", tx2gene = tx2gene, txOut = TRUE)
+  rownames(coldata) = coldata[["completeid"]]
+  rowdata = rowdata[match(rownames(txi[[1]]), as.character(rowdata[["t_name"]])),]
+  rownames(rowdata) = rowdata[["t_name"]]
+  # Create summarized experiment
+  se = SummarizedExperiment(assays = list(counts = txi[["counts"]],
+                                          abundance = txi[["abundance"]],
+                                          length = txi[["length"]]),
+                            colData = coldata, 
+                            rowData = rowdata)
+  # Create summarized experiment at gene level 
+  # Summarizes abundances, counts, lengths, (and inferential replicates or variance) from transcript- to gene-level. 
+  # This function operates on SummarizedExperiment objects, and will automatically access the relevant TxDb
+  if (!is.null(tx2gene)){
+    gi = summarizeToGene(txi, tx2gene = tx2gene)
+    growdata = unique(rowdata[,2:3])
+    growdata = growdata[match(rownames(gi[[1]]), growdata[["gene_id"]]),]
+    rownames(growdata) = growdata[["tx"]]
+    gse = SummarizedExperiment(assays = list(counts = gi[["counts"]],
+                                             abundance = gi[["abundance"]],
+                                             length = gi[["length"]]),
+                               colData = DataFrame(coldata),
+                               rowData = growdata)
+  }
+  
+  if(id =="transcript"){
+    return(se)
+  }
+  else if (id == "gene"){
+     return(gse)
+  }
+ 
+}
+```
+
 I need the expression Levels 
 ```{r echo=FALSE,  results='hide'}
 directory_zyagen = file.path(baseDir,"data/02_RNA-Seq/04_stringtie_counts/Zyagen")
 ctabs<- iterate_files(directory_zyagen, 't_data.ctab')
 ctabs_zyagen_umis <-ctabs[sapply(ctabs, function(str) str_detect(str,"umis"))]
-se <-extract_se(ctabs_zyagen_umis)
+se <-extract_se(ctabs_zyagen_umis, "gene")
+assays(se)$count
 ```
 
 I only extract the ones in the novel - 
@@ -467,6 +677,17 @@ mds <- plotMDS(dge, label = dge$samples$group)
 
 ## Other questions
 ## Why so many gene_ids from reference not in Stringtie? 
+
+- novel_gene_ids: filtered set of gene ids which are considered novel by stringtie
+Extra question: are all the novel MRG? if they are not, are they in mrna? if yes REMOVE. No they are not in mrna, there is one annotated and is a pseudogene
+```{r}
+length(novel_lncrnas)
+# Check just to be suer if there is any novel one which is not a merged transcript
+not_merged_but_novel <-novel_lncrnas[!str_detect(novel_lncrnas,"MSTRG")]
+candidates_lncRNA[candidates_lncRNA$gene_id == "ENSMMUG00000045895",]
+# it is a pseudogene
+```
+
 Solved: stringtie applies filtering on transcript lengths and coverage etc and so some are not present in the final one.
 
 We want to check WHY in the reference we have so many lncRNAS that are not present in stringtie.
@@ -625,7 +846,7 @@ rownames(dds)
 colnames(dds)
 
 assays(dds)$counts
-
+rowData(dds)
 
 diff_ids <- setdiff(rownames(dds), stringtie_gtf$gene_id )
 

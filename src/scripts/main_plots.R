@@ -73,5 +73,16 @@ plot_infer_strandness(inpath_hisat,outpath_hisat)
 barplot_counts_stats(inpath_hisat,outpath_hisat)
 
 # Barplot reads distribution  
-plot_read_distribution(inpath_hisat,outpath_hisat)
+
+
+pattern_distr = ".read_distribution.txt"
+distr_files <- iterate_files(inpath_hisat, pattern_distr)
+
+distr_files_nvsf <-distr_files[str_detect(distr_files,"read_distribution_nvsf")]
+plot_read_distribution(distr_files_nvsf,outpath_hisat,"filtered_out_readdistribution.png", yli = 20000000)
+
+
+
+
+
 
