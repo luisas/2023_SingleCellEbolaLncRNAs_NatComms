@@ -66,6 +66,11 @@ barplot_mapped_reads(inpath_hisat_batch,outpath_hisat_batch)
 barplot_mapped_reads(inpath_hisat_batch_trimmed,outpath_hisat_batch)
 
 
+barplot_mapped_reads_two(inpath_hisat,inpath_hisat_batch,outpath_hisat)
+barplot_counts_stats_2(inpath_hisat,inpath_hisat_batch,outpath_hisat)
+
+
+
 # Infer Strandness
 plot_infer_strandness(inpath_hisat,outpath_hisat)
 
@@ -77,6 +82,14 @@ barplot_counts_stats(inpath_hisat,outpath_hisat)
 
 pattern_distr = ".read_distribution.txt"
 distr_files <- iterate_files(inpath_hisat, pattern_distr)
+distr_files <- distr_files[!str_detect(distr_files,"nvsf")]
+distr_files <- distr_files[!str_detect(distr_files,"filter")]
+distr_files_2 <- iterate_files(inpath_hisat_batch, pattern_distr)
+distr_files_2 <- distr_files_2[!str_detect(distr_files_2,"nvsf")]
+distr_files_2 <- distr_files_2[!str_detect(distr_files_2,"filter")]
+plot_read_distribution_two(distr_files,distr_files_2,outpath_hisat,"filtered_out_readdistribution_2_tog.png", yli = 80000000)
+
+
 
 distr_files_nvsf <-distr_files[str_detect(distr_files,"read_distribution_nvsf")]
 plot_read_distribution(distr_files_nvsf,outpath_hisat,"filtered_out_readdistribution.png", yli = 20000000)

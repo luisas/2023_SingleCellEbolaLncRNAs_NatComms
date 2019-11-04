@@ -198,6 +198,102 @@ barplot_mapped_reads<- function(inpath,outpath){
   
 }
 
+
+
+barplot_mapped_reads_two<- function(inpath,inpath2,outpath){
+  mapping_stats<-list()
+  files <- list.files(path=inpath, pattern="summary.txt", full.names=TRUE, recursive=TRUE)
+  
+  # Extract information from each summary file
+  for(file in files){
+    # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+    info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
+    tissue <- info[2]
+    sample <- info[4]
+    lane <- strsplit(info[5],".", fixed = T)[[1]][1]
+    sample_name=paste(tissue,sample,lane,sep=".")
+    
+    res_path <- paste(inpath,tissue,sample,sep="/")
+    #res_file <- paste0(res_path,"/",paste(tissue,sample,lane,"hisat2_summary.txt",sep="."))
+    # Get mapped reads summary
+    summary <- parse_hisat2_summaryFile(file)
+    
+    # Error handling 
+    if(! file.exists(file)){print(paste0("File does not exits ",file))}
+    
+    # Extract the informations
+    mapping_stats[[sample_name]]<- c(as.numeric(summary[names(summary)[c(1:4)]])*2, 
+                                     # PE reads -> first 4 number multiply by 2, mapped as PE
+                                     # hisat1 reports fort 
+                                     # PE reads, counting R1 and R1 as 1 read (count)
+                                     as.numeric(summary[names(summary)[c(5:6)]])) 
+    # only one mapped mate of the PE, here one mate (either R1 or R2) is one count
+  }
+  
+  # Prepare data structure for plotting
+  mapping_stats_df<-do.call(cbind.data.frame,mapping_stats)
+  rownames(mapping_stats_df)<-  mapping_stats[[sample_name]]<-report <- names(summary)
+  # compute number of UNMAPPED reads
+  mapping_stats_df["Unmapped",]<-as.numeric(mapping_stats_df[1,])-apply(mapping_stats_df[c(2:6),],2,sum) 
+  
+  
+  
+  mapping_stats<-list()
+  files <- list.files(path=inpath2, pattern="summary.txt", full.names=TRUE, recursive=TRUE)
+  
+  # Extract information from each summary file
+  for(file in files){
+    # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+    info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
+    tissue <- info[2]
+    sample <- info[4]
+    lane <- strsplit(info[5],".", fixed = T)[[1]][1]
+    sample_name=paste(tissue,sample,lane,sep=".")
+    
+    res_path <- paste(inpath,tissue,sample,sep="/")
+    #res_file <- paste0(res_path,"/",paste(tissue,sample,lane,"hisat2_summary.txt",sep="."))
+    # Get mapped reads summary
+    summary <- parse_hisat2_summaryFile(file)
+    
+    # Error handling 
+    if(! file.exists(file)){print(paste0("File does not exits ",file))}
+    
+    # Extract the informations
+    mapping_stats[[sample_name]]<- c(as.numeric(summary[names(summary)[c(1:4)]])*2, 
+                                     # PE reads -> first 4 number multiply by 2, mapped as PE
+                                     # hisat1 reports fort 
+                                     # PE reads, counting R1 and R1 as 1 read (count)
+                                     as.numeric(summary[names(summary)[c(5:6)]])) 
+    # only one mapped mate of the PE, here one mate (either R1 or R2) is one count
+  }
+  
+  # Prepare data structure for plotting
+  mapping_stats_df_2<-do.call(cbind.data.frame,mapping_stats)
+  rownames(mapping_stats_df_2)<-  mapping_stats[[sample_name]]<-report <- names(summary)
+  # compute number of UNMAPPED reads
+  mapping_stats_df_2["Unmapped",]<-as.numeric(mapping_stats_df_2[1,])-apply(mapping_stats_df_2[c(2:6),],2,sum) 
+  
+  
+  # -------- plot 
+  create_barplots_reads_mapping <- function(mapping_stats_df) {
+    png(paste0(outpath,"/hisat2_mapping_report_2_together.png"),width = 1200,height = 500)
+    options(scipen=999)
+    par(mfrow=c(1,2),oma=c(12,4,0,0),mar=c(2,2,2,2),xpd=NA)
+    # First Barplot
+    barplot(as.matrix(apply(mapping_stats_df[-1,],2,function(x) x/sum(x) )),las=2,col=brewer.pal(6,"Paired"),ylim = c(0,1.2),yaxt='n', main="Zyagen: Proportion PE Reads")
+    axis(2,at=seq(0,1,0.2))
+    # Second barplot plotting the proportion
+    barplot(as.matrix(apply(mapping_stats_df_2[-1,],2,function(x) x/sum(x) )),las=2,col=brewer.pal(6,"Paired"),ylim = c(0,1.2),yaxt='n', main="Batch01: Proportion PE Reads")
+    axis(2,at=seq(0,1,0.2))
+    # Plot
+    #?legend
+    #legend(-85,-0.6,rownames(mapping_stats_df)[-1],bty="n",pch=15,col=brewer.pal(6,"Paired"),ncol=2,cex=1.1)
+    dev.off() 
+  }
+  
+  create_barplots_reads_mapping(mapping_stats_df)
+  
+}
 # -------- finish plot 
 # ---------------------------------------------------------------------------------------
 
@@ -299,6 +395,63 @@ barplot_counts_stats <- function(inpath_counts,outpath){
 
 
 
+
+barplot_counts_stats_2 <- function(inpath_counts,inpath_counts_2, outpath){
+  pattern_counts = "md.n_reads.txt"
+  counts_files <- iterate_files(inpath_counts, pattern_counts)
+  # Extract count files
+  
+  counts <- list()
+  for(file_counts in counts_files){
+    # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+    # Error handling 
+    if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
+    counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
+  }
+  counts_df<-do.call(cbind.data.frame,
+                     lapply(1:length(counts), function(i) counts[[i]][,2]))
+  rownames(counts_df)<-counts[[1]][,1]
+  colnames(counts_df)<-names(counts)
+  
+  
+  counts_files <- iterate_files(inpath_counts_2, pattern_counts)
+  # Extract count files
+  
+  counts <- list()
+  for(file_counts in counts_files){
+    # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+    # Error handling 
+    if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
+    counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
+  }
+  counts_df_2<-do.call(cbind.data.frame,
+                     lapply(1:length(counts), function(i) counts[[i]][,2]))
+  rownames(counts_df_2)<-counts[[1]][,1]
+  colnames(counts_df_2)<-names(counts)
+  
+  print("lala")
+  
+  # Barplots 
+  png(paste0(outpath,"/counts_2_tpg_md_zyagen.png"),width = 1400,height = 500)
+  options(scipen=999)
+  par(mfrow=c(1,2))
+  par(oma=c(8,2,0,0),xpd=NA)
+  barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+  #barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+  axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+  
+  barplot(as.matrix(counts_df_2[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+  #barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
+  axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+  #legend(-17,1.2,rownames(counts_df)[-c(1,6)],col=brewer.pal(5,"Dark2"),pch=15,bty="n",ncol=5)
+  dev.off() 
+
+  
+}
+
+
 # Plot for read distribution 
 plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
   distr_stat <- list()
@@ -327,6 +480,40 @@ plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
 
 
 
+
+# Plot for read distribution 
+plot_read_distribution_two <- function (distr_files,distr_files2,outpath,name,yli = 80000000){
+  distr_stat <- list()
+  for(distr_file in distr_files){
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
+    summary <- parse_distr(distr_file)
+    distr_stat[[sample_name]]<- summary 
+  }
+  distr_df <- do.call(rbind, distr_stat)
+  distr_df = t(distr_df)
+  
+  distr_stat <- list()
+  for(distr_file in distr_files2){
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
+    summary <- parse_distr(distr_file)
+    distr_stat[[sample_name]]<- summary 
+  }
+  distr_df_2 <- do.call(rbind, distr_stat)
+  distr_df_2 = t(distr_df_2)
+  # Barplots 
+  png(paste0(outpath,"/",name),width = 1400,height = 500)
+  options(scipen=999)
+  par(mfrow=c(1,2))
+  par(oma=c(8,2,0,0),xpd=NA)
+  barplot(as.matrix(apply(distr_df,2,function(x) as.numeric(x)/sum(as.numeric(x)))),las=2,col=brewer.pal(10,"Paired"))
+  axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+  
+  barplot(as.matrix(apply(distr_df_2,2,function(x) as.numeric(x)/sum(as.numeric(x)))),las=2,col=brewer.pal(10,"Paired"))
+  axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
+  #legend(-17,1.2,rownames(distr_df),col=brewer.pal(10,"Paired"),pch=15,bty="n",ncol=5)
+  dev.off() 
+  
+}
 
 
 

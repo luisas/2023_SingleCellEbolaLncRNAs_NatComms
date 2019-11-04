@@ -16,9 +16,9 @@
 params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
-params.dataset_bam_dir = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
+//params.dataset_bam_dir = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
 //params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
-//params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
+params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
 
 // Folder where the output directories of the pipeline will be placed
 params.output_dir = "${params.dirProj}/data/02_RNA-Seq/"
@@ -432,7 +432,7 @@ process merge_lanes{
 *   STEP 6 filter bams
 *   Filter low-quality reads and retain properly-paired uniquely mapped reads
 *   f3 : read paired & read mapped in proper pair
-*   q60: 60 should be mapped TODO check properly
+*   q60: 60 should be uniquely mapped reads have MAPQ of 60.
 *   Now it is a stringent filtering. We may wanna make it looser for the lncRNA
 *   annotation pipeline.
 */
@@ -841,13 +841,16 @@ process gffCompare{
 merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
 
 
+params.fix_merged = "${params.output_dir}/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
+Channel.fromPath("${params.fix_merged}").set{ fixed_zyagen_merged_stringtie}
+
 process StringTie_abundances_umis{
 
   cpus 8
   storeDir "${params.output_dir}/06_abundances/$dataset_name/$tissue/$dayPostInfection/$sample/umis"
 
   input:
-  file stringtie_merged from merged_de_novo_assembly_3.collect()
+  file stringtie_merged from fixed_zyagen_merged_stringtie.collect()
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(bam),
       file(bai) from dedup_umis_3
@@ -862,6 +865,29 @@ process StringTie_abundances_umis{
   stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -A ${file_prefix}.ctab -o ${file_prefix}_abundance.gtf ${bam}
   """
 }
+
+
+// process StringTie_abundances_umis{
+//
+//   cpus 8
+//   storeDir "${params.output_dir}/06_abundances/$dataset_name/$tissue/$dayPostInfection/$sample/umis"
+//
+//   input:
+//   file stringtie_merged from merged_de_novo_assembly_3.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(bam),
+//       file(bai) from dedup_umis_3
+//
+//   output:
+//   //set dataset_name, dayPostInfection, tissue, sample, complete_id,file_prefix, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
+//   set complete_id, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
+//   file "*.ctab" into ctabs_umis
+//   script:
+//   file_prefix = get_file_name_no_extension(bam.name)
+//   """
+//   stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -A ${file_prefix}.ctab -o ${file_prefix}_abundance.gtf ${bam}
+//   """
+// }
 
 
 //
@@ -934,17 +960,12 @@ process StringTie_abundances_umis{
 
 params.script_prepde="${baseDir}/scripts/prepDE.py"
 Channel.fromPath("${params.script_prepde}").set{ prepdescript }
-
-
-
 abundances_stringtie_umis.into{abundances_stringtie_umis1 ; abundances_stringtie_umis2}
-
-
 
 
 process prepareCountMatrices{
 
-  storeDir "${params.output_dir}/06_quantification_stringtie_prepde"
+  storeDir "${params.output_dir}/06_quantification_stringtie_prepde_batch"
 
   input:
   file fileList from abundances_stringtie_umis1.collect()

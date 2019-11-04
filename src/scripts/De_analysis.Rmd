@@ -58,11 +58,40 @@ filter_and_plotMDS <- function(dds,dge,title){
   print(length(levels(dge$samples$group)))
   colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
   col.cell <- colors[dge$samples$group]
-  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main="Zyagen samples on genes CPM")
-  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$id , col=col.cell,main="Zyagen samples on genes CPM")
-
+  mds <- ?plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main=" samples on genes CPM")
+  
+  par(xpd=T, mar=par()$mar+c(0,0,0,6))
+  mds <- plotMDS(cpm(dge, log = TRUE), pch = 2, col=col.cell,main=" samples on genes CPM")
+  legend(4.3,1.1, inset=c(-0.2,0), legend=levels(dge$samples$group), fill= unique(col.cell))
+  par(mar=c(5, 4, 4, 2) + 0.1)
 }
 ```
+
+
+```{r echo=FALSE, results='hide'}
+
+# Filters out lowly expressed genes, calc CPM, plot
+filter_and_plotMDS_all <- function(dds,dge,title){
+  # Filter lowly expressed genes
+  assays(dds)$logCPM <- cpm(dge, log = TRUE)
+  mask <- rowMeans(assays(dds)$logCPM) > 1
+  dds <- dds[mask, ]
+  dge <- dge[mask, ]
+  dge$samples$tissue <-as.factor(dge$samples$tissue)
+  colors <- brewer.pal(n = length(levels(dge$samples$tissue)), name = 'Paired')
+  col.cell <- colors[dge$samples$tissue]
+  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main=" samples on genes CPM")
+  
+  par(xpd=T, mar=par()$mar+c(0,0,0,6))
+  mds <- plotMDS(cpm(dge, log = TRUE), pch = c(16,17)[dge$samples$group], col=col.cell,main=" samples on genes CPM")
+  legend(5.5,2.6, inset=c(-0.2,0), legend=levels(dge$samples$group),  pch =c(16,17) )
+  legend(5.5,0.9, inset=c(-0.2,0), legend=unique(dge$samples$tissue),  fill= unique(colors[dge$samples$tissue]))
+  par(mar=c(5, 4, 4, 2) + 0.1)
+}
+32490+44209
+filter_and_plotMDS_all(dds,dge)
+```
+
 
 ```{r echo=FALSE, results='hide'}
 mask <- dds$condition == "Zyagen"
@@ -84,18 +113,50 @@ filter_and_plotMDS(dds_filtered,dge_batch)
 
 ```{r echo=FALSE, results='hide'}
 mask1 <- dds$condition == "Batch01" 
-mask2 <- dds$tissue == "Blood"
+mask2 <- dds$tissue == "Liver"
 mask <- mask1 & mask2 
 dds_filtered <- dds[,mask]
 dds_filtered$tissue
 dge_batch_blood <- DGEList(counts = assays(dds_filtered)$counts, group = dds_filtered$dpo, genes = rownames(dds_filtered), samples = colData(dds_filtered))
 # Filters out lowly expressed genes, calc CPM, plot
 filter_and_plotMDS(dds_filtered,dge_batch_blood)
-```
-```{r echo=FALSE, results='hide'}
+
+
+dds <- dds_filtered
+dge <- dge_batch_blood
+
+  assays(dds)$logCPM <- cpm(dge, log = TRUE)
+  mask <- rowMeans(assays(dds)$logCPM) > 1
+  dds <- dds[mask, ]
+  dge <- dge[mask, ]
+  print(length(levels(dge$samples$group)))
+  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
+  col.cell <- colors[dge$samples$group]
+  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main=" samples on genes CPM")
+  
+  par(xpd=T, mar=par()$mar+c(0,0,0,6))
+  mds <- plotMDS(cpm(dge, log = TRUE),label= dge$samples$id , col="blue",main="Liver")
+  #legend(2.2,0.2, inset=c(-0.2,0), legend=levels(dge$samples$group), fill= unique(col.cell))
+  par(mar=c(5, 4, 4, 2) + 0.1)
+
 # Filters out lowly expressed genes, calc CPM, plot
 filter_and_plotMDS(dds,dge)
 ```
+
+
+```{r echo=FALSE, results='hide'}
+data.dist <- dist(dge[,1:4])
+data.mds <- cmdscale(data.dist, k=3)
+
+#Create x,y refs
+data.x <- data.mds[,1]
+data.y <- data.mds[,2]
+data.z <- data.mds[,3]
+
+#Plot
+plot3d(data.x, data.y, data.z, col=as.integer(data$CLASS))
+```
+
 
 
 # Explore library sizes
