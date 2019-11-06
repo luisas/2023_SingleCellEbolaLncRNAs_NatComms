@@ -19,3 +19,5 @@ src/00_CLUSTER_Nord3/err
 src/00_CLUSTER_Nord3/work
 src/01_CLUSTER_Marenostrum/work
 singularity
+.Rhistory
+.RData

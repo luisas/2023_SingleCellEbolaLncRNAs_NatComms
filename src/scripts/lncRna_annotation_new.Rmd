@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Load data and libraries
 
-```{r echo=FALSE}
+```{r results='hide', message=FALSE, warning=FALSE}
 library(rtracklayer)
 library(VennDiagram)
 library(stringr)
@@ -43,11 +43,9 @@ dir_abundances_zyagen <- file.path(dir,"02_RNA-Seq/06_abundances/Zyagen")
 # Human training set
 lncRNAs_ref_human <- import(file.path(dir, "01_PreliminaryFiles/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 
-
 # The lncRNAs and mRNAs in the reference
 lncRNAs_ref <- import(file.path(dir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(dir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
-length(unique(lncRNAs_ref$transcript_id))
 
 # Candidates lncRNAs 
 candidates_lncRNA <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_lncrna/candidate_lncRNA.gtf"))
@@ -58,20 +56,21 @@ mRNAs_out <- import(file.path(dir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencod
 stringtie_gtf <- import(file.path(dir, "02_RNA-Seq/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
 ```
 
+
+## Exploring the data
 We first Check if we have multiple isoforms per gene, we do we want to collapse them.
-```{r multiple_isoforms_check}
+```{r multiple_isoforms_check, results='hide', message=FALSE, warning=FALSE}
 df <- data.frame("gene" =  lncRNAs_out$gene_id, "transcript" = lncRNAs_out$transcript_id, stringsAsFactors = FALSE)
-df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-df[df$gene == "ENSMMUG00000037508",]
+#df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+#df[df$gene == "ENSMMUG00000037508",]
 # same for reference 
 df <- data.frame("gene" =  lncRNAs_ref$gene_id, "transcript" = lncRNAs_ref$transcript_id)
-df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-df[df$gene == "ENSMMUG00000000801",]
+#df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+#df[df$gene == "ENSMMUG00000000801",]
 ```
 
-
-## Remove unconcordant predictions
-Since there are unconcordant predictions (same gene - multiple transcripts - assigned to different classes : lncRNA AND mRNA)
+### Remove unconcordant predictions
+Since there are unconcordant predictions (same gene - multiple transcripts - assigned to different classes : lncRNA AND mRNA), we do remove them.
 ```{r echo=T, results='hide', eval=FALSE}
 ## REMOVE UNCONCORDANT PREDICTIONS
 # Get the genes with unconcordant prediction labels for transcripts 
@@ -81,8 +80,6 @@ df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_ou
 
 unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
 
-unconcordant_prediction
-
 # Remove unconcordant predictions from sets 
 lncRNAs_out <-lncRNAs_out[!(lncRNAs_out$gene_id %in% unconcordant_prediction$gene_id), ]
 mRNAs_out <- mRNAs_out[!(mRNAs_out$gene_id %in% unconcordant_prediction$gene_id), ]
@@ -91,17 +88,10 @@ mRNAs_out <- mRNAs_out[!(mRNAs_out$gene_id %in% unconcordant_prediction$gene_id)
 df <- data.frame()
 df <- rbind(df, data.frame(gene_id = lncRNAs_out$gene_id, transcript_id = lncRNAs_out$transcript_id, pred = "lncrna" ))
 df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
-#unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarize(Unique_Elements = n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
-#nrow(unconcordant_prediction)
-
-# NOVELS after filtering unconcordant predictions
-#novel_lncrnas <- get_novels(lncRNAs_out, stringtie_gtf, lncRNAs_ref)
-#novels <- cbind(novels,"after-unconcordant prediction" = length(novel_lncrnas ))
-
 ```
 do we have any lncrnas which have gene id as merged, but known transcript? YES! In that case we add the refernce id as gene id to the ones that have it.
 ```{r duplicates}
-# For each 
+
 
 # Collect all the gene ids - merged and reference gene ids 
 stringtie_gene_ids_withref <- union(stringtie_gtf$gene_id, stringtie_gtf$ref_gene_id)
@@ -120,7 +110,6 @@ mRNAs_out_gene_ids_withref <- mRNAs_out_gene_ids_withref[!is.na(mRNAs_out_gene_i
 get_geneids_with_refids <- function(gr){
   gr_ref_ids <- unique(gr[str_detect(gr$gene_id,"MSTRG") &
                                           !is.na(gr$ref_gene_id),]$ref_gene_id)
-  
   return(unique(union(gr_ref_ids, gr$gene_id)))
 }
 stringtie_gene_ids_withref <- get_geneids_with_refids(stringtie_gtf)
@@ -361,7 +350,7 @@ df_ref_human_lncrnas$type <- "Reference-human "
 df <- rbind(df_ref_human_lncrnas, df)
 
 p1 <- ggplot(df, aes(x=max_exon, fill=type)) + 
-  geom_histogram(position="identity", alpha=0.7, binwidth =1)+
+  geom_histogram(position="identity", alpha=0.4, binwidth =1)+
   xlim(1,15)+
   theme(legend.title=element_blank())+
   theme(plot.title = element_text(hjust = 0.5))+
@@ -517,70 +506,29 @@ max(collapsed$range)
 collapsed[collapsed$range == 81247,]
 
 ```
-The novel seem much longer or at least we have some VERY BIG outliers
-
-```{r}
-# Exploring the max length of transcripts! In novel much longer!
-
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed$type <- "novel"
-
-boxplot(collapsed_human$range, plot=FALSE)$out
 
 
+## Expression Levels of the novel ones
+```{r echo=FALSE, results='hide'}
 
-gr1 <- lncrnas_ref_collapsed_human
-df_human <- data.frame("gene_id" = gr1$gene_id,"transcript_id" = gr1$transcript_id, "range_width" = width(ranges(gr1)))
-collapsed_human <-df_human%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed_human$type <- "humanref"
+boxplot_logcpms <- function(dge,title, outline= TRUE){
+  logcounts <- cpm(dge,log=TRUE)
+  # Check distributions of samples using boxplots
+  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
+  col.cell <- colors[dge$samples$group]
   
-df_ref <- data.frame("gene_id" = ref$gene_id,"transcript_id" = ref$transcript_id, "range_width" = width(ranges(ref)))
-collapsed_ref <-df_ref%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed_ref$type <- "refmacaque"
-
-
-ref <- lncrnas_ref_collapsed
-df_ref <- data.frame("gene_id" = ref$gene_id,"transcript_id" = ref$transcript_id, "range_width" = width(ranges(ref)))
-collapsed_ref <-df_ref%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-maximum_length_reference <- max(collapsed_ref$range)
-
-
-gr <- novel_lncrnas_ranges
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed[collapsed$range == max(collapsed$range),]
-
-max_transcript <- gr[gr$transcript_id == "MSTRG.32406.1",]
-ranges(max_transcript)
-
-
-#filter the ones too long
-collapsed <- collapsed[collapsed$range <maximum_length_reference,]
-lncRNAs_out_outliers_filtered <- novel_lncrnas_ranges[novel_lncrnas_ranges$gene_id %in% collapsed$gene_id, ]
-# how many we filtered out
-length(novel_lncrnas_ranges$gene_id)- length(lncRNAs_out_outliers_filtered$gene_id)
-
-
-lncRNAs_out_outliers_filtered
-p1 <-histo_length(lncRNAs_out_outliers_filtered,"GeneLength distribution  of NOVEL lncrnas",colors[1])
-p2 <-histo_length(lncrnas_ref_collapsed,"Length distribution  of REF lncrnas",colors[2])
-p3 <- plot_all(lncrnas_ref_collapsed,lncRNAs_out_outliers_filtered,colors)
-  
-# plot ALL 
-g1 <- as.grob(p1)
-g2 <- as.grob(p2)
-g3 <- as.grob(p3)
-
-grid.arrange(
-  grobs = list(g1,g2,g3),
-  layout_matrix = rbind(c(1,2),
-                        c(3,3))
-)
+  colnames(logcounts) <- dge$samples$group
+  boxplot(logcounts, xlab="", ylab="Log2 counts per million"
+          ,las=2,
+          col = col.cell, outline = outline
+          )
+  # Let's add a blue horizontal line that corresponds to the median logCPM
+  abline(h=median(logcounts),col="blue")
+  title(title)
+}
 
 ```
 
-## Expression Levels of the novel ones
 
 First we need to get the counts into a readable format.
 ```{r echo=FALSE,  results='hide'}
@@ -620,44 +568,83 @@ filter_and_plotMDS <- function(dds,dge,title){
 ```{r echo=FALSE,  results='hide'}
 dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
 dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
-
 assays(dds)$logCPM <- cpm(dge, log = TRUE)
 mask <- rowMeans(assays(dds)$logCPM) > 1
 table(mask)
-
+boxplot_logcpms(dge,"Zyagen - all - before filter ")
 # The correctly identified are all very highly expressed! 
-length(unique(correctly_identified))
-correctly_identified_dds <- dds[rownames(dds) %in% correctly_identified,]
-correctly_identified_dge <- DGEList(counts = assays(correctly_identified_dds)$counts, group = correctly_identified_dds$tissue, genes = rownames(correctly_identified_dds))
-
-assays(correctly_identified_dds)$logCPM <- cpm(correctly_identified_dge, log = TRUE)
-mask <- rowMeans(assays(correctly_identified_dds)$logCPM) > 1
-table(mask)
-
-min(assays(correctly_identified_dds)$logCPM )
-barplot_logcpms(correctly_identified_dge)
-
+#length(unique(correctly_identified))
+#correctly_identified_dds <- dds[rownames(dds) %in% correctly_identified,]
+#correctly_identified_dge <- DGEList(counts = assays(correctly_identified_dds)$counts, group = correctly_identified_dds$tissue, genes = rownames(correctly_identified_dds))
+#assays(correctly_identified_dds)$logCPM <- cpm(correctly_identified_dge, log = TRUE)
+#mask <- rowMeans(assays(correctly_identified_dds)$logCPM) > 1
+#table(mask)
+#min(assays(correctly_identified_dds)$logCPM )
 dds <- dds[mask, ]
 dge <- dge[mask, ]
-dim(dge)
 
 filter_and_plotMDS(dds,dge,"Zyagen - All")
+
+boxplot_logcpms(dge,"Zyagen - all - after filter ")
 ```
 
 ```{r echo=FALSE,  results='hide'}
 dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
 dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
 
-assays(dds)$logCPM <- cpm(dge, log = TRUE)
-mask <- rowMeans(assays(dds)$logCPM) > 1
-table(mask)
+correctly_identified_test = intersect(intersect_reflnrna_stringtie,lncRNAs_out_gene_ids_withref)
 
+# Get correspondence 
+gr <- stringtie_gtf
+mrg_with_ref_ids <- gr[str_detect(gr$gene_id,"MSTRG") &!is.na(gr$ref_gene_id),]
+correspondence_mrg_reference <- data.frame( gene_id = mrg_with_ref_ids$gene_id , ref_id = mrg_with_ref_ids$ref_gene_id )
+correspondence_mrg_reference <- correspondence_mrg_reference[!duplicated(correspondence_mrg_reference),]
+ref_id<- rownames(dds)
+for (id in ref_id ){
+  if(id %in% correspondence_mrg_reference$gene_id){
+    ref <- correspondence_mrg_reference[correspondence_mrg_reference$gene_id == id,]$ref_id
+    ref_id[ref_id == id] <- as.character(ref)
+  }
+}
+mcols(dds) <- cbind(mcols(dds), ref_id)
+
+# The correctly identified are 2000 and something BUT I have in the dds only 1000
+# Investigating
+length(correctly_identified_test)
+length(unique(rowData(dds)$ref_id))
+length(setdiff(correctly_identified_test, rowData(dds)$ref_id))
+# 900 are in correclty identified but not in dds - cannot be. Maybe has something to do with max transcript?
+dge$genes
+
+
+# Testing
+rowData(dds)[rowData(dds)$ref_id != rownames(dds),]
+correspondence_mrg_reference[correspondence_mrg_reference$gene_id == "MSTRG.58114",]
+
+corr_but_not_in_dds <- setdiff(correctly_identified,rowData(dds)$ref_id) 
+setdiff(corr_but_not_in_dds,gr$gene_id )
+
+correctly_identified_dds_test <- dds[rowData(dds)$ref_id %in% correctly_identified,]
+length(rownames(correctly_identified_dds_test))
+
+table(rowData(dds)$ref_id %in% correctly_identified)
+correctly_identified_dds <- dds[rownames(dds) %in% correctly_identified,]
+length(rownames(correctly_identified_dds))
+correctly_identified_dge <- DGEList(counts = assays(correctly_identified_dds)$counts, group = correctly_identified_dds$tissue, genes = rownames(correctly_identified_dds))
+boxplot_logcpms(correctly_identified_dge,"Zyagen - correctly identified ", FALSE)
+rownames(correctly_identified_dge)
+
+assays(correctly_identified_dds)$logCPM <- cpm(correctly_identified_dge, log = TRUE)
+mask <- rowMeans(assays(correctly_identified_dds)$logCPM) > 1
+table(mask)
+min(assays(correctly_identified_dds)$logCPM )
 
 dds <- dds[mask, ]
 dge <- dge[mask, ]
-dim(dge)
 
 filter_and_plotMDS(dds,dge,"Zyagen - All")
+
+
 ```
 
 ```{r echo=FALSE,  results='hide'}
@@ -669,6 +656,8 @@ dds <- se_novel_only
 dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
 
 filter_and_plotMDS(dds,dge,"Zyagen - Novel")
+boxplot_logcpms(dge, "Zyagen - Novel")
+
 ```
 
 
@@ -681,6 +670,8 @@ dds <- ref_lncrnas
 dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
 
 filter_and_plotMDS(dds,dge,"Zyagen - Reference Macaque")
+boxplot_logcpms(dge, "Zyagen - ref")
+
 ```
 
 First we need to get the counts into a readable format.
@@ -713,18 +704,50 @@ dge <- dge[mask, ]
 dim(dge)
 
 filter_and_plotMDS(dds,dge,"Batch - All")
-```
+boxplot_logcpms(dge, "Batch - All")
 
+```
+```{r echo=FALSE, results='hide'}
+
+boxplot_logcpms <- function(dge,title, outline= TRUE){
+  logcounts <- cpm(dge,log=TRUE)
+  # Check distributions of samples using boxplots
+  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
+  col.cell <- colors[dge$samples$group]
+  
+  colnames(logcounts) <- dge$samples$samples
+  options(scipen=999)
+  par(oma=c(8,2,0,0),xpd=NA)
+  boxplot(logcounts, xlab="", ylab="Log2 counts per million"
+          ,las=2,
+          col = col.cell, outline = outline
+          )
+  # Let's add a blue horizontal line that corresponds to the median logCPM
+  title(title)
+}
+
+```
 
 ```{r echo=FALSE,  results='hide'}
 
 dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
 se_novel_only <- dds[rownames(dds) %in% novel_lncrnas,]
-
 dds <- se_novel_only
-dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
+dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds), sample = dds$sample)
+
+dge$samples
+length(setdiff(novel_lncrnas, rownames(se_novel_only)))
+length(unique(rownames(dds)))
 
 filter_and_plotMDS(dds,dge,"Batch - Novel")
+boxplot_logcpms(dge, "Batch - Novel", TRUE)
+
+assays(dds)$logCPM<- cpm(dge, log = TRUE)
+mask <- rowMeans(assays(dds)$logCPM) > 1
+dds <- dds[mask, ]
+dge <- dge[mask, ]
+length(unique(rownames(dds)))
+
 ```
 
 ```{r echo=FALSE,  results='hide'}
@@ -735,12 +758,27 @@ dds <- ref_lncrnas
 dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
 
 filter_and_plotMDS(dds,dge,"Batch - Reference Macaque")
+boxplot_logcpms(dge, "Batch - ref")
 ```
+
+
+# Classification 
+
+
+
+
+
+
+
+
 
 
 
 
 # ---------------------------------------------
+# ---------------------------------------------
+# ---------------------------------------------
+
 
 ```{r echo=FALSE,  results='hide'}
 extract_se <- function(ctabs, id = "transcript"){

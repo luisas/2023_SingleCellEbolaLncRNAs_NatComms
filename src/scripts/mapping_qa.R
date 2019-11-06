@@ -119,7 +119,7 @@ get_info_sample <- function(file, pattern){
   res_file <- paste0(res_path,"/",paste(tissue,sample,lane,pattern,sep="."))
   return(c(tissue,sample,lane, sample_name, res_file))
 }
-get_info_sample_counts <- function(file, pattern){
+get_info_sample_counts <- function(file){
   info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
   tissue <- info[2]
   sample <- strsplit(info[4],".", fixed = T)[[1]][1]
@@ -357,7 +357,7 @@ barplot_counts_stats <- function(inpath_counts,outpath){
   counts <- list()
   for(file_counts in counts_files){
     # Extract tissue, sample and lane from filename of the hisat2 mapping reports
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts )
     # Error handling 
     if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
     counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
@@ -404,7 +404,7 @@ barplot_counts_stats_2 <- function(inpath_counts,inpath_counts_2, outpath){
   counts <- list()
   for(file_counts in counts_files){
     # Extract tissue, sample and lane from filename of the hisat2 mapping reports
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts )
     # Error handling 
     if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
     counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
@@ -421,7 +421,7 @@ barplot_counts_stats_2 <- function(inpath_counts,inpath_counts_2, outpath){
   counts <- list()
   for(file_counts in counts_files){
     # Extract tissue, sample and lane from filename of the hisat2 mapping reports
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts,pattern_counts )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts )
     # Error handling 
     if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
     counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
@@ -452,11 +452,91 @@ barplot_counts_stats_2 <- function(inpath_counts,inpath_counts_2, outpath){
 }
 
 
+extract_counts <- function(counts_files){
+  counts <- list()
+  for(file_counts in counts_files){
+    # Extract tissue, sample and lane from filename of the hisat2 mapping reports
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(file_counts)
+    # Error handling 
+    if(! file.exists(file_counts)){print(paste0("File does not exits ",file_counts))}
+    counts[[sample_name]] <- read.csv(file_counts,sep="\t",header =F) 
+  }
+  counts_df<-do.call(cbind.data.frame,
+                     lapply(1:length(counts), function(i) counts[[i]][,2]))
+  rownames(counts_df)<-counts[[1]][,1]
+  colnames(counts_df)<-names(counts)
+  return(counts_df)
+}
+
+
+extract_counts_method <- function(counts_zyagen_md, counts_zyagen_umi, counts_zyagen_filter){
+  df_md_z <- data.frame("total" =  t(counts_zyagen_md[1,]),  type = "Remove Duplicates")
+  df_md_z$sample <- rownames(df_md_z)
+  df_umi_z <- data.frame("total" =  t(counts_zyagen_umi[1,]),  type = "Dedup Umis")
+  df_umi_z$sample <- rownames(df_umi_z)
+  df_filter_z <- data.frame("total" =  t(counts_zyagen_filter[1,]),  type = "After filtering")
+  df_filter_z$sample <- rownames(df_filter_z)
+  df_zyagen <-rbind(df_md_z, df_umi_z, df_filter_z)
+  colnames(df_zyagen) <- c("total","type", "sample")
+  return(df_zyagen)
+}
+
+inpath_counts_zyagen <- "/home/luisas/Desktop/cluster/proj/data/02_RNA-Seq/03_hisat/Zyagen/"
+inpath_counts_batch <- "/home/luisas/Desktop/cluster/proj/data/02_RNA-Seq/03_hisat/Batch01/"
+
+barplot_counts_mdvsumi <- function(inpath_counts_zyagen,inpath_counts_batch, outpath){
+  pattern_counts_filter = "q60.n_reads.txt"
+  pattern_counts_md = "md.n_reads.txt"
+  pattern_counts_umi = "umi_dedup.n_reads.txt"
+  # Extract count files
+  counts_zyagen_md <-extract_counts(iterate_files(inpath_counts_zyagen, pattern_counts_md))
+  counts_zyagen_umi <-extract_counts( iterate_files(inpath_counts_zyagen, pattern_counts_umi))
+  counts_zyagen_filter <-extract_counts( iterate_files(inpath_counts_zyagen, pattern_counts_filter))
+  
+  counts_batch_md <-extract_counts(iterate_files(inpath_counts_batch, pattern_counts_md))
+  counts_batch_umi <-extract_counts(iterate_files(inpath_counts_batch, pattern_counts_umi))
+  counts_batch_filter <-extract_counts( iterate_files(inpath_counts_batch, pattern_counts_filter))
+  
+
+  # Barplots 
+  png(paste0(outpath,"/zyagen_batch_md_umi.png"),width = 1400,height = 500)
+  options(scipen=1000)
+  par(mfrow=c(1,2))
+  par(oma=c(8,2,0,0),xpd=NA)
+  
+  df_zyagen <- extract_counts_method(counts_zyagen_md, counts_zyagen_umi, counts_zyagen_filter)
+  df_batch <- extract_counts_method(counts_batch_md, counts_batch_umi, counts_batch_filter)
+
+  dodge <- position_dodge(width = 0.9)
+  p <- ggplot(data=df_zyagen, aes(x= sample, y=total, fill=type,las=2)) +
+    geom_bar(stat="identity", position=dodge, width=0.9)+ scale_fill_manual(values=c( "grey","#56B4E9","#E69F00"))+
+    theme(axis.text.x = element_text(face = "bold", color = "black", 
+                                       size = 15, angle = 45,  hjust = 1))+
+    theme(axis.text.y = element_text(color = "black", 
+                                     size = 10,  hjust = 1))+
+    theme(legend.position = "none")+ xlab("")+ylab("")+ylim(0,65000000)
+  
+  p
+  p1 <- ggplot(data=df_batch, aes(x= sample, y=total, fill=type,las=2)) +
+    geom_bar(stat="identity", position=dodge, width=0.9) + scale_y_continuous() + scale_fill_manual(values=c( "grey", "#56B4E9","#E69F00"))+
+    theme(axis.text.x = element_text(face = "bold", color = "black", 
+                                     size = 12, angle = 45,  hjust = 1))+
+    theme(axis.text.y = element_text(color = "black", 
+                                     size = 10,  hjust = 1))+
+    theme(legend.title=element_blank())+ xlab("")+ylab("")+ylim(0,65000000)
+  
+  
+  grid.arrange(p,p1,nrow=1)
+  dev.off() 
+  
+  
+}
+
 # Plot for read distribution 
 plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
   distr_stat <- list()
   for(distr_file in distr_files){
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file)
     summary <- parse_distr(distr_file)
     distr_stat[[sample_name]]<- summary 
   }
@@ -485,7 +565,7 @@ plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
 plot_read_distribution_two <- function (distr_files,distr_files2,outpath,name,yli = 80000000){
   distr_stat <- list()
   for(distr_file in distr_files){
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file )
     summary <- parse_distr(distr_file)
     distr_stat[[sample_name]]<- summary 
   }
@@ -494,7 +574,7 @@ plot_read_distribution_two <- function (distr_files,distr_files2,outpath,name,yl
   
   distr_stat <- list()
   for(distr_file in distr_files2){
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file,"" )
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file)
     summary <- parse_distr(distr_file)
     distr_stat[[sample_name]]<- summary 
   }

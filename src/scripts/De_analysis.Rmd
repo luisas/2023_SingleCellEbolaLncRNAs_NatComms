@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Needed
 
 Expression MDS from Zyagen and 
-```{r echo=FALSE}
+```{r  results='hide', message=FALSE, warning=FALSE}
 library(ggplot2)
 library(GenomicFeatures)
 library(zeallot)
@@ -58,7 +58,7 @@ filter_and_plotMDS <- function(dds,dge,title){
   print(length(levels(dge$samples$group)))
   colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
   col.cell <- colors[dge$samples$group]
-  mds <- ?plotMDS(cpm(dge, log = TRUE), label= dge$samples$group , col=col.cell,main=" samples on genes CPM")
+  mds <- plotMDS(cpm(dge, log = TRUE), label= dge$samples$id , col=col.cell,main=" samples on genes CPM")
   
   par(xpd=T, mar=par()$mar+c(0,0,0,6))
   mds <- plotMDS(cpm(dge, log = TRUE), pch = 2, col=col.cell,main=" samples on genes CPM")
@@ -177,13 +177,13 @@ title("Library Sizes")
 
 ```{r echo=FALSE, results='hide'}
 
-barplot_logcpms <- function(dge){
+boxplot_logcpms <- function(dge){
   logcounts <- cpm(dge,log=TRUE)
   # Check distributions of samples using boxplots
-  colors <- brewer.pal(n = length(levels(dge$samples$tissue)), name = 'Paired')
+  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
   col.cell <- colors[dge$samples$group]
   
-  colnames(logcounts) <- dge$samples$tissue
+  colnames(logcounts) <- dge$samples$group
   boxplot(logcounts, xlab="", ylab="Log2 counts per million"
           ,las=2,
           col = col.cell,
