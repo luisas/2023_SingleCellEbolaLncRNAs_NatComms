@@ -12,14 +12,22 @@ log.info "Data preparation Pipeline"
 log.info "=============================================="
 
 // ------------ INPUT PARAMETERS -----------------------
-params.prefix_rawdata = "/gpfs/projects/bsc83/Ebola/00_RawData/"
-params.rhesus_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/rheMac8.fa"
-params.ebov_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
-params.rheMac8_annotation_gz_file = "/gpfs/projects/bsc83/gene_annotation/ensembl_release97/rheMac8/Macaca_mulatta.Mmul_8.0.1.97.gtf.gz"
-params.chromAlias = "/gpfs/projects/bsc83/Ebola/data/00_RawInfoFiles/chromAlias.txt"
+params.prefix_rawdata = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/"
+params.prefix_data = "/gpfs/projects/bsc83/Data/"
+params.macaque_assembly_name = "rheMac10"
+params.release = "release98"
 
-params.output_dir = "/gpfs/projects/bsc83/Ebola/data/01_PreliminaryFiles/"
-params.prefix = "rheMac8_EBOV-Kikwit"
+//params.rheMac_annotation_gz_file = "/gpfs/projects/bsc83/gene_annotation/ensembl_release97/rheMac8/Macaca_mulatta.Mmul_8.0.1.97.gtf.gz"
+params.rheMac_annotation_gz_file = "${params.prefix_data}gene_annotation/ensembl_${params.release}/${params.macaque_assembly_name}/*.gtf.gz"
+//params.rhesus_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/${macaque_assembly_name}/${macaque_assembly_name}.fa"
+params.rhesus_genome = "${params.prefix_data}assemblies/ensembl/release-98/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
+
+
+params.prefix = "${params.macaque_assembly_name}_EBOV-Kikwit"
+params.ebov_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
+params.chromAlias = "${params.prefix_data}Ebola/01_Ebola-RNASeq/00_RawInfoFiles/chromAlias_${params.macaque_assembly_name}.txt"
+
+params.output_dir = "${params.prefix_data}Ebola/01_Ebola-RNASeq/01_PreliminaryFiles_${params.macaque_assembly_name}/"
 params.scripts="${baseDir}/scripts/"
 
 //-------------- CREATE CHANNELS ------------------------
@@ -28,8 +36,8 @@ rhesus_genome_channel = Channel
 ebov_genome_channel = Channel
                       .fromPath("${params.ebov_genome}")
 scripts=file("${params.scripts}")
-rheMac8_annotation_gz_channel = Channel
-                                  .fromPath("${params.rheMac8_annotation_gz_file}")
+rheMac_annotation_gz_channel = Channel
+                                  .fromPath("${params.rheMac_annotation_gz_file}")
                                   .map{tuple(it.baseName.minus('.gtf'),it)}
 chromAliasChannel = Channel
                     .fromPath("${params.chromAlias}")
@@ -44,6 +52,11 @@ gtfToGenePred_script_channel = Channel
                                .fromPath("/gpfs/scratch/bsc83/bsc83768/bin/ucsc_tools/gtfToGenePred")
 
 
+
+
+
+
+
 /*
 * Merge Assemblies of rheMac8 and ebov Virus to generate one merged assembly.
 */
@@ -52,7 +65,7 @@ process merge_assemblies {
     storeDir "${params.output_dir}/reference_assembly"
 
     input:
-    file rheMac8 from rhesus_genome_channel
+    file rheMac from rhesus_genome_channel
     file ebov from ebov_genome_channel
 
     output:
@@ -60,7 +73,7 @@ process merge_assemblies {
 
     script:
     """
-    cat ${rheMac8} > ${params.prefix}.fa
+    cat ${rheMac} > ${params.prefix}.fa
     sed 's/KU182905.1/EBOV_Kikwit/g' ${ebov} >> ${params.prefix}.fa
     """
 
@@ -76,6 +89,7 @@ process merge_assemblies {
 process create_hisat2_indexes{
 
   storeDir "${params.output_dir}/indexes/hisat2"
+  cpus 2
 
   input:
   file assembly from merged_assembly
@@ -85,7 +99,7 @@ process create_hisat2_indexes{
 
   script:
   """
-  hisat2-build-s ${assembly} ${params.prefix}
+  hisat2-build-s ${assembly} ${params.prefix} -p ${task.cpus}
   """
 }
 
@@ -119,13 +133,13 @@ process modify_identifiers_annotation_rheMac{
   storeDir "${params.output_dir}/gene_annotations"
 
   input:
-  set  annotation_name, file(rheMac8_annotation_gz) from rheMac8_annotation_gz_channel
+  set  annotation_name, file(rheMac_annotation_gz) from rheMac_annotation_gz_channel
   file chromAlias from chromAliasChannel
   file scripts
 
 
   output:
-  set file("rheMac8.ensembl_release97.gtf"), file("rheMac8.ensembl_release97.tab") into gene_annotations_rheMac_channel
+  set file("${params.macaque_assembly_name}.ensembl_${params.release}.gtf"), file("${params.macaque_assembly_name}.ensembl_${params.release}.tab") into gene_annotations_rheMac_channel
   file "ensembl.ucsc.chrom_names_correspondance.tab" into ensembl_correspondence_channel
 
 
@@ -133,13 +147,13 @@ process modify_identifiers_annotation_rheMac{
   """
   cat ${chromAlias}| awk '{ if (\$3 ~  /ensembl/) { print } }' | cut -f'1,2' > ensembl.ucsc.chrom_names_correspondance.tab
   # Replace ensembl names with ucsc names -> REQUIRED same chrom names in reference assembly and gene annotations
-  awk 'FNR==NR {x2[\$1] = \$2; next} \$1 in x2 {OFS="\t";\$1=x2[\$1];print \$0}' ensembl.ucsc.chrom_names_correspondance.tab  <(zcat ${rheMac8_annotation_gz}) | cut -f1-8 > ${annotation_name}.column1-8.ucsc_chrom_names.txt
+  awk 'FNR==NR {x2[\$1] = \$2; next} \$1 in x2 {OFS="\t";\$1=x2[\$1];print \$0}' ensembl.ucsc.chrom_names_correspondance.tab  <(zcat ${rheMac_annotation_gz}) | cut -f1-8 > ${annotation_name}.column1-8.ucsc_chrom_names.txt
   # Create one file with description column
-  zcat ${rheMac8_annotation_gz} | cut -f9 | awk '{if(\$1~/^#/){next}else{print}}' > ${annotation_name}.column9.txt
+  zcat ${rheMac_annotation_gz} | cut -f9 | awk '{if(\$1~/^#/){next}else{print}}' > ${annotation_name}.column9.txt
   # Complete parsing
-  cat <(zcat  ${rheMac8_annotation_gz} | awk '{if(\$1~/^#/)print}') <( paste ${annotation_name}.column1-8.ucsc_chrom_names.txt ${annotation_name}.column9.txt) > rheMac8.ensembl_release97.gtf
+  cat <(zcat  ${rheMac_annotation_gz} | awk '{if(\$1~/^#/)print}') <( paste ${annotation_name}.column1-8.ucsc_chrom_names.txt ${annotation_name}.column9.txt) > ${params.macaque_assembly_name}.ensembl_${params.release}.gtf
   # Parse to tab delimited
-  cat rheMac8.ensembl_release97.gtf | python ${scripts}/gtf2bed.py > rheMac8.ensembl_release97.tab
+  cat ${params.macaque_assembly_name}.ensembl_${params.release}.gtf | python ${scripts}/gtf2bed.py > ${params.macaque_assembly_name}.ensembl_${params.release}.tab
   """
 }
 
@@ -181,6 +195,9 @@ process convert_gtf_to_bed12{
   awk '{OFS="\t";print \$2,\$4,\$5,\$1,0,\$3,\$6,\$7,0,\$8,\$9,\$10}' ${params.prefix}.tmp.bed > ${params.prefix}.bed
   """
 }
+
+
+
 
 /*
 * Extract exons and splice sites for annotated genes

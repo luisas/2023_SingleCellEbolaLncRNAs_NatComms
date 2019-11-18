@@ -12,7 +12,10 @@
   *  INPUT PARAMETERS defaults
   * --------------------------------------
   */
-// Unmapped bam files folder - RAW DATA
+
+// ------------- RAW DATA
+
+// BaseFolders
 params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
@@ -21,31 +24,32 @@ params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
 
 // Folder where the output directories of the pipeline will be placed
-params.output_dir = "${params.dirProj}/data/02_RNA-Seq/"
+params.output_dir = "${params.dirData}/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/"
 //params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/test_data/04_test/"
 
+// ---------- PRELIMINARY FILES
 
-params.preliminary_files_dir="${params.dirProj}/data/01_PreliminaryFiles"
-params.assembly_name = "rheMac8_EBOV-Kikwit"
+params.rehmacrelease = "rheMac10"
+params.preliminary_files_dir="${params.dirProj}/data/01_PreliminaryFiles_${params.rehmacrelease}"
+params.assembly_name = "${params.rehmacrelease}_EBOV-Kikwit"
 
 // This ones should be automatically retrieved but can be changed in need
+// Assemblies and indexes
 params.reference_assembly = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.fa"
 params.reference_assembly_fai = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.fa.fai"
-// Dictionary
 params.dict = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.dict"
-// Indexes
 params.hisat2_indexes = "${params.preliminary_files_dir}/indexes/hisat2/${params.assembly_name}"
-// Known splice sites
 params.ss = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.ss.txt"
 // Gene annotation
-params.gene_annotation = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed"
+params.bed = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed"
 params.gtf = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.gtf"
-params.gtf_rheMac = "${params.preliminary_files_dir}/gene_annotations/rheMac8.ensembl_release97.gtf"
-params.gtf_transcriptonly = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}_rnaseqc.gtf"
+//params.bed_rheMac = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/Ensembl/rheMac8.Ensembl.bed"
+params.bed_rheMac = "${params.dirData}/gene_annotation/ensembl_release98/rheMac10/Macaca_mulatta.Mmul_10.98.bed"
 
-params.bed_rheMac = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/Ensembl/rheMac8.Ensembl.bed"
+
 // If set to true the quality assessment will be computed with fastqc
 params.fastqc=true
+
 
 // -----------------------------------------------
 
@@ -104,27 +108,19 @@ if("${params.zyagen}" != "false"){
                                 it)}
 }
 
+// ------------ CHANNELS Creation
+Channel.fromPath("${params.hisat2_indexes}*").into{ indexesForMapping; indexesForMapping2 }
+Channel.fromPath("${params.reference_assembly}").into{ reference_assembly_channel; reference_genome_ch;reference_genome_ch_2; reference_genome_ch_3}
+Channel.fromPath("${params.reference_assembly_fai}").set{reference_genome_fai_ch}
+Channel.fromPath("${params.ss}").into{ known_ss; }
+Channel.fromPath("${params.bed}")
+                                 .into{ annotation_bed; annotation_bed2 }
+Channel.fromPath("${params.bed_rheMac}")
+                                 .into{ annotation_bed_rhemac }
+Channel.fromPath("${params.dict}").set{dictionary_channel}
+Channel.fromPath("${params.gtf}").into{ gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5; gtfChannel6}
 
 
-
-// Channel for the Indexes
-indexesForMapping = Channel.fromPath("${params.hisat2_indexes}*")
-indexesForMapping2 = Channel.fromPath("${params.hisat2_indexes}*")
-
-//Channel for the reference assembly
-reference_assembly_channel = Channel.fromPath("${params.reference_assembly}*")
-Channel.fromPath("${params.reference_assembly}").into{reference_genome_ch;reference_genome_ch_2; reference_genome_ch_3}
-reference_genome_fai_ch = Channel.fromPath("${params.reference_assembly_fai}")
-// Channel for known splice sites
-known_ss = Channel.fromPath("${params.ss}")
-known_ss_2 = Channel.fromPath("${params.ss}")
-Channel.fromPath("${params.gene_annotation}")
-                                 .into{ gene_annotation_channel; gene_annotation_channel_2; gene_annotation_channel_3}
-dictionary_channel = Channel.fromPath("${params.dict}")
-Channel.fromPath("${params.gtf_transcriptonly}").into{ gtf_transcriptonly_channel; gtf_transcriptonly_channel_2; gtf_transcriptonly_channel_3}
-Channel.fromPath("${params.gtf}").into{ gtfChannel; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5}
-Channel.fromPath("${params.bed_rheMac}").into{ gene_annotation_rheMac_bed; gene_annotation_rheMac_bed_2}
-Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel; gtf_rheMac_channel2; gtf_rheMac_channel3}
 /*  ----------------------------------------------------------------------
 *   ----------------------------------------------------------------------
 *                       BEGINNING OF THE PIPELINE
@@ -141,7 +137,6 @@ Channel.fromPath("${params.gtf_rheMac}").into{ gtf_rheMac_channel; gtf_rheMac_ch
 process convert_bam_to_fastq {
 
     tag "${complete_id}"
-    //storeDir  "${params.output_dir}/01_fastq/$dataset_name/$tissue/$dayPostInfection/$sample"
     storeDir "${params.output_dir}/01_fastq/$dataset_name/$tissue/$dayPostInfection/$sample"
 
     input:
@@ -158,34 +153,6 @@ process convert_bam_to_fastq {
     java -Xmx4g  -Djava.io.tmpdir=$TMPDIR -jar /apps/PICARD/2.20.0/picard.jar SamToFastq I=${unmapped_bam} FASTQ=${complete_id}.1.fq  SECOND_END_FASTQ=${complete_id}.2.fq UNPAIRED_FASTQ=${complete_id}.unpaired.fq
     """
 
-}
-
-// Remove leading low quality or N bases (below quality 3) (LEADING:3)
-// Remove trailing low quality or N bases (below quality 3) (TRAILING:3)
-// Scan the read with a 4-base wide sliding window, cutting when the average quality per base drops below 15 (SLIDINGWINDOW:4:15)
-// Drop reads below the 36 bases long (MINLEN:36)
-
-process trimmomatic{
-
-  tag "${complete_id}"
-  storeDir "${params.output_dir}/01b_qualityFiltering/$dataset_name/$tissue/$dayPostInfection/$sample"
-
-  input:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(readOne),
-      file(readTwo),
-      file(unpaired) from fastqfiles_for_trimmomatic
-
-  output:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file("${complete_id}.1.fq.gz"),
-      file("${complete_id}.2.fq.gz"),
-      file("${complete_id}_forward_unpaired.fq.gz") into (fastqfiles_trimmomatic_for_qc,fastqfiles_trimmomatic)
-
-  script:
-  """
-  java -jar /apps/TRIMMOMATIC/0.39/trimmomatic-0.39.jar PE -phred33 ${readOne} ${readTwo} ${complete_id}.1.fq.gz ${complete_id}_forward_unpaired.fq.gz ${complete_id}.2.fq.gz ${complete_id}_reverse_unpaired.fq.gz LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
-  """
 }
 
 /*
@@ -205,29 +172,6 @@ process generate_fastqc{
 
   output:
   file "*" into fastqcs
-
-  script:
-  """
-  mkdir -p output_fastq_dir
-  fastqc ${fastq_1} ${fastq_2} --extract
-  """
-
-}
-
-process generate_fastqc_trimmomatic{
-
-  tag "${complete_id}"
-  storeDir "${params.output_dir}/02_fastqc_filtered/$dataset_name/$tissue/$dayPostInfection/$sample"
-
-  when:
-  params.fastqc
-
-  input:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(fastq_1),file(fastq_2),file(unpaired)  from fastqfiles_trimmomatic_for_qc
-
-  output:
-  file "*" into fastqcs_timmomatic
 
   script:
   """
@@ -275,45 +219,6 @@ process mapping_hisat{
 
 }
 
-
-/*
-* STEP 3.1: Mapping with HISAT.
-* It maps the reads of the generated fastq files
-* to the assembly defined in params.assembly
-* The indexes were computed WITHOUT the help of known splice sites
-* the known splice sites are now used as input for the mapper.
-*/
-process mapping_hisat_trimmomatic{
-
-  cpus 24
-  label 'big_mem'
-  tag "${complete_id}"
-  storeDir "${params.output_dir}/03b_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
-
-  input:
-  file indexes from indexesForMapping2.collect()
-  file ss from known_ss_2.collect()
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(fastq_1),file(fastq_2),file(unpaired)  from fastqfiles_trimmomatic
-
-  output:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
-      file("${complete_id}.sam") into mapped_sam_trimmomatic
-
-  /*
-  *  --known-splicesite-infile <path>   provide a list of known splice sites
-  *  --novel-splicesite-outfile <path>  report a list of splice sites
-  *  --dta                              reports alignments tailored for transcript assemblers
-  *  --summary-file                     Print alignment summary to this file.
-  */
-
-  script:
-  """
-  /gpfs/projects/bsc83/utils/hisat2-2.1.0/hisat2 -p ${task.cpus} -x ${params.assembly_name} -1  ${fastq_1} -2 ${fastq_2} --known-splicesite-infile ${ss} --novel-splicesite-outfile ${complete_id}.novel_ss.txt --downstream-transcriptome-assembly  --time --summary-file ${complete_id}.hisat2_summary.txt --rna-strandness FR > ${complete_id}.sam
-  """
-
-}
 /*
 * STEP 3.2: Sort and index the mapped bam files
 *
@@ -349,6 +254,13 @@ process sort_bam{
 * relevant information like UMIs info.
 * We now merge the unmapped and the mapped bam files to retrieve information
 * about the UMIs.
+*
+*  A command-line tool for merging BAM/SAM alignment info from a third-party
+*  aligner with the data in an unmapped BAM file, producing a third BAM file that
+*  has alignment data (from the aligner) and all the remaining data from the
+*  unmapped BAM. Quick note: this is not a tool for taking multiple sam files
+* and creating a bigger file by merging them.
+*
 */
 
 // We join the mapped and unmapped channel by complete_id.
@@ -461,7 +373,7 @@ process filter_bams_samtools{
 
 process removeDuplicates_picard{
 
-  cpus 4
+  cpus 1
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
@@ -481,13 +393,18 @@ process removeDuplicates_picard{
 
 /*
 * STEP 7B : Dedup duplicate using UMIs
+*  --paired BAM is paired end - output both read pairs. This will also force the use of
+*  the template length to determine reads with the same mapping coordinates.
+* -- directional (default)
+*  Identify clusters of connected UMIs (based on hamming distance threshold)
+*  and umi A counts >= (2* umi B counts) - 1. Each network is a read group.
 */
 
 process dedupUmi{
 
   tag "${complete_id}"
   label 'big_mem'
-  cpus 8
+  cpus 1
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
@@ -497,10 +414,15 @@ process dedupUmi{
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file("${complete_id}.UMI.f3.q60.umi_dedup.bam"),
       file("${complete_id}.UMI.f3.q60.umi_dedup.bam.bai") into (dedup_umi_bams, dedup_umi_bams_for_count, dedup_umi_bams_for_distr, dedup_umi_bams_for_count_2, dedup_umis_3, dedup_umis_4)
+  //file "umi_logs" into umi_logs
 
   script:
   """
+  mkdir umi_logs
   umi_tools dedup --stdin=${filtered_bam} --log=${complete_id}.umi_tools.dedup.log --output-stats=${complete_id} --extract-umi-method=tag --umi-tag=RX --paired --method directional  > ${complete_id}.UMI.f3.q60.umi_dedup.bam
+  mv ${complete_id}.umi_tools.dedup.log umi_logs/
+  mv ${complete_id}_per* umi_logs/
+  mv ${complete_id}_edit* umi_logs/
   samtools index ${complete_id}.UMI.f3.q60.umi_dedup.bam
   """
 
@@ -516,7 +438,7 @@ process getHTseqCountsMD{
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,file(md_bam), file(md_metrics_bam) from marked_d_bams
-  file gtf from gtfChannel.collect()
+  file gtf from gtfChannel1.collect()
 
   output:
   file "${md_file_prefix}.HTseq.gene_counts.tab" into htseqCountsMd_channel
@@ -536,7 +458,7 @@ process getHTseqCountsFilter{
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(filtered_bam), file(filtered_bai) from filtered_merged_bams_3
-  file gtf from gtfChannel3.collect()
+  file gtf from gtfChannel2.collect()
 
   output:
   file "${filtered_file_prefix}.HTseq.gene_counts.tab" into htseqCountsFiltered_channel
@@ -556,7 +478,7 @@ process getHTseqCountsUMI{
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(umi_dedup_bam), file(umi_dedup_bai) from dedup_umi_bams_for_count
-  file gtf from gtfChannel4.collect()
+  file gtf from gtfChannel3.collect()
 
   output:
   file "${umi_dedup_file_prefix}.HTseq.gene_counts.tab" into htseqCountsUmi_channel
@@ -637,249 +559,148 @@ process getReadDistribution{
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(umi_bam),
       file(umi_bai) from dedup_umi_bams_for_distr
-  file(gene_annotation) from gene_annotation_rheMac_bed.collect()
+  file(gene_annotation) from  annotation_bed_rhemac.collect()
 
   output:
   file "${complete_id}.UMI.f3.q60.read_distribution.txt" into read_distribution_channel
 
   script:
   """
+
   read_distribution.py -i ${umi_bam} -r ${gene_annotation} > ${complete_id}.UMI.f3.q60.read_distribution.txt
   """
 }
 
 
-//raw_and_filtered = dedup_umis_4.combine(raw_bams, by:4)
-
-
-// process getReadDistributionDifference{
+// /*
+// *  STEP 8.2 get read distribution numbers
+// */
+// // EXPLORATIVE
+// process getReadDistribution_chrUn{
 //
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/read_distribution_nvsf"
+//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/read_distribution_chrUn"
 //
 //   input:
-//   set complete_id, dataset_name, dayPostInfection, tissue, sample,
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
 //       file(umi_bam),
-//       file(umi_bai),
-//       dataset_name_2, dayPostInfection_2, tissue_2, sample_2,
-//           file(bam),
-//           file(bai) from raw_and_filtered
-//   file(gene_annotation) from gene_annotation_rheMac_bed_2.collect()
+//       file(umi_bai) from dedup_umis_4
+//   file(gene_annotation) from annotation_bed_rhemac.collect()
 //
 //   output:
-//   file "*" into read_distribution_channel_diff
+//   set("${complete_id}.UMI.f3.q60.chr_Un.bam","${complete_id}.UMI.f3.q60.chr_Un.read_distribution.txt") into read_distributionchrUn_channel
 //
 //   script:
 //   """
-//   samtools view -h -o umi.sam ${umi_bam}
-//   samtools view -h -o raw.sam  ${bam}
-//   samtools sort  umi.sam > sorted_umi.sam
-//   samtools sort  raw.sam > sorted_raw.sam
-//   bam diff --in1 sorted_raw.sam --in2 sorted_umi.sam --out diff.sam
-//   read_distribution.py -i diff_only1_sorted_raw.sam -r ${gene_annotation} > ${complete_id}.UMI.f3.q60.DIFF.read_distribution.txt
+//   samtools view -b ${umi_bam} chrUn > ${complete_id}.UMI.f3.q60.chr_Un.bam
+//   read_distribution.py -i ${complete_id}.UMI.f3.q60.chr_Un.bam -r ${gene_annotation} > ${complete_id}.UMI.f3.q60.chr_Un.read_distribution.txt
 //   """
 // }
-// process geneAbundanceUmis{
+// // =================================================================================
+// /*
+// *  DE NOVO TRANSCRIPTOME ASSEMBLY
+// */
 //
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rnaseqc"
+//
+// // -A <gene_abund.tab>	Gene abundances will be reported (tab delimited format) in the output file with the given name.
+// // -B	This switch enables the output of Ballgown input table files (*.ctab) containing coverage data for the reference transcripts given with the -G option.
+// // --fr	Assumes a stranded library fr-secondstrand.
+// // -f <0.0-1.0>	Sets the minimum isoform abundance of the predicted transcripts as a fraction of the most abundant transcript assembled at a given locus.
+//
+// params.transcriptome_assembly = true
+// process DeNovoAssembly{
+//
+//   cpus 4
+//   tag "${complete_id}"
+//   storeDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample"
+//
+//   when:
+//   params.transcriptome_assembly
 //
 //   input:
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from dedup_umis_3
-//   file annotation_gtf from gtf_transcriptonly_channel.collect()
-//   file genome_fasta from reference_genome_ch.collect()
-//   file genome_fai from reference_genome_fai_ch.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(bam), file(bai) from dedup_umi_bams
+//   file gtf from gtfChannel4.collect()
 //
 //   output:
-//   file("output/*") into output_rnaseqc_umis
+//   val dataset_name into dataset_name_ch
+//   file "*.stringtie.gtf" into stringTie_channel
 //
 //   script:
 //   file_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   mkdir output
-//   # QC metrics
-//   /usr/lib/jvm/java-1.7.0-openjdk-amd64/bin/java -Xmx4g -jar /opt/RNA-SeQC_1.1.9/RNA-SeQC.jar -n 1000 \
-//               -s "${file_prefix}|${bam}|${complete_id}" -t ${annotation_gtf} \
-//               -r ${genome_fasta} -o output/ -noDoC -strictMode -gatkFlags \
-//               --allow_potentially_misencoded_quality_scores
-//
+//   stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --fr -p ${task.cpus}
 //   """
 // }
 //
-// process geneAbundanceMds{
+// /*
+// * Merge all the assemblies Reference Guided
+// */
+// process StringTie_Merge_Reference_Guided{
 //
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rnaseqc"
+//   cpus 48
+//   storeDir "${params.output_dir}/04_stringtie/$dataset_name"
+//
+//   when:
+//   params.transcriptome_assembly
 //
 //   input:
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from md_bams_3
-//   file annotation_gtf from gtf_transcriptonly_channel_2.collect()
-//   file genome_fasta from reference_genome_ch_2.collect()
-//   file genome_fai from reference_genome_fai_ch_2.collect()
+//   val dataset_name from dataset_name_ch
+//   file(stringtie_gtfs) from stringTie_channel.collect()
+//   file reference_gtf from gtfChannel5
 //
 //   output:
-//   file("output/*") into output_rnaseqc_mds
+//   file "${dataset_name}_stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
+//   val dataset_name into dataset_name_ch2
 //
 //   script:
-//   file_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   mkdir output
-//   # QC metrics
-//   /usr/lib/jvm/java-1.7.0-openjdk-amd64/bin/java -Xmx4g -jar /opt/RNA-SeQC_1.1.9/RNA-SeQC.jar -n 1000 \
-//               -s "${file_prefix}|${bam}|${complete_id}" -t ${annotation_gtf} \
-//               -r ${genome_fasta} -o output/ -noDoC -strictMode -gatkFlags \
-//               --allow_potentially_misencoded_quality_scores
-//
+//   stringtie --merge -p ${task.cpus} -o ${dataset_name}_stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
 //   """
 // }
 //
-// process geneAbundanceFilter{
 //
-//   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rnaseqc"
+// /*
+// * Obtain stats over StringTie output
+// */
+// process gffCompare{
+//
+//   storeDir "${params.output_dir}/04_stringtie/$dataset_name/01_gffCompare"
 //
 //   input:
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from filtered_merged_bams_5
-//   file annotation_gtf from gtf_transcriptonly_channel_3.collect()
-//   file genome_fasta from reference_genome_ch_3.collect()
-//   file genome_fai from reference_genome_fai_ch_3.collect()
+//   file merged_gtf from merged_denovo_assmebly
+//   file reference_gtf from gtfChannel6
+//   val dataset_name from dataset_name_ch2
 //
 //   output:
-//   file("output/*") into output_rnaseqc_filter
+//   file("merged*") into gff_compare_output_channel
 //
 //   script:
-//   file_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   mkdir output
-//   # QC metrics
-//   /usr/lib/jvm/java-1.7.0-openjdk-amd64/bin/java -Xmx4g -jar /opt/RNA-SeQC_1.1.9/RNA-SeQC.jar -n 1000 \
-//               -s "${file_prefix}|${bam}|${complete_id}" -t ${annotation_gtf} \
-//               -r ${genome_fasta} -o output/ -noDoC -strictMode -gatkFlags \
-//               --allow_potentially_misencoded_quality_scores
+//   gffcompare -r ${reference_gtf} -G -o merged ${merged_gtf}
 //   """
 // }
-
-
-// =================================================================================
-/*  # Gene-level expression, based on a collapsed annotation GTF
-*  #java -Xmx6g -jar /apps/RNA-SeQC/1.1.9/RNA-SeQC.jar -n 1000 -s "${complete_id}|${bam}|${complete_id}" -t ${annotation_gtf} -r ${genome_fasta} -o output/ -noDoC -strictMode
-*  DE NOVO TRANSCRIPTOME ASSEMBLY : StringTie/bin/bash -c "/src/run_rnaseqc.py ${bam} ${annotation_gtf} ${genome_fasta} ${complete_id} --output_dir output"
-*/
-
-params.transcriptome_assembly = true
-process DeNovoAssembly{
-
-  tag "${complete_id}"
-  storeDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample"
-
-  when:
-  params.transcriptome_assembly
-
-  input:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(bam), file(bai) from dedup_umi_bams
-  file gtf from gtf_rheMac_channel.collect()
-
-  output:
-  val dataset_name into dataset_name_ch
-  file "*.stringtie.gtf" into stringTie_channel
-
-  script:
-  file_prefix = get_file_name_no_extension(bam.name)
-  """
-  stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf -A -B --fr -f 0.1 -m 200 -a 10 -j 1 -c 0.1 -g 10 -p 2
-  """
-}
-
-/*
-* Merge all the assemblies Reference Guided
-*/
-process StringTie_Merge_Reference_Guided{
-
-  cpus 1
-  storeDir "${params.output_dir}/04_stringtie/$dataset_name"
-
-  when:
-  params.transcriptome_assembly
-
-  input:
-  val dataset_name from dataset_name_ch
-  file(stringtie_gtfs) from stringTie_channel.collect()
-  file reference_gtf from gtf_rheMac_channel2
-
-  output:
-  file "${dataset_name}_stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
-  val dataset_name into dataset_name_ch2
-
-  script:
-  """
-  stringtie --merge -p ${task.cpus} -o ${dataset_name}_stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
-  """
-}
-
-
-process gffCompare{
-
-  storeDir "${params.output_dir}/04_stringtie/$dataset_name/01_gffCompare"
-
-  input:
-  file merged_gtf from merged_denovo_assmebly
-  file reference_gtf from gtf_rheMac_channel3
-  val dataset_name from dataset_name_ch2
-
-  output:
-  file("merged*") into gff_compare_output_channel
-
-  script:
-  """
-  gffcompare -r ${reference_gtf} -G -o merged ${merged_gtf}
-  """
-}
-
-
-merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
-
-
-params.fix_merged = "${params.output_dir}/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
-Channel.fromPath("${params.fix_merged}").set{ fixed_zyagen_merged_stringtie}
-
-process StringTie_abundances_umis{
-
-  cpus 8
-  storeDir "${params.output_dir}/06_abundances/$dataset_name/$tissue/$dayPostInfection/$sample/umis"
-
-  input:
-  file stringtie_merged from fixed_zyagen_merged_stringtie.collect()
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(bam),
-      file(bai) from dedup_umis_3
-
-  output:
-  //set dataset_name, dayPostInfection, tissue, sample, complete_id,file_prefix, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
-  set complete_id, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
-  file "*.ctab" into ctabs_umis
-  script:
-  file_prefix = get_file_name_no_extension(bam.name)
-  """
-  stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -A ${file_prefix}.ctab -o ${file_prefix}_abundance.gtf ${bam}
-  """
-}
-
-
+//
+//
+// merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
+//
+// //params.fix_merged = "${params.output_dir}/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
+// //Channel.fromPath("${params.fix_merged}").set{ fixed_zyagen_merged_stringtie}
+//
+// /*
+// * QUANTIFICATION STEP - Stringtie abundances
+// */
 // process StringTie_abundances_umis{
 //
 //   cpus 8
 //   storeDir "${params.output_dir}/06_abundances/$dataset_name/$tissue/$dayPostInfection/$sample/umis"
 //
 //   input:
-//   file stringtie_merged from merged_de_novo_assembly_3.collect()
+//   //file stringtie_merged from fixed_zyagen_merged_stringtie.collect()
+//   file stringtie_merged from merged_de_novo_assembly_5.collect()
 //   set dataset_name, dayPostInfection, tissue, sample, complete_id,
 //       file(bam),
 //       file(bai) from dedup_umis_3
 //
 //   output:
-//   //set dataset_name, dayPostInfection, tissue, sample, complete_id,file_prefix, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
 //   set complete_id, file("${file_prefix}_abundance.gtf") into abundances_stringtie_umis
 //   file "*.ctab" into ctabs_umis
 //   script:
@@ -888,100 +709,36 @@ process StringTie_abundances_umis{
 //   stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -A ${file_prefix}.ctab -o ${file_prefix}_abundance.gtf ${bam}
 //   """
 // }
-
-
 //
-// process StringTie_abundances_mds{
 //
-//   cpus 8
-//   storeDir "${params.output_dir}/04_stringtie_counts/$dataset_name/$tissue/$dayPostInfection/$sample/mds"
+//
+// /*
+// * CONVERT : get gene count matrix from StringTie output
+// */
+// params.script_prepde="${baseDir}/scripts/prepDE.py"
+// Channel.fromPath("${params.script_prepde}").set{ prepdescript }
+// abundances_stringtie_umis.into{abundances_stringtie_umis1 ; abundances_stringtie_umis2}
+//
+//
+// process prepareCountMatrices{
+//
+//   storeDir "${params.output_dir}/06_quantification_stringtie_prepde_batch"
 //
 //   input:
-//   file stringtie_merged from merged_de_novo_assembly_4.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from md_bams_3
+//   file fileList from abundances_stringtie_umis1.collect()
+//   file samples_list from abundances_stringtie_umis2.flatten().collate(2).collectFile(name: 'sample.txt', newLine: true){it[0] +"\t"+ it[1].baseName+".gtf"}
+//   file script from prepdescript.collect()
 //
 //   output:
-//   file "${file_prefix}_abundance.gtf" into abundances_stringtie_mds
-//   file "*.ctab" into ctabs_mds
+//   //file "*" into out_prepde_umis
+//   file "*"
 //
 //   script:
-//   file_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -o ${file_prefix}_abundance.gtf ${bam}
+//   python2 ${script} -i ${samples_list}
 //   """
 // }
 //
-// process StringTie_abundances_filter{
-//
-//   cpus 8
-//   storeDir "${params.output_dir}/04_stringtie_counts/$dataset_name/$tissue/$dayPostInfection/$sample/filter"
-//
-//   input:
-//   file stringtie_merged from merged_de_novo_assembly_5.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from filtered_merged_bams_5
-//
-//   output:
-//   file "${file_prefix}_abundance.gtf" into abundances_stringtie_filter
-//   file "*.ctab" into ctabs_filter
-//
-//   script:
-//   file_prefix = get_file_name_no_extension(bam.name)
-//   """
-//   stringtie -e -B -p ${task.cpus} -G ${stringtie_merged} -o ${file_prefix}_abundance.gtf ${bam}
-//   """
-// }
-
-
-// process htseqCount_after_stringtie{
-//
-//   tag "${complete_id}"
-//   storeDir "${params.output_dir}/06_quantification/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
-//
-//   input:
-//   file stringtie_merged from merged_de_novo_assembly_4.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from dedup_umis_3
-//
-//   output:
-//   file "${prefix}.HTseq.gene_counts.tab" into htseqCount_after_stringtie_ch
-//
-//   script:
-//   prefix = get_file_name_no_extension(bam.name)
-//   """
-//   # Calc the counts for the md duplicates
-//   htseq-count -f bam -r pos -s yes -t exon -i gene_id ${bam} ${stringtie_merged} > ${prefix}.HTseq.gene_counts.tab
-//   """
-// }
-
-params.script_prepde="${baseDir}/scripts/prepDE.py"
-Channel.fromPath("${params.script_prepde}").set{ prepdescript }
-abundances_stringtie_umis.into{abundances_stringtie_umis1 ; abundances_stringtie_umis2}
-
-
-process prepareCountMatrices{
-
-  storeDir "${params.output_dir}/06_quantification_stringtie_prepde_batch"
-
-  input:
-  file fileList from abundances_stringtie_umis1.collect()
-  file samples_list from abundances_stringtie_umis2.flatten().collate(2).collectFile(name: 'sample.txt', newLine: true){it[0] +"\t"+ it[1].baseName+".gtf"}
-  file script from prepdescript.collect()
-
-  output:
-  file "*" into out_prepde_umis
-
-  script:
-
-  """
-  python2 ${script} -i ${samples_list}
-  """
-}
-
 
 workflow.onComplete {
 	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )

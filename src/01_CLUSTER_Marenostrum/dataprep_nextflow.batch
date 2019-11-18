@@ -25,4 +25,4 @@ module load python/3.6.1
 module load graphviz/2.40.1
 
 
-srun nextflow run /gpfs/projects/bsc83/Ebola/code/ebola/src/data_preparation.nf -with-dag flowcharts/flowchart_data_prep.png
+srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/data_preparation.nf

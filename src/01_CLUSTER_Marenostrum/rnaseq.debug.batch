@@ -29,4 +29,5 @@ module load trimmomatic/0.39
 #For plotting the dag Graph
 module load graphviz/2.40.1
 
-srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/RnaSeqAnalysis.nf 
+srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/RnaSeqAnalysis.nf -w /gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq/work/
+
