@@ -1,17 +1,19 @@
 #!/bin/bash
 #BSUB -J NextflowannotationPipeline
 #BSUB -cwd .
-#BSUB -W 05:01
+#BSUB -W 10:01
 #BSUB -e err/Nextflow-%J.err
 #BSUB -o out/Nextflow-%J.out
 
 
 module load java/1.8.0u66
 module load intel/2017.1
-module load nextflow
+module load nextflow/19.03.0
 
-module load singularity
+module load singularity/3.2.0
 
 
 nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/lncRNAannotation.nf \
-                  --executor "lsf"
+                 --executor "lsf"
+# nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/test.nf \
+#                   --executor "lsf"

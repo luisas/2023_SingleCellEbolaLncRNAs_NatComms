@@ -36,16 +36,17 @@ datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
 scripts_dir = file.path(projdir,"code/ebola/src/scripts/Analysis/utils")
 source(file.path(scripts_dir,"de_utils.R"))
 # Dirs
-dir_hisat_zyagen = file.path(datadir, "02_RNA-Seq_old/03_hisat")
+dir_hisat_zyagen = file.path(datadir, "02_RNA-Seq_rheMac10/03_hisat")
 ```
 
 ## Create Explorative MDS plots from HTSeq counts on CPMs
 
 ```{r echo=FALSE, results='hide'}
-dir_hisat_all =  file.path(datadir, "02_RNA-Seq_old/03_hisat")
+dir_hisat_all =  file.path(datadir, "02_RNA-Seq_rheMac10/03_hisat")
 htseq_files <- iterate_files(dir_hisat_all, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
+
 dds <- create_dds(htseq_files,dir_hisat_all)
-dge <- DGEList(counts = assays(dds)$counts, group = dds$condition, genes = rownames(dds), samples = colData(dds))
+dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
 ```
 
 
@@ -122,13 +123,16 @@ filter_and_plotMDS(dds_batch_nora,dge_batch_nora)
 
 ```{r echo=FALSE, results='hide'}
 mask1 <- dds$condition == "Batch01" 
-mask2 <- dds$tissue == "Liver"
-mask <- mask1 & mask2 
+mask2 <- dds$tissue == "Blood"
+mask3 <- dds$id != "RA0223"
+mask <- mask1 & mask3  
+#mask <- mask1 & mask2 
+
 dds_filtered <- dds[,mask]
 dds_filtered$tissue
 dge_batch_blood <- DGEList(counts = assays(dds_filtered)$counts, group = dds_filtered$dpo, genes = rownames(dds_filtered), samples = colData(dds_filtered))
 # Filters out lowly expressed genes, calc CPM, plot
-filter_and_plotMDS(dds_filtered,dge_batch_blood)
+#filter_and_plotMDS(dds_filtered,dge_batch_blood)
 
 
 dds <- dds_filtered
@@ -139,17 +143,14 @@ dge <- dge_batch_blood
   dds <- dds[mask, ]
   dge <- dge[mask, ]
   print(length(levels(dge$samples$group)))
-  colors <- brewer.pal(n = length(levels(dge$samples$group)), name = 'Paired')
-  col.cell <- colors[dge$samples$group]
-  mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), label= dge$samples$group , col=col.cell,main=" samples on genes CPM")
-  
-  par(xpd=T, mar=par()$mar+c(0,0,0,6))
-  mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01),label= dge$samples$id , col="blue",main="Liver")
-  #legend(2.2,0.2, inset=c(-0.2,0), legend=levels(dge$samples$group), fill= unique(col.cell))
-  par(mar=c(5, 4, 4, 2) + 0.1)
-
+  par(xpd=T, mar=par()$mar+c(0,0,0,10))
+  colors <- c(brewer.pal(n = length(levels(dge$samples$complete_id)), name = 'Paired'),"black","blue")
+  col.cell <- colors[dge$samples$complete_id]
+  mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), label= dge$samples$dpo, col=col.cell,main=" samples on genes CPM")
+  #legend(5.5,3.2, inset=c(-0.2,0), legend=levels(dge$samples$tissue),  pch =c(16,17) )
+  legend(5.5,2.9, inset=c(-0.2,0), legend=unique(dge$samples$complete_id),  fill= unique(colors[dge$samples$complete_id]), cex = 0.8)
 # Filters out lowly expressed genes, calc CPM, plot
-filter_and_plotMDS(dds,dge)
+#filter_and_plotMDS(dds,dge)
 ```
 
 
@@ -160,13 +161,14 @@ filter_and_plotMDS(dds,dge)
 # Explore library sizes
 ```{r echo=FALSE, results='hide'}
 # Check distributions of samples using boxplots
-par(mar=c(10,10,4,2)) # increase y-axis margin.
+par(mar=c(10,8,4,2)) # increase y-axis margin.
 colors <- brewer.pal(n = length(levels(dge$samples$tissue)), name = 'Paired')
 col.cell <- colors[dge$samples$tissue]
 
 density.group <- c(20,90)[dge$samples$group]
-colnames(dge) <-  paste(dge$samples$tissue,dge$samples$id,sep="_")
-barplot(dge$samples$lib.size,names=colnames(dge),las=2,  col = col.cell, density=density.group)
+
+colnames(dge) <-  paste(dge$samples$tissue,dge$samples$dpo,dge$samples$id,  sep="_")
+barplot(dge$samples$lib.size,names=colnames(dge),las=2,cex.names=0.7,  col = col.cell)
 
 # Add a title to the plot
 title("Library Sizes")
@@ -209,6 +211,9 @@ multidensity(as.list(as.data.frame(assays(dds_zyagen)$logCPM)), xlab = "log2 CPM
 par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
 multidensity(as.list(as.data.frame(assays(dds_zyagen_filter)$logCPM)), xlab = "log2 CPM", legend = NULL,
              main = "Zyagen_filter", cex.axis = 1.2, cex.lab = 1.5, las = 1)
+```
+..
+```{r distRawExpAll, echo=FALSE, fig.height=4, fig.width=10, out.width="800px", fig.cap="Non-parametric density distribution of expression profiles per sample.", message=FALSE}
 
 
 assays(dds_batch)$logCPM <- cpm(dge_batch, log = TRUE, prior.count = 0.01)
@@ -220,8 +225,14 @@ par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
 multidensity(as.list(as.data.frame(assays(dds_batch)$logCPM)), xlab = "log2 CPM", legend = NULL,
              main = "Batch_all", cex.axis = 1.2, cex.lab = 1.5, las = 1)
 
+input <- as.list(as.data.frame(assays(dds_batch_filter)$logCPM))
+names_input_legend <-unlist(lapply( names(input), function(a) paste(strsplit(a,"/")[[1]][11], strsplit(a,"/")[[1]][12],strsplit(a,"/")[[1]][13] )))
+unique(names_input_legend)
+col <- c(brewer.pal(n = length(names_input_legend), name = 'Paired'),"black","blue")
 par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
-multidensity(as.list(as.data.frame(assays(dds_batch_filter)$logCPM)), xlab = "log2 CPM", legend = NULL,
+multidensity(input, xlab = "log2 CPM",col = col , legend = list(
+x = "right",
+legend = names_input_legend, fill = col, cex=0.8),
              main = "Batch_all", cex.axis = 1.2, cex.lab = 1.5, las = 1)
 
 RA0223 <- dds_batch[,dds_batch$id == "RA0223"]
@@ -229,10 +240,21 @@ par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
 multidensity(as.list(as.data.frame(assays(RA0223)$logCPM)), xlab = "log2 CPM", legend = NULL,
              main = "RA0223", cex.axis = 1.2, cex.lab = 1.5, las = 1)
 
+RA1834 <- dds_batch[,dds_batch$id == "RA1834"]
+par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
+multidensity(as.list(as.data.frame(assays(RA1834)$logCPM)), xlab = "log2 CPM", legend = NULL,
+             main = "RA1834", cex.axis = 1.2, cex.lab = 1.5, las = 1)
+
 RA0223 <- dds_batch_filter[,dds_batch_filter$id == "RA0223"]
 par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
 multidensity(as.list(as.data.frame(assays(RA0223)$logCPM)), xlab = "log2 CPM", legend = NULL,
              main = "RA0223-filter", cex.axis = 1.2, cex.lab = 1.5, las = 1)
+
+
+RA1834 <- dds_batch_filter[,dds_batch_filter$id == "RA1834"]
+par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
+multidensity(as.list(as.data.frame(assays(RA1834)$logCPM)), xlab = "log2 CPM", legend = NULL,
+             main = "RA1834-filter", cex.axis = 1.2, cex.lab = 1.5, las = 1)
 ```
 
 

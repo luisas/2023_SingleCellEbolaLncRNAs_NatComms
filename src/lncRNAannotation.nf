@@ -1,21 +1,22 @@
 
 //params.data_folder = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data"
-params.data_folder = "/gpfs/projects/bsc83/Projects/Ebola/data"
+params.data_folder = "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq"
 params.assembly_name = "rheMac8_EBOV-Kikwit"
 params.prefix_rawdata="/gpfs/projects/bsc83/Data/Ebola/00_RawData/"
-
 params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/data/02_RNA-Seq/"
-params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}.gtf"
+
+
+params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles_rheMac8/gene_annotations/${params.assembly_name}.gtf"
 //params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}_mrnas.gtf"
 //params.merged_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}.gtf"
-params.merged_gtf = "${params.data_folder}/02_RNA-Seq/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
+params.merged_gtf = "${params.data_folder}/02_RNA-Seq_old/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
 
 //params.known_mrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_nolong.gtf"
 //params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/rheMac8.ensembl_release97_knownlncrna.gtf"
 // TRAINING DATA
-params.known_mrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"
-//params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"
-params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/lncpedia/lncipedia_5_2_hg19.gtf"
+params.known_mrna = "${params.data_folder}/01_PreliminaryFiles_rheMac8/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"
+params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles_rheMac8/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"
+//params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/lncpedia/lncipedia_5_2_hg19.gtf"
 params.rhesus_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/rheMac8.fa"
 
 Channel.fromPath("${params.rhesus_genome}").into{ fasta_reference_channel; fasta_reference_channel2}
@@ -31,7 +32,7 @@ log.info "=============================================="
 
 process feelnc_filter{
 
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_lncpedia"
+  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_linc"
 
   input:
   file merged_gtf from merged_gtf_channel
@@ -44,13 +45,14 @@ process feelnc_filter{
   """
   FEELnc_filter.pl -i ${merged_gtf} \
                    -a ${reference_gtf} \
+                   -l \
                    -b transcript_biotype=protein_coding > candidate_lncRNA.gtf
   """
 }
 
 process feelnc_codpot{
-  cpus 48
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_lncpedia"
+  cpus 16
+  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_linc"
 
   input:
   file candidate_lncrna from candidates
@@ -72,23 +74,22 @@ process feelnc_codpot{
 
 
 
-
-process feelnc_classifier{
-  storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_lncpedia"
-
-  input:
-  file(cod_pot_dir) from coding_potentials
-  file reference_gtf from ref_gtf_channel_2
-
-  output:
-  file("lncRNA_classes.txt") into classification_ch
-
-  script:
-  """
-  perl /apps/FEELNC/0.1.1/scripts/FEELnc_classifier.pl -i feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf -a  ${reference_gtf} -l log.txt > lncRNA_classes.txt
-  """
-
-}
+// process feelnc_classifier{
+//   storeDir "${params.output_dir}/05_lncrnaAnnotation/feelnc_gencode_linc"
+//
+//   input:
+//   file(cod_pot_dir) from coding_potentials
+//   file reference_gtf from ref_gtf_channel_2
+//
+//   output:
+//   file("lncRNA_classes.txt") into classification_ch
+//
+//   script:
+//   """
+//   perl /apps/FEELNC/0.1.1/scripts/FEELnc_classifier.pl -i feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf -a  ${reference_gtf} -l log.txt > lncRNA_classes.txt
+//   """
+//
+// }
 
 
 

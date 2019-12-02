@@ -1,0 +1,296 @@
+---
+title: "Explorative"
+author: "Luisa Santus"
+date: "11/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Orthologs -- explorative
+```{r  results='hide', message=FALSE, warning=FALSE}
+#I need to find the orthologs: macaque --> Human 
+chainfile <- file.path(datadir,"/01_PreliminaryFiles_rheMac8/gene_annotations/chains/rheMac8ToHg38.over.chain")
+chain <- import.chain(chainfile) # Macaque!
+macaque <- novel_lncrnas_ranges
+Human_Orthologs <- liftOver(macaque, chain)
+
+# For how many we did not find the orthologs
+MISSED <- length(unique(novel_lncrnas_ranges$gene_id)) - length(unique(unlist(Human_Orthologs)$gene_id))
+FOUND <-  length(unique(unlist(Human_Orthologs)$gene_id))
+print(paste0("#Genes where no ortholog was identified: ",MISSED))
+print(paste0("#Genes where ortholog was identified: ",FOUND))
+
+dir_assemblies<- "/home/luisas/Desktop/cluster/assemblies"
+human_annotation <- import(file.path(dir_assemblies, "ensembl/release-96/Homo_sapiens_hg38/Homo_sapiens.GRCh38.96.gtf"))
+seqlevelsStyle(human_annotation) <- "UCSC"
+human_annotation_genes <- human_annotation[human_annotation$type == "gene"]
+human_annotation_exons <- human_annotation[human_annotation$type == "exon"]
+```
+
+
+
+
+```{r}
+# Now i concentrate on one gene which is predicted lncRNA and long and see what the otrholog looks like
+# Just to have one example
+gr <- novel_lncrnas_ranges
+ho_unlisted <- unlist(Human_Orthologs)
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
+
+### --- Get a very long exon as example ---
+long_exons <- tail(df[order(df$range),], n = 10)$gene_id
+selected_long_exon_range <- novel_lncrnas_ranges[novel_lncrnas_ranges$transcript_id == "MSTRG.32406.1",]
+
+# The selected gene is 	MSTRG.32406.1
+selected_long_exon_ho <- (liftOver(selected_long_exon_range, chain))
+# I select only the first exon and get the ortholog region
+query_human_ortholog_region <- range(split(selected_long_exon_ho[[1]], ~exon_number))
+overlaps <- findOverlaps(query_human_ortholog_region,human_annotation)
+
+# retrieve the annotation for the overlaps
+hits_in_human <- human_annotation[subjectHits(overlaps)]
+unique(hits_in_human$gene_biotype)
+```
+
+Question: i want to know if the novel identified ones have an ortholog in human
+```{r results='hide', message=FALSE, warning=FALSE}
+gr <- novel_lncrnas_ranges[1:300]
+ho_unlisted <- unlist(Human_Orthologs)
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
+#  LiftOver 
+# "Translate the coordinates to human"
+gr_toHuman <- liftOver(gr, chain) 
+# Only select the whole region 
+gr_toHuman_collapsed <- lapply(gr_toHuman, function(x) {range(split(x, ~exon_number))})
+length(gr)
+# Extract overlaps from corresponding human annotation 
+overlaps <- lapply(gr_toHuman_collapsed, function(x) findOverlaps(x,human_annotation,minoverlap=20L,ignore.strand=FALSE))
+head(overlaps)
+
+length(overlaps)
+hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+length(hits_in_human)
+orthologs_class <- (lapply(hits_in_human, function(x) (unique(x$gene_biotype))))
+
+gr_toHuman_collapsed[[1]]
+overlaps <- lapply(gr_toHuman_collapsed[[1]], function(x) findOverlaps(x,human_annotation,minoverlap=200L))
+overlaps
+hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+hits_in_human
+length(hits_in_human)
+
+export(gr_toHuman_collapsed[[1]][[1]], "/home/luisas/Desktop/explorative/test2_human.gtf")
+export(hits_in_human[[1]], "/home/luisas/Desktop/explorative/test_human.gtf")
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# Visualize ortholog class
+mask <- unlist(lapply(orthologs_class, function(x) length(x) == 1))
+
+length(orthologs_class)
+length(orthologs_class[mask])
+orthologs_class <- orthologs_class[mask]
+
+orthologs_class <- unlist(orthologs_class)
+ggplot(data.frame(orthologs_class), aes(x=orthologs_class, fill = orthologs_class)) +
+  geom_bar()+
+  coord_flip()
+```
+
+
+
+
+
+```{r}
+
+pred_as_mrna <- mRNAs_out[mRNAs_out$gene_id %in% intersect_missed_mrnaout]
+#length(intersect(mRNAs_out$gene_id, intersect_missed_mrnaout))
+gr_macaque <- gr <- pred_as_mrna
+length(gr_macaque)
+
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) 
+table(collapsed$range < 200)
+
+# "Translate the coordinates to human"
+gr_toHuman <- liftOver(gr_macaque, chain) 
+# Only select the whole region 
+gr_toHuman_collapsed <- lapply(gr_toHuman, function(x) {range(split(x, ~exon_number))})
+length(gr_toHuman_collapsed)
+# Extract overlaps from corresponding human annotation 
+overlaps <- lapply( gr_toHuman_collapsed, function(x) findOverlaps(x,human_annotation))
+length(overlaps)
+hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+length(hits_in_human)
+unlist(hits_in_human)
+df <- data.frame()
+orthologs_class <- (unlist(lapply(hits_in_human, function(x) (unique(x$gene_biotype)))))
+
+
+
+wronglypred <- lapply(hits_in_human, function(x) if (!isEmpty(x$gene_biotype) && !is.null(x) && unique(x$gene_biotype)=="lincRNA") return(x)) 
+lapply(wronglypred, function(x) if(!is.null(x)) return(x)) 
+
+isEmpty(hits_in_human[[1:20]]$gene_biotype)
+!isEmpty(hits_in_human[[1]])
+if (unique(x$gene_biotype)=="lincRNA") print("aa") 
+wronglypred <- rbind(wronglypred, x)
+length(lapply(hits_in_human, function(x) (unique(x$gene_biotype))))
+length(orthologs_class)
+ggplot(data.frame(orthologs_class), aes(x=orthologs_class, fill = orthologs_class)) +
+  geom_bar()+
+  coord_flip()
+```
+
+
+
+
+## Comparison between Annotations
+```{r}
+library(rtracklayer)
+library(ggplot2)
+library(plyr)
+library(stringr)
+
+projdir = "/home/luisas/Desktop/cluster/proj/data/"
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+assemblies <- "/home/luisas/Desktop/cluster/assemblies"
+gene_annotations <- "/home/luisas/Desktop/cluster/gene_annotations"
+
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R"))
+
+# Compare Annotations 
+rheMac8 <- import(file.path(gene_annotations, "ensembl_release97/rheMac8/Macaca_mulatta.Mmul_8.0.1.97.gtf"))
+rheMac10 <- import(file.path(gene_annotations, "ensembl_release98/rheMac10/Macaca_mulatta.Mmul_10.98.gtf"))
+human <- import(file.path(gene_annotations, "ensembl_hg19/Homo_sapiens.gtf"))
+
+
+rheMac8Biotypes <- sort(rheMac8Biotypes[str_detect(rheMac8Biotypes,"RNA")])
+rheMac8LincRNA <- rheMac8[(rheMac8$type == "gene") &(rheMac8$gene_biotype == "lincRNA")]
+rheMac8MiRNA <- rheMac8[(rheMac8$type == "gene") &(rheMac8$gene_biotype == "miRNA")]
+
+
+rheMac10Biotypes <-setdiff(sort(rheMac10Biotypes[str_detect(rheMac10Biotypes,"RNA")]), "Y_RNA")
+rheMac10lnc <- rheMac10[(rheMac10$type == "gene") &(rheMac10$gene_biotype == "lncRNA")]
+rheMac10MiRNA <- rheMac10[(rheMac10$type == "gene") &(rheMac10$gene_biotype == "miRNA")]
+
+unique(rheMac10lnc$gene_source)
+HumanBiotypes <- sort(HumanBiotypes[str_detect(HumanBiotypes,"RNA")])
+humanlnc <- human[(human$type == "gene") &(human$gene_biotype == "lincRNA")]
+humanantisense <- human[(human$type == "gene") &(human$gene_biotype == "antisense")]
+humanStatsMiRNA <- human[(human$type == "gene") &(human$gene_biotype == "miRNA")]
+
+df <- data.frame()
+df <- rbind(df, data.frame(ldply(rheMac8Biotypes, function(x) data.frame(type = x, from = "rhemac8", count = length(rheMac8[(rheMac8$type == "gene") &(rheMac8$gene_biotype == x)])))))
+df <- rbind(df, data.frame(ldply(rheMac10Biotypes, function(x) data.frame(type = x, from = "rhemac10", count = length(rheMac10[(rheMac10$type == "gene") &(rheMac10$gene_biotype == x)])))))
+df <- rbind(df, data.frame(ldply(HumanBiotypes, function(x) data.frame(type = x, from = "human", count = length(human[(human$type == "gene") &(human$gene_biotype == x)])))))
+df <- rbind(df, data.frame(type = "antisense", from = "human", count = length(humanantisense$gene_id)))
+
+
+df$type <- as.character(df$type)
+df_sorted <- arrange(df, type, from)
+df_cumsum <- ddply(df_sorted, "from",
+                   transform, label_ypos=cumsum(count))
+
+ggplot(data=df_cumsum, aes(x=from, y=count, fill=type)) +
+  geom_bar(stat="identity")+xlab("")+
+  theme_minimal()
+
+
+df_lnc <- df[(df$type == "lncRNA" ) | (df$type == "lincRNA"),]
+ggplot(data=df_lnc, aes(x=from, y=count, fill=type)) +
+  geom_bar(stat="identity")+xlab("")+
+  theme_minimal()
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Exon lengths before stringtie merge
+```{r}
+datadir <- "/home/luisas/Desktop/data/01_Ebola-RNASeq"
+directory_zyagen = file.path(datadir,"02_RNA-Seq_old/04_stringtie/Zyagen")
+assembled_transcriptomes<- iterate_files(directory_zyagen, 'dedup.stringtie.gtf')
+
+# Plot exon lengths for each transcriptome
+
+histo_length_exon <- function(gr,title,color){
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
+  mu <- mean(df$range_width)
+  p1 <- ggplot(collapsed, aes(x=range)) + geom_histogram(position="identity", alpha=0.5, fill = color, binwidth = 100)+labs(title=title) + scale_y_log10()+ 
+    ylab("Log10 Count") + xlab("#Bases")+  theme(legend.title=element_blank())+
+    theme(plot.title = element_text(hjust = 0.5))+xlim(0,20000)+ geom_vline(aes(xintercept=mu),
+             linetype="dashed") + 
+    geom_text(aes(x = mu+ 1000, y = 500, label = as.integer(mu))) 
+  return(p1)
+}
+
+
+all <- list()
+for (i in 1:16){
+  gr <- import(assembled_transcriptomes[i])
+  infos %<-% extract_info_sample_from_filename(assembled_transcriptomes[i])
+  gr<- gr[gr$type == "exon",]
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
+  all[[infos[5]]] <- collapsed$range
+}
+all
+par(mfrow = c(1, 1), mar = c(4, 5, 1, 1))
+multidensity(as.list(all), xlab = "exon length",
+             main = "Zyagen", cex.axis = 1.2, cex.lab = 1.5, las = 1, xlim = c(1,1000))
+
+```
+
+
+
+
+
+# Select the exons only 
+```{r}
+plots <- list()
+assembled_transcriptomes<- iterate_files("/home/luisas/Desktop/data/01_Ebola-RNASeq/02_RNA-Seq_old/04_stringtie/Zyagen", 'guided.gtf')
+gtf_batch <- import(assembled_transcriptomes[[7]])
+gtf_batch <- gtf_batch[gtf_batch$type == "exon",]
+histo_length_exon(gtf_batch,"Batch ref", "red")
+```

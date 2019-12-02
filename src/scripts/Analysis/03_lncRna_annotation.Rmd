@@ -45,11 +45,11 @@ dir_hisat_zyagen <- file.path(hisat, "Zyagen")
 #dir_abundances_zyagen <- file.path(dir,"02_RNA-Seq_old/06_abundances/Zyagen")
 
 # Human training set
-lncRNAs_ref_human <- import(file.path(projdir, "01_PreliminaryFiles/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 
 # The lncRNAs and mRNAs in the reference
-lncRNAs_ref <- import(file.path(projdir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
-mRNAs_ref <- import(file.path(projdir, "01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
 
 # Candidates lncRNAs 
 candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_old/05_lncrnaAnnotation/feelnc_gencode_lncrna/candidate_lncRNA.gtf"))
@@ -331,7 +331,6 @@ plot_all_all <- function(ref, gr, gr1, colors){
 
 
 plot_length_exons <- function(ref, gr, gr1, colors){
-  gr <- novel_lncrnas_ranges_collapsed
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
   collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
   collapsed$type <- "novel"
@@ -412,6 +411,8 @@ collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_id) %>% dplyr::su
 abs(12282983-12285590)
 
 ```
+
+
 
 
 ## Expression Levels of the novel ones
@@ -523,6 +524,33 @@ print(rownames(dds_ref))
 
 ```
 
+```{r}
+#-----------------------------
+# Get the exon levels of the highly expressed ones
+
+dds_zyagen <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
+dge_zyagen <- DGEList(counts = assays(dds_zyagen)$counts, group = dds_zyagen$tissue, genes = rownames(dds_zyagen))
+assays(dds_zyagen)$logCPM <- cpm(dge_zyagen, log = TRUE,prior.count = 0.25)
+mask <- rowMeans(assays(dds_zyagen)$logCPM) > 1
+expressed_ones <- dge_zyagen[mask, ]
+
+table(novel_lncrnas_ranges_collapsed$gene_id %in% expressed_ones$genes$genes)
+#FALSE  TRUE 
+#21096 15339 
+novel_lncrnas_ranges_collapsed_expressed <- novel_lncrnas_ranges_collapsed[novel_lncrnas_ranges_collapsed$gene_id %in% expressed_ones$genes$genes ,]
+
+length(novel_lncrnas_ranges_collapsed)
+
+colors <- c("red","#D16103","#4E84C4")
+p3 <- plot_length_exons(lncrnas_ref_collapsed,novel_lncrnas_ranges_collapsed_expressed,lncrnas_ref_collapsed_human,colors)
+p1 <-histo_length_exon(novel_lncrnas_ranges_collapsed_expressed," NOVEL",colors[2])
+p2 <-histo_length_exon(lncrnas_ref_collapsed," REF MACAQUE",colors[3])
+p4 <-histo_length_exon(lncrnas_ref_collapsed_human,"REF HUMAN","red")
+g1 <- as.grob(p1); g2 <- as.grob(p2) ; g3 <- as.grob(p3) ; g4 <- as.grob(p4)
+grid.arrange( grobs = list(g1,g2,g3,g4),layout_matrix = rbind(c(1,2,4),c(3,3,3)), top = "Exon Lengths for higlhy expressed ones")
+```
+
+
 ## Batch
 ```{r echo=FALSE,  results='hide'}
 
@@ -597,10 +625,9 @@ print(rownames(dds_ref))
 ```
 
 
-
 ##  Orthologs
 ```{r}
-#chainfile <- file.path(projdir,"/data/01_PreliminaryFiles/gene_annotations/chains/hg19ToHg18.over.chain")
+#chainfile <- file.path(projdir,"/data/01_PreliminaryFiles_rheMac8/gene_annotations/chains/hg19ToHg18.over.chain")
 #chain <- import.chain(chainfile)
 #library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 #tx_hg19 <- transcripts(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -608,23 +635,129 @@ print(rownames(dds_ref))
 
 
 #I need to find the orthologs: macaque --> Human 
-genome_human <-  file.path(projdir,"/01_PreliminaryFiles/gene_annotations/chains/rheMac8ToHg38.over.chain")
-chainfile <- file.path(projdir,"/01_PreliminaryFiles/gene_annotations/chains/rheMac8ToHg38.over.chain")
+
+chainfile <- file.path(datadir,"/01_PreliminaryFiles_rheMac8/gene_annotations/chains/rheMac8ToHg38.over.chain")
 chain <- import.chain(chainfile) # Macaque!
 macaque <- novel_lncrnas_ranges
 Human_Orthologs <- liftOver(macaque, chain)
 
 # For how many we did not find the orthologs
 MISSED <- length(unique(novel_lncrnas_ranges$gene_id)) - length(unique(unlist(Human_Orthologs)$gene_id))
+FOUND <-  length(unique(unlist(Human_Orthologs)$gene_id))
 print(paste0("#Genes where no ortholog was identified: ",MISSED))
+print(paste0("#Genes where ortholog was identified: ",FOUND))
 
+dir_assemblies<- "/home/luisas/Desktop/cluster/assemblies"
+human_annotation <- import(file.path(dir_assemblies, "ensembl/release-96/Homo_sapiens_hg38/Homo_sapiens.GRCh38.96.gtf"))
+seqlevelsStyle(human_annotation) <- "UCSC"
+
+# Now i concentrate on one gene which is predicted lncRNA and long and see what the otrholog looks like
+# Just to have one example
+gr <- novel_lncrnas_ranges
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
+collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
+long_exons <- tail(collapsed[order(collapsed$range),], n = 10)$gene_id
+a <- novel_lncrnas_ranges[novel_lncrnas_ranges$transcript_id == "MSTRG.32406.1",]
+ho <- unlist(Human_Orthologs)
+query <- ho[ho$transcript_id == "MSTRG.32406.1",]
+# The selected gene is 	MSTRG.32406.1
+gr <- (liftOver(a, chain))
+query_human_ortholog_region <- range(split(gr[[1]], ~exon_number))
+overlaps <- findOverlaps(query_human_ortholog_region,human_annotation)
+hits_in_human <- human_annotation[subjectHits(overlaps)]
+hits_in_human$gene_biotype
+  hits_in_human
+export(hits_in_human, "/home/luisas/Desktop/explorative/MSTRG.32406.1_human.gtf")
+```
+
+Now I want to apply that rule to all of them and see what comes out. 
+The question is: from the novel identified one, see their orthologs and find some stats.
+```{r}
+gr_macaque <- novel_lncrnas_ranges
+
+# "Translate the coordinates to human"
+gr_toHuman <- liftOver(gr_macaque, chain) 
+gr_toHuman_chr3 <- gr_toHuman
+# Only select the whole region 
+gr_toHuman_collapsed <- lapply(gr_toHuman, function(x) {range(split(x, ~exon_number))})
+#length(gr_toHuman_collapsed)
+# Extract overlaps from corresponding human annotation 
+overlaps <- lapply( gr_toHuman_collapsed, function(x) findOverlaps(x,human_annotation))
+hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+
+df <- data.frame()
+orthologs_class <- (unlist(lapply(hits_in_human, function(x) (unique(x$gene_biotype)))))
+length(orthologs_class)
+ggplot(data.frame(orthologs_class), aes(x=orthologs_class, fill = orthologs_class)) +
+  geom_bar()+
+  coord_flip()
+
+
+```
+
+
+
+# I want to find some that are putative lncRNAs of quality!
+
+
+Investigating the rnas predicted as mRNAs, why? 
+- Length 
+
+```{r}
+
+pred_as_mrna <- mRNAs_out[mRNAs_out$gene_id %in% intersect_missed_mrnaout]
+#length(intersect(mRNAs_out$gene_id, intersect_missed_mrnaout))
+gr_macaque <- gr <- pred_as_mrna
+length(gr_macaque)
+
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) 
+table(collapsed$range < 200)
+
+# "Translate the coordinates to human"
+gr_toHuman <- liftOver(gr_macaque, chain) 
+# Only select the whole region 
+gr_toHuman_collapsed <- lapply(gr_toHuman, function(x) {range(split(x, ~exon_number))})
+length(gr_toHuman_collapsed)
+# Extract overlaps from corresponding human annotation 
+overlaps <- lapply( gr_toHuman_collapsed, function(x) findOverlaps(x,human_annotation))
+length(overlaps)
+hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+length(hits_in_human)
+unlist(hits_in_human)
+df <- data.frame()
+orthologs_class <- (unlist(lapply(hits_in_human, function(x) (unique(x$gene_biotype)))))
+
+
+
+wronglypred <- lapply(hits_in_human, function(x) if (!isEmpty(x$gene_biotype) && !is.null(x) && unique(x$gene_biotype)=="lincRNA") return(x)) 
+lapply(wronglypred, function(x) if(!is.null(x)) return(x)) 
+
+
+wronglypred[[1]] is NULL
+
+isEmpty(hits_in_human[[1:20]]$gene_biotype)
+!isEmpty(hits_in_human[[1]])
+if (unique(x$gene_biotype)=="lincRNA") print("aa") 
+wronglypred <- rbind(wronglypred, x)
+length(lapply(hits_in_human, function(x) (unique(x$gene_biotype))))
+length(orthologs_class)
+ggplot(data.frame(orthologs_class), aes(x=orthologs_class, fill = orthologs_class)) +
+  geom_bar()+
+  coord_flip()
+
+```
+
+
+
+
+
+```{r}
+# ----------------------------------------------------
 #Visualizing
 novel_lncrnas_ranges_chr3 <- novel_lncrnas_ranges[seqnames(novel_lncrnas_ranges) == "chr3"]
 novel_lncrnas_ranges_chr3 <- novel_lncrnas_ranges_chr3[start(novel_lncrnas_ranges_chr3) >= 310061 & end(novel_lncrnas_ranges_chr3) <= 330061]
-
 novel_lncrnas_ranges_chr3_gene1 <- novel_lncrnas_ranges[novel_lncrnas_ranges$gene_id == "MSTRG.48461"]
-
-
 GenomicRanges::reduce(Human_Orthologs[[1]])
 atrack <- AnnotationTrack(novel_lncrnas_ranges_chr3, name = "Novel lncRNAs range")
 gtrack <- GenomeAxisTrack()

@@ -141,7 +141,7 @@ filter_dds<- function(dds_input, tissue){
   dds<- dds_input[,dds_input$tissue == tissue]
   dge <- DGEList(counts = assays(dds)$counts, group = dds$condition, genes = rownames(dds), samples = colData(dds))
   assays(dds)$logCPM <- cpm(dge, log = TRUE, prior.count = 0.01)
-  mask <- rowMeans(assays(dds)$logCPM) > 6
+  mask <- rowMeans(assays(dds)$logCPM) > 2 
   dds <- dds[mask, ]
   return(dds)
 }
@@ -227,11 +227,11 @@ dds_umis_difference <- prepare_difference_dds(dds_umis, dds_md, tissue, sample)
 
 thresholds <- c(0.1,1,2,3,4)
 df <- calc_df_for_thresholds(dds_umis_difference, thresholds)
-boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "lightblue", main = tissue)
+boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "lightblue", main = tissue, xlab = "threshold", ylab = "Umis-PicardRemoveDuplicates")
 
 thresholds <- c(0.1,1,2,3,4,5,6,7,8)
 df <- calc_df_for_thresholds(dds_umis_difference, thresholds)
-boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "lightblue", main = tissue)
+boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "lightblue", main = tissue,  xlab = "threshold", ylab = "Umis-PicardRemoveDuplicates")
 
 
 tissue <- "Liver"
@@ -239,11 +239,11 @@ dds_umis_difference <- prepare_difference_dds(dds_umis, dds_md, tissue, sample)
 
 thresholds <- c(0.1,1,2,3,4)
 df <- calc_df_for_thresholds(dds_umis_difference, thresholds)
-boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "forestgreen", main = tissue)
+boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "forestgreen", main = tissue,  xlab = "threshold", ylab = "Umis-PicardRemoveDuplicates")
 
 thresholds <- c(0.1,1,2,3,4,5,6,7,8)
 df <- calc_df_for_thresholds(dds_umis_difference, thresholds)
-boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "forestgreen", main = tissue)
+boxplot(df$dif ~ df$threshold, names = thresholds,  outline = FALSE, col = "forestgreen", main = tissue, xlab = "threshold", ylab = "Umis-PicardRemoveDuplicates")
 
 
 ```
