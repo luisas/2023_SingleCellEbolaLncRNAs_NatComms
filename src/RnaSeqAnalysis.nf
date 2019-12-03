@@ -386,8 +386,9 @@ process filter_bams_samtools{
 
 process removeDuplicates_picard{
 
-  cpus 1
+  cpus 48
   tag "${complete_id}"
+  label 'big_mem'
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
@@ -417,7 +418,7 @@ process dedupUmi{
 
   tag "${complete_id}"
   label 'big_mem'
-  cpus 1
+  cpus 48
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:

@@ -66,8 +66,7 @@ process feelnc_codpot{
   script:
   """
   FEELnc_codpot.pl -i ${candidate_lncrna} -a ${known_mrna} -l ${known_lncrna} \
-                   -g ${reference_genome} --proc ${task.cpus} \
-                   --spethres 0.96,0.96
+                   -g ${reference_genome} --proc ${task.cpus}
   """
 
 }

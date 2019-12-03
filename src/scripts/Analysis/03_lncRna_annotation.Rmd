@@ -47,16 +47,22 @@ dir_hisat_zyagen <- file.path(hisat, "Zyagen")
 # Human training set
 lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 
+lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
+table(lncRNAs_ref_human_gene$gene_type == "lincRNA")
+
+
 # The lncRNAs and mRNAs in the reference
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
 
+
+
 # Candidates lncRNAs 
-candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_old/05_lncrnaAnnotation/feelnc_gencode_lncrna/candidate_lncRNA.gtf"))
+candidates_lncRNA <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/candidate_lncRNA.gtf"))
 
 # Prediction 
-lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_old/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_old/05_lncrnaAnnotation/feelnc_gencode_lncrna/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+lncRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
 stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_old/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
 ```
 
@@ -530,9 +536,11 @@ print(rownames(dds_ref))
 
 dds_zyagen <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
 dge_zyagen <- DGEList(counts = assays(dds_zyagen)$counts, group = dds_zyagen$tissue, genes = rownames(dds_zyagen))
-assays(dds_zyagen)$logCPM <- cpm(dge_zyagen, log = TRUE,prior.count = 0.25)
-mask <- rowMeans(assays(dds_zyagen)$logCPM) > 1
+assays(dds_zyagen)$logCPM <- cpm(dge_zyagen, log = TRUE,prior.count = 0.5)
+mask <- rowMeans(assays(dds_zyagen)$logCPM) > 0
 expressed_ones <- dge_zyagen[mask, ]
+
+assays(dds_zyagen)$counts
 
 table(novel_lncrnas_ranges_collapsed$gene_id %in% expressed_ones$genes$genes)
 #FALSE  TRUE 

@@ -41,8 +41,8 @@ ho_unlisted <- unlist(Human_Orthologs)
 df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
 
 ### --- Get a very long exon as example ---
-long_exons <- tail(df[order(df$range),], n = 10)$gene_id
-selected_long_exon_range <- novel_lncrnas_ranges[novel_lncrnas_ranges$transcript_id == "MSTRG.32406.1",]
+long_exons <- tail(df[order(df$range),], n = 10)$transcript_id
+selected_long_exon_range <- novel_lncrnas_ranges[novel_lncrnas_ranges$transcript_id == "MSTRG.14915.1",]
 
 # The selected gene is 	MSTRG.32406.1
 selected_long_exon_ho <- (liftOver(selected_long_exon_range, chain))
