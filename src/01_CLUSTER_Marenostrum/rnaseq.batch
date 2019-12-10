@@ -5,7 +5,6 @@
 #SBATCH --output=out/Nextflow-%j.out
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=48
-#SBATCH --qos=debug
 
 module load java/8u131
 module load intel/2017.1
@@ -15,7 +14,5 @@ module load singularity/3.2.0
 
 
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/RnaSeqAnalysis.nf \
-                  --dataset_bam_dir "/gpfs/projects/bsc83/Data/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/" \
-               	  --zyagen \
                   -w /gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq/work/ \
                   -c ../nextflow.config.rnaseq

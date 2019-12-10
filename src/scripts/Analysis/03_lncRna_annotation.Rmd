@@ -50,11 +50,9 @@ lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene
 lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
 table(lncRNAs_ref_human_gene$gene_type == "lincRNA")
 
-
 # The lncRNAs and mRNAs in the reference
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
-
 
 
 # Candidates lncRNAs 
@@ -65,6 +63,18 @@ lncRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_
 mRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
 stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_old/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
 ```
+
+
+## FILTERING STEPS 
+
+I want to select from the novel ones only the ones: 
+- Novel
+- Expressed at least in 3 samples
+- Intergenic
+
+Novels - is it ok with the labels I am using? 
+
+
 
 
 ## Exploring the data
@@ -222,9 +232,8 @@ get_only_max_transcript <- function(gr){
   return(gr)
 }
 
-
 get_nr_exons <- function(gr){
-  gr <- get_only_max_transcript(gr)
+  #gr <- get_only_max_transcript(gr)
   df <- data.frame("gene_id" = gr$gene_id,"exon_number" = as.numeric(gr$exon_number))
   number_exons <- df %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))
   return(number_exons)
@@ -310,7 +319,7 @@ plot_all_all <- function(ref, gr, gr1, colors){
   collapsed$type <- "novel"
   
   df_human <- data.frame("gene_id" = gr1$gene_id,"transcript_id" = gr1$transcript_id, "range_width" = width(ranges(gr1)))
-  collapsed_human <-df_human%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+  collapsed_human <- df_human%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
   collapsed_human$type <- "humanref"
   
   df_ref <- data.frame("gene_id" = ref$gene_id,"transcript_id" = ref$transcript_id, "range_width" = width(ranges(ref)))

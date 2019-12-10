@@ -19,9 +19,9 @@
 params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
-//params.dataset_bam_dir = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
+params.dataset_bam_dir_zyagen = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
 //params.dataset_bam_dir = "/gpfs/scratch/bsc83/bsc83024/test_dataset/bams_per_lane/*/"
-params.dataset_bam_dir = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
+params.dataset_bam_dir_batch = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
 
 // Folder where the output directories of the pipeline will be placed
 params.output_dir = "${params.dirData}/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/"
@@ -66,47 +66,50 @@ params.fastqc=true
 * - the file itself.
 */
 
-params.zyagen = "false"
-if("${params.zyagen}" != "false"){
-  dataset_bam = Channel
-                .fromPath("${params.dataset_bam_dir}/*_long.bam")
+
+
+dataset_bam_zyagen = Channel
+              .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")
+              .ifEmpty('bam files directory is empty')
+              .map { tuple(it.parent.name,
+                           it.parent.name.split('\\.')[1],
+                           it.baseName.split('_')[0],
+                           it.baseName.split('_')[1],
+                           it.baseName.split('_')[2].split('-')[0],
+                           it.baseName.split('_')[2].split('-')[1],
+                           it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                           it ) }
+// the unmapped_bam channel contains the exact same files as the dataset_bam one.
+// It only differs in the values that it maps to it, in this case only the complete_id.
+// It is used for the add_unmapped_bam process.
+unmapped_bams_zyagen = Channel
+                .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")
                 .ifEmpty('bam files directory is empty')
-                .map { tuple(it.parent.name,
-                             it.parent.name.split('\\.')[1],
-                             it.baseName.split('_')[0],
-                             it.baseName.split('_')[1],
-                             it.baseName.split('_')[2].split('-')[0],
-                             it.baseName.split('_')[2].split('-')[1],
-                             it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
-                             it ) }
-  // the unmapped_bam channel contains the exact same files as the dataset_bam one.
-  // It only differs in the values that it maps to it, in this case only the complete_id.
-  // It is used for the add_unmapped_bam process.
-  unmapped_bams = Channel
-                  .fromPath("${params.dataset_bam_dir}/*_long.bam")
-                  .ifEmpty('bam files directory is empty')
-                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
-                              it)}
-}else{
-    dataset_bam = Channel
-                  .fromPath("${params.dataset_bam_dir}*.bam", followLinks:true)
-                  .map { tuple(it.baseName.split('_')[4].split('\\.')[0],
-                               it.baseName.split('_')[4].split('\\.')[1],
-                               it.baseName.split('_')[0],
-                               it.baseName.split('_')[2],
-                               it.baseName.split('_')[1],
-                               it.baseName.split('_')[3],
-                               it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
-                               it ) }
-    // the unmapped_bam channel contains the exact same files as the dataset_bam one.
-    // It only differs in the values that it maps to it, in this case only the complete_id.
-    // It is used for the add_unmapped_bam process.
-    unmapped_bams = Channel
-                    .fromPath("${params.dataset_bam_dir}/*.bam")
-                    .ifEmpty('bam files directory is empty')
-                    .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
-                                it)}
-}
+                .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                            it)}
+
+dataset_bam_batch = Channel
+              .fromPath("${params.dataset_bam_dir_batch}*.bam", followLinks:true)
+              .map { tuple(it.baseName.split('_')[4].split('\\.')[0],
+                           it.baseName.split('_')[4].split('\\.')[1],
+                           it.baseName.split('_')[0],
+                           it.baseName.split('_')[2],
+                           it.baseName.split('_')[1],
+                           it.baseName.split('_')[3],
+                           it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+                           it ) }
+// the unmapped_bam channel contains the exact same files as the dataset_bam one.
+// It only differs in the values that it maps to it, in this case only the complete_id.
+// It is used for the add_unmapped_bam process.
+unmapped_bams_batch = Channel
+                .fromPath("${params.dataset_bam_dir_batch}/*.bam")
+                .ifEmpty('bam files directory is empty')
+                .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+                            it)}
+
+
+unmapped_bams = unmapped_bams_zyagen.mix(unmapped_bams_batch)
+dataset_bam = dataset_bam_zyagen.mix(dataset_bam_batch)
 
 // ------------ CHANNELS Creation
 Channel.fromPath("${params.hisat2_indexes}*").into{ indexesForMapping; indexesForMapping2 }
@@ -651,7 +654,7 @@ process DeNovoAssembly{
 process StringTie_Merge_Reference_Guided{
 
   cpus 48
-  storeDir "${params.output_dir}/04_stringtie/$dataset_name"
+  storeDir "${params.output_dir}/04_stringtie/"
 
   when:
   params.transcriptome_assembly
@@ -662,12 +665,12 @@ process StringTie_Merge_Reference_Guided{
   file reference_gtf from gtfChannel5
 
   output:
-  file "${dataset_name}_stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
+  file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
   val dataset_name into dataset_name_ch2
 
   script:
   """
-  stringtie --merge -p ${task.cpus} -o ${dataset_name}_stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
+  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
   """
 }
 

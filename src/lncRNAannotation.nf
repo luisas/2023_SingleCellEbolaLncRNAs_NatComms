@@ -1,15 +1,16 @@
 
 //params.data_folder = "/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data"
-params.data_folder = "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq"
+params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
+params.data_folder = "${params.dirData}/01_Ebola-RNASeq"
 params.assembly_name = "rheMac8_EBOV-Kikwit"
 params.prefix_rawdata="/gpfs/projects/bsc83/Data/Ebola/00_RawData/"
-params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/data/02_RNA-Seq/"
+params.output_dir = "${params.dirData}/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/"
 
 
-params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles_rheMac8/gene_annotations/${params.assembly_name}.gtf"
+params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles_rheMac10/gene_annotations/${params.assembly_name}.gtf"
 //params.ref_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}_mrnas.gtf"
 //params.merged_gtf = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/${params.assembly_name}.gtf"
-params.merged_gtf = "${params.data_folder}/02_RNA-Seq_old/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
+params.merged_gtf = "${params.data_folder}/02_RNA-Seq_rheMac10/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"
 
 //params.known_mrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/rheMac8_EBOV-Kikwit_nolong.gtf"
 //params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles/gene_annotations/rheMac8.ensembl_release97_knownlncrna.gtf"

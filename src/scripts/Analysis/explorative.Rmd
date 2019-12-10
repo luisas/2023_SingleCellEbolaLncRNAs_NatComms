@@ -57,10 +57,11 @@ unique(hits_in_human$gene_biotype)
 
 Question: i want to know if the novel identified ones have an ortholog in human
 ```{r results='hide', message=FALSE, warning=FALSE}
-gr <- novel_lncrnas_ranges[1:300]
+gr <- novel_lncrnas_ranges
+export(gr, "/home/luisas/Desktop/explorative/gr.gtf")
 ho_unlisted <- unlist(Human_Orthologs)
 df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = gr$exon_number,  "range_width" = width(ranges(gr)))
-#  LiftOver 
+#  LiftOver  
 # "Translate the coordinates to human"
 gr_toHuman <- liftOver(gr, chain) 
 # Only select the whole region 
@@ -75,14 +76,16 @@ hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
 length(hits_in_human)
 orthologs_class <- (lapply(hits_in_human, function(x) (unique(x$gene_biotype))))
 
-gr_toHuman_collapsed[[1]]
-overlaps <- lapply(gr_toHuman_collapsed[[1]], function(x) findOverlaps(x,human_annotation,minoverlap=200L))
-overlaps
-hits_in_human <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
-hits_in_human
-length(hits_in_human)
+gr_toHuman_collapsed[[13]]
+overlaps1 <- lapply(gr_toHuman_collapsed[[13]], function(x) findOverlaps(x,human_annotation,minoverlap=1L))
+overlaps1
+hits_in_human1 <-lapply(overlaps, function(x) human_annotation[subjectHits(x)])
+hits_in_human1
+length(hits_in_human1)
+orthologs_class1 <- (lapply(hits_in_human, function(x) (unique(x$gene_biotype))))
+orthologs_class1
 
-export(gr_toHuman_collapsed[[1]][[1]], "/home/luisas/Desktop/explorative/test2_human.gtf")
+export(gr_toHuman_collapsed[[13]][[1]], "/home/luisas/Desktop/explorative/test2_human.gtf")
 export(hits_in_human[[1]], "/home/luisas/Desktop/explorative/test_human.gtf")
 ```
 
@@ -90,14 +93,26 @@ export(hits_in_human[[1]], "/home/luisas/Desktop/explorative/test_human.gtf")
 # Visualize ortholog class
 mask <- unlist(lapply(orthologs_class, function(x) length(x) == 1))
 
-length(orthologs_class)
+length(orthologs_class) - length(orthologs_class2)
 length(orthologs_class[mask])
 orthologs_class <- orthologs_class[mask]
 
-orthologs_class <- unlist(orthologs_class)
-ggplot(data.frame(orthologs_class), aes(x=orthologs_class, fill = orthologs_class)) +
-  geom_bar()+
-  coord_flip()
+orthologs_class2 <- unlist(orthologs_class)
+length(orthologs_class2)
+save(orthologs_class,file="orthologsclass.Rda")
+
+
+```
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+
+png("/home/luisas/Desktop/explorative/myplot.png")
+myplot <- ggplot(data.frame(orthologs_class2), aes(x=orthologs_class2, fill = orthologs_class2)) +
+  geom_bar() + coord_flip()  +  theme(legend.position="none") 
+print(myplot)
+dev.off()
 ```
 
 
