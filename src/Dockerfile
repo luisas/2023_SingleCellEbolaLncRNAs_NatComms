@@ -53,11 +53,19 @@ RUN mkdir /apps && mkdir /apps/PICARD && mkdir /apps/PICARD/2.20.0
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.20.0/picard.jar &&\
     mv picard.jar /apps/PICARD/2.20.0/
 
+
+#STAR
+RUN wget https://github.com/alexdobin/STAR/archive/2.7.3a.tar.gz &&\
+    tar -xzvf 2.7.3a.tar.gz &&\
+    cp ./2.7.3a.tar.gz /usr/bin/
+
+
+## ---- OLD
 # Hisat2
-RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
-    unzip hisat2-2.1.0-Linux_x86_64.zip
-RUN cp -p hisat2-2.1.0/hisat2 hisat2-2.1.0/hisat2-* /usr/bin
-RUN rm -rf hisat2-2.1.0-Linux_x86_64.zip
+#RUN wget ftp://ftp.ccb.jhu.edu/pub/infphilo/hisat2/downloads/hisat2-2.1.0-Linux_x86_64.zip && \
+#    unzip hisat2-2.1.0-Linux_x86_64.zip
+#RUN cp -p hisat2-2.1.0/hisat2 hisat2-2.1.0/hisat2-* /usr/bin
+#RUN rm -rf hisat2-2.1.0-Linux_x86_64.zip
 
 # Samtools
 RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && \
@@ -100,5 +108,8 @@ RUN wget http://ccb.jhu.edu/software/stringtie/dl/gffcompare-0.10.6.Linux_x86_64
     rm gffcompare-0.10.6.Linux_x86_64.tar.gz
 
 ENV PATH="/gffcompare-0.10.6.Linux_x86_64/:${PATH}"
+
+
+
 
 RUN mkdir -p /scratch
