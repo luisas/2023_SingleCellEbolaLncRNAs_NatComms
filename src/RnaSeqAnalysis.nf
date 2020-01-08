@@ -39,6 +39,8 @@ params.reference_assembly = "${params.preliminary_files_dir}/reference_assembly/
 params.reference_assembly_fai = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.fa.fai"
 params.dict = "${params.preliminary_files_dir}/reference_assembly/${params.assembly_name}.dict"
 params.hisat2_indexes = "${params.preliminary_files_dir}/indexes/hisat2/${params.assembly_name}"
+params.star_indexes = "${params.preliminary_files_dir}/indexes/star/"
+
 params.ss = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.ss.txt"
 // Gene annotation
 params.bed = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed"
@@ -113,6 +115,7 @@ dataset_bam = dataset_bam_zyagen.mix(dataset_bam_batch)
 
 // ------------ CHANNELS Creation
 Channel.fromPath("${params.hisat2_indexes}*").into{ indexesForMapping; indexesForMapping2 }
+Channel.fromPath("${params.star_indexes}").set{ star_indexes}
 Channel.fromPath("${params.reference_assembly}").into{ reference_assembly_channel; reference_genome_ch;reference_genome_ch_2; reference_genome_ch_3}
 Channel.fromPath("${params.reference_assembly_fai}").set{reference_genome_fai_ch}
 Channel.fromPath("${params.ss}").into{ known_ss; }
@@ -121,7 +124,7 @@ Channel.fromPath("${params.bed}")
 Channel.fromPath("${params.bed_rheMac}")
                                  .into{ annotation_bed_rhemac }
 Channel.fromPath("${params.dict}").set{dictionary_channel}
-Channel.fromPath("${params.gtf}").into{ gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5; gtfChannel6}
+Channel.fromPath("${params.gtf}").into{ gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5; gtfChannel6; gtfChannel7}
 
 
 /*  ----------------------------------------------------------------------
@@ -230,6 +233,37 @@ process mapping_hisat{
 
 }
 
+// // MAP with STAR
+//
+// process star{
+//
+//   label 'big_mem'
+//   cpus 48
+//   tag "${complete_id}"
+//   storeDir "${params.output_dir}/03_star/$dataset_name/$tissue/$dayPostInfection/$sample"
+//
+//   input:
+//   file indexes from star_indexes.collect()
+//   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
+//
+//   output:
+//   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file("${complete_id}.Log.final.out"),
+//       file("${complete_id}.Aligned.out.sam") into mapped_sam
+//
+//   script:
+//   """
+//   STAR --genomeDir star/${indexes} \\
+//       --runThreadN ${task.cpus} \\
+//       --readFilesIn ${fastq_1} ${fastq_2}  \\
+//       --readFilesCommand zcat \\
+//       --outFileNamePrefix ${complete_id}.
+//   """
+// }
+
+
+
 /*
 * STEP 3.2: Sort and index the mapped bam files
 *
@@ -244,12 +278,12 @@ process sort_bam{
 
   input:
   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(ss), file(summary),
+      file(novel_ss),file(summary),
       file(sam) from mapped_sam
 
   output:
   set complete_id,lane,lane_number, dataset_name, dayPostInfection, tissue, sample,
-      file(ss), file(summary),
+      file(summary),
       file(sam), file("${complete_id}.bam")   into (sorted_and_index_bam, sorted_indexed_bams_for_stats, hisat2_bams)
 
   script:
@@ -286,7 +320,7 @@ process add_unmapped_bam{
 
   input:
   set complete_id,lane,lane_number, dataset_name, dayPostInfection, tissue, sample,
-      file(ss), file(summary),
+      file(summary),
       file(sam), file(bam),
       file(unmapped_bam) from unmapped_and_mapped_bams
   file assembly from reference_assembly_channel.collect()
@@ -660,41 +694,41 @@ process StringTie_Merge_Reference_Guided{
   params.transcriptome_assembly
 
   input:
-  val dataset_name from dataset_name_ch
+//  val dataset_name from dataset_name_ch
   file(stringtie_gtfs) from stringTie_channel.collect()
   file reference_gtf from gtfChannel5
 
   output:
   file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
-  val dataset_name into dataset_name_ch2
+  //val dataset_name into dataset_name_ch2
 
   script:
   """
-  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
+  stringtie --merge -p ${task.cpus} -F 1.0 -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
   """
 }
 
 
-// /*
-// * Obtain stats over StringTie output
-// */
-// process gffCompare{
-//
-//   storeDir "${params.output_dir}/04_stringtie/$dataset_name/01_gffCompare"
-//
-//   input:
-//   file merged_gtf from merged_denovo_assmebly
-//   file reference_gtf from gtfChannel6
-//   val dataset_name from dataset_name_ch2
-//
-//   output:
-//   file("merged*") into gff_compare_output_channel
-//
-//   script:
-//   """
-//   gffcompare -r ${reference_gtf} -G -o merged ${merged_gtf}
-//   """
-// }
+/*
+* Obtain stats over StringTie output
+*/
+process gffCompare{
+
+  storeDir "${params.output_dir}/04b_gffCompare"
+
+  input:
+  file merged_gtf from merged_denovo_assmebly
+  file reference_gtf from gtfChannel6
+//  val dataset_name from dataset_name_ch2
+
+  output:
+  file("merged*") into gff_compare_output_channel
+
+  script:
+  """
+  gffcompare -R -r ${reference_gtf} -o merged ${merged_gtf}
+  """
+}
 
 
 merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
@@ -741,7 +775,7 @@ abundances_stringtie_umis.into{abundances_stringtie_umis1 ; abundances_stringtie
 
 process prepareCountMatrices{
 
-  storeDir "${params.output_dir}/06_quantification_stringtie_prepde_batch/${dataset_name}"
+  storeDir "${params.output_dir}/06_quantification_stringtie/${dataset_name}"
 
   input:
   val dataset_name from dataset_name_channel

@@ -17,5 +17,7 @@ module load singularity/3.2.0
 
 
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/lncRNAannotation.nf \
+                  --merged_gtf "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_copy.gtf" \
+                  --output_dir "/gpfs/projects/bsc83/Data/Ebola//01_Ebola-RNASeq/02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/benchmark_known/" \
                   -w /gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq/work/ \
                   -c ../nextflow.config.annot

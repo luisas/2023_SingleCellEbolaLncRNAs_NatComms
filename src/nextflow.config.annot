@@ -1,0 +1,11 @@
+process{
+
+  container = 'file:///gpfs/projects/bsc83/containers/singularity/feelnc-0.1.1_supp.simg'
+  withName:gffCompare{
+      container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseq.simg'
+  }
+}
+
+singularity {
+    enabled = true
+}

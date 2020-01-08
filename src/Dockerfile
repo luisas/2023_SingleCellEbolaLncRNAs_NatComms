@@ -57,8 +57,9 @@ RUN wget https://github.com/broadinstitute/picard/releases/download/2.20.0/picar
 #STAR
 RUN wget https://github.com/alexdobin/STAR/archive/2.7.3a.tar.gz &&\
     tar -xzvf 2.7.3a.tar.gz &&\
-    cp ./2.7.3a.tar.gz /usr/bin/
+    rm ./2.7.3a.tar.gz
 
+ENV PATH="/STAR-2.7.3a/bin/Linux_x86_64/:${PATH}"
 
 ## ---- OLD
 # Hisat2

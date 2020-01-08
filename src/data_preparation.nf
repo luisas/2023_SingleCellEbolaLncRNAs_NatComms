@@ -73,7 +73,7 @@ process merge_assemblies {
     file ebov from ebov_genome_channel
 
     output:
-    file "${params.prefix}.fa" into (merged_assembly, merged_assembly_2,  merged_assembly_for_dictionary )
+    file "${params.prefix}.fa" into (merged_assembly, merged_assembly_2,  merged_assembly_for_dictionary , merged_assembly_for_index)
 
     script:
     """
@@ -82,6 +82,10 @@ process merge_assemblies {
     """
 
 }
+
+
+
+
 
 /*
 * Create hisat2 indexes
@@ -173,7 +177,7 @@ process merge_annotations{
   set file(rheMac_annotation) from rheMac_annotation_channel
 
   output:
-  file ("${params.prefix}.gtf") into (merged_annotation_channel, merged_annotation_channel_2)
+  file ("${params.prefix}.gtf") into (merged_annotation_channel, merged_annotation_channel_2, merged_annotation_for_index)
 
   script:
   """
@@ -182,6 +186,28 @@ process merge_annotations{
 
 }
 
+
+process create_star_indexes{
+  storeDir "${params.output_dir}/indexes/star"
+  cpus 1
+
+  input:
+  file assembly from merged_assembly_for_index
+  file annotation from merged_annotation_for_index
+
+  output:
+  file "star" into star_indexes
+
+  script:
+  """
+  mkdir star
+  STAR --runMode genomeGenerate \\
+    --sjdbGTFfile $annotation \\
+    --genomeDir star/ \\
+    --genomeFastaFiles $assembly \\
+    --runThreadN ${task.cpus}
+  """
+}
 
 process convert_gtf_to_bed12{
   storeDir "${params.output_dir}/gene_annotations"

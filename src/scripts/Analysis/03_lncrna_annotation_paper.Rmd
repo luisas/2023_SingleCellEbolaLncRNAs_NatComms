@@ -1,0 +1,219 @@
+---
+title: "lncrna annotation paper"
+author: "Luisa Santus"
+date: "12/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load data and libraries
+
+```{r results='hide', message=FALSE, warning=FALSE}
+library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
+library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
+library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
+
+# Reused paths
+projdir = "/home/luisas/Desktop/cluster/proj/data/"
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+assemblies <- "/home/luisas/Desktop/cluster/assemblies"
+
+# Import Utils 
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
+
+# Human training set
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
+lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
+table(lncRNAs_ref_human_gene$gene_type == "lincRNA")
+
+# The lncRNAs and mRNAs in the reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
+
+# Candidates lncRNAs  & Prediction
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04_stringtie/stringtie_merged_reference_guided.gtf"))
+```
+
+
+# Novel Ones
+```{r results='hide', message=FALSE, warning=FALSE}
+# Obtain novels from gff compare 
+# remove genes, whose transcript are predicted as both lncrnas and mrnas
+#remove_unconcordant_prediction(lncRNAs_out, mRNAs_out)
+#merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04b_gffCompare/merged.annotated.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/01_gffcompare/merged.annotated.gtf"))
+mask_uix <- merged_annotated$class_code == "u" |  merged_annotated$class_code == "x"|  merged_annotated$class_code == "i" ;  mask_uix[is.na(mask_uix)] <- FALSE
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+novel_id <- (unique(merged_annotated[mask_uix]$gene_id))
+novel <-merged_annotated[merged_annotated$gene_id %in% novel_ids]
+length(unique(novel$gene_id))
+```
+
+#Known ones 
+```{r results='hide', message=FALSE, warning=FALSE}
+# Obtain novels from gff compare 
+# remove genes, whose transcript are predicted as both lncrnas and mrnas
+#remove_unconcordant_prediction(lncRNAs_out, mRNAs_out)
+#merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04b_gffCompare/merged.annotated.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/benchmark_known/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+mask_eq <- merged_annotated$class_code == "="  ;  mask_eq[is.na(mask_eq)] <- FALSE
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+known_id <- (unique(merged_annotated[mask_eq]$gene_id))
+
+novel <-merged_annotated[merged_annotated$gene_id %in% novel_ids]
+length(unique(novel$gene_id))
+```
+
+#Stats 
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# Palette for all plots below
+palette <-brewer.pal(5,"Paired")
+
+# --------------------
+## EXON COUNT
+# --------------------
+
+ec1 <- barplot_exon_count(novel, "Novel", palette[1])
+ec2 <- barplot_exon_count(lncRNAs_ref, "Reference Macaque", palette[2])
+ec3 <- barplot_exon_count(lncRNAs_ref_human, "Reference Human", palette[3])+labs(y = "Frequency")
+ec4 <- barplot_exon_count(mrna_ref_human, "Reference Human- mrna", palette[4])
+ec5 <- barplot_exon_count(mRNAs_ref, "Reference Macaque- mrna", palette[5])+labs(x = "Exon count") 
+ggarrange( ec1,ec2,ec3,ec4,ec5,  ncol=1, nrow=5, top = "Transcripts Lengths", legend  = NULL) 
+# Exon count generally lower in lncrnas than mrnas (Ok. same as sources)
+
+# --------------------
+## Transcript lengths: still weird, very long ones ...
+# --------------------
+tl1 <-transcript_length_density(novel," NOVEL",palette[1]) 
+tl2 <-transcript_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+tl3 <-transcript_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+tl4 <-transcript_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+tl5 <-transcript_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Transcript length")
+ggarrange( tl1,tl2,tl3,tl4,tl5,  ncol=1, nrow=5, top = "Transcripts Lengths",  legend="right")
+
+# --------------------
+## Exon lengths - Densities 
+# --------------------
+p1 <-exon_length_density(novel," NOVEL",palette[1]) 
+p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
+ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
+
+
+# --------------------
+## Exon lengths - Boxplot
+# --------------------
+df <- data.frame()
+df <- rbind(df,data.frame(calc_exon_length(novel, "Novel LncRNAs")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
+df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Known mRNAs: Human")))
+df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Known mRNAs: Macaque")))
+
+p1 <- ggplot(df, aes(x = factor(type, level = c('Novel LncRNAs', 'Known lncRNAs: Macaque ', 'Known lncRNAs: Human', "Known mRNAs: Human", "Known mRNAs: Macaque")),  y = range )) +
+        labs( x = "", y = "" , title = "Exon length")+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
+        geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,1000)+
+        theme(legend.title=element_blank())+
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+        theme(plot.title = element_text(hjust = 0.5))
+p1
+```
+
+
+!!! Expression 
+```{r}
+directory_zyagen = file.path(datadir,"02_RNA-Seq_rheMac10/06_quantification_stringtie")
+count_matrix<- iterate_files(directory_zyagen, 'gene_count_matrix.csv')
+
+# Load gene(/transcript) count matrix and labels
+countData <- as.matrix(read.csv(count_matrix[2], row.names="gene_id"))
+colData <- get_colData(countData)
+all(rownames(colData) %in% colnames(countData))
+countData <- countData[, rownames(colData)]
+all(rownames(colData) == colnames(countData))
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
+dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
+
+
+
+
+assays(dds)$logCPM <- cpm(dge, log = TRUE,prior.count = 0.25)
+
+  
+df <- assays(dds)$logCPM
+mean_expression <- data.frame(id=rownames(df), Means=rowMeans(df[,-1]))
+mean_expression['type'] <- "0"
+
+add_type <- function(mean_expression, ids, name){
+  mask <- mean_expression$id %in% ids
+  mean_expression[mask,]$type <- name
+  return(mean_expression)
+}
+mean_expression <- add_type(mean_expression, novel$gene_id, "novel")
+mean_expression <- add_type(mean_expression, lncRNAs_ref$gene_id, "lncrna")
+mean_expression <- add_type(mean_expression, mRNAs_ref$gene_id, "mrna")
+
+table(mean_expression$type == "macaque lncrna")
+table(mean_expression$type == "macaque mrna")
+
+ggplot(mean_expression, aes(x=type, y=Means, fill = type)) + 
+    geom_boxplot(color="darkgrey",  alpha=0.7)+
+    scale_fill_brewer(palette="Dark2")+
+    labs(y = "", x = "", title = "Expression" )+
+    theme(legend.title=element_blank())+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
+
+```
+
+
+
+
+```{r}
+library(reshape2)
+library(plotly)
+
+ref <- lncRNAs_ref
+gr <- novel_lncrnas_ranges
+gr1 <- lncRNAs_ref_human
+
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+collapsed$type <- "novel"
+  
+df_human <- data.frame("gene_id" = gr1$gene_id,"transcript_id" = gr1$transcript_id, "range_width" = width(ranges(gr1)))
+collapsed_human <- df_human%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+collapsed_human$type <- "humanref"
+  
+df_ref <- data.frame("gene_id" = ref$gene_id,"transcript_id" = ref$transcript_id, "range_width" = width(ranges(ref)))
+collapsed_ref <-df_ref%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+collapsed_ref$type <- "refmacaque"
+  
+all <- rbind(data.frame(collapsed),data.frame(collapsed_ref),data.frame(collapsed_human))
+all  
+  
+p <- ggplot(all, aes(x=range, col= type))  + 
+    geom_histogram(position="identity",alpha=0.5, binwidth = 50) 
+
+# Divide by day, going horizontally and wrapping with 2 columns
+p <- p + facet_wrap( ~ type, ncol=1)
+
+p <- ggplotly(p)
+
+p
+
+```
+

@@ -12,56 +12,34 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load data and libraries
 
 ```{r results='hide', message=FALSE, warning=FALSE}
-library(rtracklayer)
-library(VennDiagram)
-library(stringr)
-library(ggplot2)
-library(grid)
-library(gridExtra)
-library(UpSetR)
-library(ComplexHeatmap)
-library(GenomicRanges)
-library(dplyr)
-library(zeallot)
-library(DESeq2)
-library(edgeR)
-library("ggplotify")
-library("grid")
-library(tidyverse)
-library(tximport)
-library(tximportData)
-library(plyr)
-library(Gviz)
+library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
+library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
+library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
 
+# Reused paths
 projdir = "/home/luisas/Desktop/cluster/proj/data/"
 datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
 assemblies <- "/home/luisas/Desktop/cluster/assemblies"
 
+# Import Utils 
 scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
-source(file.path(scripts_dir,"de_utils.R"))
-
-hisat <- file.path(datadir, "02_RNA-Seq_old/03_hisat")
-dir_hisat_zyagen <- file.path(hisat, "Zyagen")
-#dir_abundances_zyagen <- file.path(dir,"02_RNA-Seq_old/06_abundances/Zyagen")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
 
 # Human training set
-lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
-
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
 lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
 table(lncRNAs_ref_human_gene$gene_type == "lincRNA")
 
 # The lncRNAs and mRNAs in the reference
-lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_lncrna.gtf"))
-mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac8/gene_annotations/rheMac8_EBOV-Kikwit_mrnas.gtf"))
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
 
-
-# Candidates lncRNAs 
-candidates_lncRNA <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/candidate_lncRNA.gtf"))
-
-# Prediction 
-lncRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-mRNAs_out <- import(file.path(projdir, "02_RNA-Seq/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
-stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_old/04_stringtie/Zyagen/Zyagen_stringtie_merged_reference_guided.gtf"))
+# Candidates lncRNAs  & Prediction
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04_stringtie/stringtie_merged_reference_guided.gtf"))
 ```
 
 
@@ -81,8 +59,8 @@ Novels - is it ok with the labels I am using?
 We first Check if we have multiple isoforms per gene, we do we want to collapse them. We do.
 ```{r multiple_isoforms_check, results='hide', message=FALSE, warning=FALSE}
 df <- data.frame("gene" =  lncRNAs_out$gene_id, "transcript" = lncRNAs_out$transcript_id, stringsAsFactors = FALSE)
-#df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-#df[df$gene == "ENSMMUG00000037508",]
+df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+df[df$gene == "ENSMMUG00000037508",]
 # same for reference 
 df <- data.frame("gene" =  lncRNAs_ref$gene_id, "transcript" = lncRNAs_ref$transcript_id)
 #df[!duplicated(df$transcript),] %>% dplyr::group_by(gene) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
@@ -212,6 +190,12 @@ p1
 prop_correctly = (length(correctly_identified)/(length(correctly_identified) + length(missed)))*100
 print(paste0("Proportion correclty identified: ", prop_correctly))
 # -----------------
+
+# The missed ones
+intersect_missed_mrnaout
+
+table(strand(lncRNAs_ref[lncRNAs_ref$gene_id %in% intersect_missed_mrnaout]))
+
 ```
 
 ## INVESTIGATE THE NOVEL ONES
@@ -313,6 +297,7 @@ histo_length_exon <- function(gr,title,color){
 }
 
 
+
 plot_all_all <- function(ref, gr, gr1, colors){
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
   collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
@@ -412,6 +397,29 @@ g1 <- as.grob(p1); g2 <- as.grob(p2) ; g3 <- as.grob(p3) ; g4 <- as.grob(p4)
 grid.arrange( grobs = list(g1,g2,g3,g4),layout_matrix = rbind(c(1,2,4),c(3,3,3)), top = "Transcripts Lengths")
 
 
+
+histo_length_density <- function(gr,title,color){
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+  p1 <- ggplot(collapsed, aes(x=range)) +
+        geom_density(alpha=0.5, fill = color, color = "Darkgrey")+
+        labs(title=title) + ylab("Density") + xlab("Transcript length")+
+        theme(plot.title = element_text(hjust = 0.5))+
+        xlim(0,10000)+
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+theme(legend.position = "right") +
+  scale_fill_manual(labels = c("1977", "1978","1979"), breaks = c("X1977","X1978","X1979"), values = c("red","green","blue")) +
+  scale_linetype_manual(values = c("X1977" = 1, "X1978" = 1, "X1979" = 2)) +
+  scale_shape_manual(values = c("X1977" = 16, "X1978" = 17, "X1979" = 18))
+  return(p1)
+}
+
+library(ggpubr)
+
+p1 <-histo_length_density(novel_lncrnas_ranges," NOVEL",colors[2]) 
+p2 <-histo_length_density(lncrnas_ref_collapsed," REF MACAQUE",colors[3])
+p4 <-histo_length_density(lncrnas_ref_collapsed_human,"REF HUMAN","red")
+ggarrange( p1,p2,p4,  ncol=1, nrow=3, top = "Transcripts Lengths",  legend="top")
+p1 + scale_fill_discrete(breaks=c("trt1","ctrl","trt2"))
 # --------------------------------------------------
 ## CONTROL HOW I AM GETTING THE LENGHTS 
 df <- data.frame("gene" =  lncrnas_ref_collapsed$gene_id, "transcript" = lncrnas_ref_collapsed$transcript_id, stringsAsFactors = FALSE)
