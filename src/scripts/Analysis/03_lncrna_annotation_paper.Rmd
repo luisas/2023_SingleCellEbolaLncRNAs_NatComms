@@ -29,7 +29,6 @@ source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrn
 lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
 lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
-table(lncRNAs_ref_human_gene$gene_type == "lincRNA")
 
 # The lncRNAs and mRNAs in the reference
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
@@ -51,10 +50,13 @@ stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04_stringtie/str
 #merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04b_gffCompare/merged.annotated.gtf"))
 merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/01_gffcompare/merged.annotated.gtf"))
 mask_uix <- merged_annotated$class_code == "u" |  merged_annotated$class_code == "x"|  merged_annotated$class_code == "i" ;  mask_uix[is.na(mask_uix)] <- FALSE
+mask_u <- merged_annotated$class_code == "u";  mask_u[is.na(mask_u)] <- FALSE
+table(merged_annotated[mask_uix]$class_code)
 # comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
-novel_id <- (unique(merged_annotated[mask_uix]$gene_id))
-novel <-merged_annotated[merged_annotated$gene_id %in% novel_ids]
+novel <- merged_annotated[mask_uix]
+table(novel$class_code)
 length(unique(novel$gene_id))
+novel
 ```
 
 #Known ones 
@@ -66,10 +68,36 @@ length(unique(novel$gene_id))
 merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/benchmark_known/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
 mask_eq <- merged_annotated$class_code == "="  ;  mask_eq[is.na(mask_eq)] <- FALSE
 # comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
-known_id <- (unique(merged_annotated[mask_eq]$gene_id))
+known_identified <- (unique(merged_annotated[mask_eq]$gene_id))
+length(known_identified)
+missed <- setdiff(unique(lncRNAs_ref$gene_id), known_identified)
 
-novel <-merged_annotated[merged_annotated$gene_id %in% novel_ids]
-length(unique(novel$gene_id))
+# -----------------
+# PLOT 
+# -----------------
+df <- data.frame()
+df <- rbind(df, data.frame(dataset = "all NOVEL", number = length(unique(novel$gene_id)), type = "Novel"))
+df <- rbind(df, data.frame(dataset = "Correctly identified", number = length(known_identified), type = "Known correct"))
+df <- rbind(df, data.frame(dataset = "Uncorrectly classified", number = length(missed), type = "Known missed"))
+
+
+p1 <- ggplot(data=df, aes(x=type, y=number, fill=dataset)) +
+  geom_bar(stat="identity", position=position_dodge(), width=0.85)+
+  geom_text(aes(label=number),color="black",
+            position = position_dodge(0.9), size=3.5)+
+  scale_fill_brewer(palette="Paired")+
+  labs(title="LncRNAs prediction: #genes ") +
+  ylab("Count") +
+  xlab("") +
+  theme(legend.title=element_blank())+
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+        theme(plot.title = element_text(hjust = 0.5))
+p1 
+
+# calculate the proportion of the correctly idententified ones
+prop_correctly = (length(correctly_identified)/(length(correctly_identified) + length(missed)))*100
+print(paste0("Proportion correclty identified: ", prop_correctly))
+
 ```
 
 #Stats 
@@ -132,44 +160,81 @@ p1 <- ggplot(df, aes(x = factor(type, level = c('Novel LncRNAs', 'Known lncRNAs:
 p1
 ```
 
+#Expression HTSEQ 
 
-!!! Expression 
 ```{r}
-directory_zyagen = file.path(datadir,"02_RNA-Seq_rheMac10/06_quantification_stringtie")
-count_matrix<- iterate_files(directory_zyagen, 'gene_count_matrix.csv')
+# --------------------
+## Create dds and dge - MERGED 
+# --------------------
+dir_hisat=  file.path(datadir, "02_RNA-Seq_rheMac10/03_hisat")
+dir_counts = file.path(datadir, "02_RNA-Seq_rheMac10/06_counts")
+htseq_files <- iterate_files(dir_counts, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
 
-# Load gene(/transcript) count matrix and labels
-countData <- as.matrix(read.csv(count_matrix[2], row.names="gene_id"))
-colData <- get_colData(countData)
-all(rownames(colData) %in% colnames(countData))
-countData <- countData[, rownames(colData)]
-all(rownames(colData) == colnames(countData))
-dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~tissue)
-dge <- DGEList(counts = assays(dds)$counts, group = dds$tissue, genes = rownames(dds))
+dds <- create_dds(htseq_files,dir_counts)
+dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
 
 
 
 
-assays(dds)$logCPM <- cpm(dge, log = TRUE,prior.count = 0.25)
+# calc logcpm 
+assays(dds)$logCPM <- cpm(dge, log = TRUE,prior.count = 0.5)
 
-  
-df <- assays(dds)$logCPM
-mean_expression <- data.frame(id=rownames(df), Means=rowMeans(df[,-1]))
+# create dataframe w/ logcpms
+expression_logcpm <-  as.data.frame(assays(dds)$logCPM)
+mask_expressed_in_3 <- rowSums(expression_logcpm > 1) > 2
+#select the ones expressed in at least 3 samples
+expression_logcpm_filtered <- expression_logcpm[mask_expressed_in_3,]
+
+table(novel$gene_id %in% rownames(expression_logcpm_filtered))
+novel_expressed <- novel[novel$gene_id %in% rownames(expression_logcpm_filtered)]
+length(unique(novel_2$gene_id))
+
+# --------------------
+## Reference
+# --------------------
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_rheMac10/06_counts_ref")
+htseq_files_ref <- iterate_files(dir_counts_ref, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
+
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+
+# calc logcpm 
+assays(dds_ref)$logCPM <- cpm(dge_ref, log = TRUE,prior.count = 0.5)
+
+counts(dds_ref)
+assays(dds_ref)$logCPM
+# create dataframe w/ logcpms
+expression_logcpm_ref <-  as.data.frame(assays(dds_ref)$logCPM)
+```
+
+
+
+```{r}
+
+unique(stringtie_gtf[(str_detect(stringtie_gtf$gene_id,"MSTRG", negate = TRUE))]$gene_id)
+
+
+# calc mean expression across samples
+mean_expression <- data.frame(id=rownames(expression_logcpm ), Means=rowMeans(expression_logcpm [,-1]))
+mean_expression_ref <- data.frame(id=rownames(expression_logcpm_ref ), Means=rowMeans(expression_logcpm_ref[,-1]))
+# add column to mean expression datatframe
 mean_expression['type'] <- "0"
-
-add_type <- function(mean_expression, ids, name){
-  mask <- mean_expression$id %in% ids
-  mean_expression[mask,]$type <- name
-  return(mean_expression)
-}
 mean_expression <- add_type(mean_expression, novel$gene_id, "novel")
-mean_expression <- add_type(mean_expression, lncRNAs_ref$gene_id, "lncrna")
-mean_expression <- add_type(mean_expression, mRNAs_ref$gene_id, "mrna")
+mean_expression <- mean_expression[!mean_expression$type == "0",]
+table(mean_expression$type)
+mean_expression_ref['type'] <- "0"
+mean_expression_ref <- add_type(mean_expression_ref, lncRNAs_ref$gene_id, "lncrna")
+mean_expression_ref <- add_type(mean_expression_ref, mRNAs_ref$gene_id, "mrna")
+mean_expression_ref  <- mean_expression_ref[!mean_expression_ref$type == "0",]
+table(mean_expression_ref$type)
 
-table(mean_expression$type == "macaque lncrna")
-table(mean_expression$type == "macaque mrna")
+me <- rbind(mean_expression, mean_expression_ref)
 
-ggplot(mean_expression, aes(x=type, y=Means, fill = type)) + 
+mean_expression <- mean_expression_ref
+length(unique(mean_expression$id))
+length(unique(mean_expression[mean_expression$id %in% mRNAs_ref$gene_id,]$id))
+
+ggplot(me, aes(x=factor(type,level = c("lncrna", "novel", "mrna")) , y=Means, fill = type )) + 
     geom_boxplot(color="darkgrey",  alpha=0.7)+
     scale_fill_brewer(palette="Dark2")+
     labs(y = "", x = "", title = "Expression" )+
@@ -177,43 +242,12 @@ ggplot(mean_expression, aes(x=type, y=Means, fill = type)) +
     theme(plot.title = element_text(hjust = 0.5))+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
 
-```
-
-
-
-
-```{r}
-library(reshape2)
-library(plotly)
-
-ref <- lncRNAs_ref
-gr <- novel_lncrnas_ranges
-gr1 <- lncRNAs_ref_human
-
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-collapsed <-df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed$type <- "novel"
-  
-df_human <- data.frame("gene_id" = gr1$gene_id,"transcript_id" = gr1$transcript_id, "range_width" = width(ranges(gr1)))
-collapsed_human <- df_human%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed_human$type <- "humanref"
-  
-df_ref <- data.frame("gene_id" = ref$gene_id,"transcript_id" = ref$transcript_id, "range_width" = width(ranges(ref)))
-collapsed_ref <-df_ref%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed_ref$type <- "refmacaque"
-  
-all <- rbind(data.frame(collapsed),data.frame(collapsed_ref),data.frame(collapsed_human))
-all  
-  
-p <- ggplot(all, aes(x=range, col= type))  + 
-    geom_histogram(position="identity",alpha=0.5, binwidth = 50) 
-
-# Divide by day, going horizontally and wrapping with 2 columns
-p <- p + facet_wrap( ~ type, ncol=1)
-
-p <- ggplotly(p)
-
-p
 
 ```
+
+
+
+
+
+
 

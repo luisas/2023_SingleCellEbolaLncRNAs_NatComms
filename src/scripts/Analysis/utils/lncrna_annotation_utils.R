@@ -35,6 +35,11 @@ get_nr_exons <- function(gr){
   number_exons <- df %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))
   return(number_exons)
 }
+add_type <- function(mean_expression, ids, name){
+  mask <- mean_expression$id %in% ids
+  mean_expression[mask,]$type <- name
+  return(mean_expression)
+}
 
 
 barplot_exon_count <- function(gr, type, col){
