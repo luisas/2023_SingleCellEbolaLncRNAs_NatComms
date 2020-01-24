@@ -16,14 +16,30 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-library(sva)
+library(sva); library(edgeR)
 library("genefilter")
 library("gplots")
 
-dir_hisat_all =  file.path(datadir, "02_RNA-Seq_rheMac10/03_hisat/")
+dir_hisat_all =  file.path(datadir, "02_RNA-Seq_rheMac10/06_counts_all/")
 htseq_files <- iterate_files(dir_hisat_all, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
 
 dds <- create_dds(htseq_files,dir_hisat_all)
+
+sampleFiles <- htseq_files
+directory <- 
+  samples_info <- sapply(sampleFiles,extract_info_sample_from_filename)
+  # Create ddsHTSeq Object 
+  sampleTable <- data.frame(sampleName = sampleFiles,
+                            fileName = sapply(sampleFiles,get_filename_and_dirs),
+                            condition = samples_info[1,],
+                            tissue = samples_info[2,], 
+                            dpo = samples_info[3,], 
+                            id = samples_info[4,],
+                            complete_id = samples_info[5,]
+  )
+  dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                    directory = directory,
+                                    design= ~ 1)
 
 
 dds <- dds[rownames(dds) %in% lncRNAs_ref$gene_id,]
@@ -32,27 +48,33 @@ dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dd
 
 dge <- calcNormFactors(dge)
 assays(dds)$counts
-assays(dds)$logCPM <- cpm(dge, log = TRUE)
+assays(dds)$logCPM <- edgeR::cpm(dge, log = TRUE,prior.count = 0.5)
 mask <- rowMeans(assays(dds)$logCPM) > 10
 dds <- dds[mask, ]
 dge <- dge[mask, ]
 
 
+
 # Library sizes
 # --------------------------------------------------------------------------------------
 sorted_dge <- dge[,order(dge$samples$lib.size)]
-colors <- brewer.pal(n = length(levels(sorted_dge$samples$tissue)), name = 'Paired')
+colors <- brewer.pal(n = length(unique(sorted_dge$samples$tissue)), name = 'Paired')
 col.cell <- colors[sorted_dge$samples$tissue]
 barplot((sorted_dge$samples$lib.size)/1e+06, ylab = "Library sizes (Millions)", names.arg=(sorted_dge$samples$complete_id), las = 2, cex.names = 0.4, col = col.cell,legend = unique(sorted_dge$samples$tissue), args.legend = list(x = "topleft"))
 # --------------------------------------------------------------------------------------------
 
+# read metadata 
+projdir = "/home/luisas/Desktop/cluster/data/"
+metadata <- read.csv(file.path(projdir, "00_Metadata/batch_metadata.csv"), header = FALSE)
+metadata
 
 # Gender 
 # Age
 # Individual 
 
+
 # Mixed model!!! sample id!!!
-mod <- model.matrix(~0+factor(dpo) + factor(tissue), colData(dds))
+mod <- model.matrix(~0+factor(dpo) + factor(tissue) + factor(age) + factor(gender), colData(dds))
 
 
 v <- voom(dge, mod, plot=TRUE)

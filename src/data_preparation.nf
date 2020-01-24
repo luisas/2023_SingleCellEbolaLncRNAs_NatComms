@@ -209,6 +209,8 @@ process create_star_indexes{
   """
 }
 
+
+//need to add the other part 
 process convert_gtf_to_bed12{
   storeDir "${params.output_dir}/gene_annotations"
 

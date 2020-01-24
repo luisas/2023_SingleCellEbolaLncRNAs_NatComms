@@ -20,6 +20,16 @@ remove_unconcordant_prediction <- function(lncRNAs_out,mRNAs_out){
 }
 
 
+get_only_max_transcript_old <- function(gr){
+  # given a genomic range gets only the maximum transcript of a gene
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
+  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
+  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
+  return(gr)
+}
+
 get_only_max_transcript <- function(gr){
   # given a genomic range gets only the maximum transcript of a gene
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
@@ -61,6 +71,7 @@ barplot_exon_count <- function(gr, type, col){
     geom_bar(stat = "identity", width = 0.8) +
     theme(legend.title=element_blank())+
     labs(y = "", x = "")+
+    theme(legend.title=element_blank())+ theme(legend.position = "none")+
     scale_x_continuous( labels = as.character(h_plotdata$x), breaks = (h_plotdata$x)) + 
     theme(plot.title = element_text(hjust = 0.5))+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
@@ -72,8 +83,8 @@ barplot_exon_count <- function(gr, type, col){
 transcript_length_density <- function(gr,type,color){
   # Get only exons of the reference, retain only the max transcript in term of length
   #gr <- gr[gr$type =="exon",]
-  #gr <- get_only_max_transcript(gr)
-  
+  gr <- get_only_max_transcript(gr)
+  gr <- gr[gr$type =="exon",]
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
   collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
   p1 <- ggplot(collapsed, aes(x=range)) +
@@ -104,6 +115,16 @@ calc_exon_length <- function(gr, type){
   gr <- gr[gr$type =="exon",]
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)))
   collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
+  collapsed["type"] <- type
+  return(collapsed)
+}
+
+
+calc_transcript_length <- function(gr, type){
+  gr <- gr[gr$type =="exon",]
+  gr <- get_only_max_transcript(gr)
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
   collapsed["type"] <- type
   return(collapsed)
 }

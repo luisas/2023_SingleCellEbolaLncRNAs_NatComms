@@ -15,7 +15,7 @@ options(stringsAsFactors = F)
 #inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/02_fastqc/Zyagen/"
 #outpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/plots/02_fastqc/Zyagen"
 
-plot_heatmap_fast_zyagen <- function(inpath,outpath){
+plot_heatmap_fast_zyagen <- function(inpath,outpath, separator = "."){
   # FastqQC results column names
   hm_colnames<-c("Basic Statistics",
                  "Per base sequence quality",
@@ -34,12 +34,12 @@ plot_heatmap_fast_zyagen <- function(inpath,outpath){
   
   for(file in unique(gsub("*.\\d_fastqc/summary.txt", "", files))){
     info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
-    fastq_summary_1<-paste0(file,".1_fastqc/summary.txt")
+    fastq_summary_1<-paste0(file,separator,"1_fastqc/summary.txt")
     qc_res_1<-read.delim(fastq_summary_1,sep="\t",header = F)
     qc_res_1$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_1$V1))))
     sample_data_r1<-c(info[2],info[4],info[5],"R1",qc_res_1$number)
     
-    fastq_summary_2<-paste0(file,".2_fastqc/summary.txt")
+    fastq_summary_2<-paste0(file,separator,"2_fastqc/summary.txt")
     qc_res_2<-read.delim(fastq_summary_2,sep="\t",header = F)
     qc_res_2$number<-as.numeric(gsub("FAIL",0,gsub("WARN",1,gsub("PASS",2,qc_res_2$V1))))
     sample_data_r2<-c(info[2],info[4],info[5],"R2",qc_res_2$number)
@@ -103,6 +103,8 @@ plot_heatmap_fast_zyagen <- function(inpath,outpath){
                                                    show_annotation_name = T),
                 cluster_rows=T,cluster_columns = T,#d696bb
                 show_column_names = F)
+  
+
   png(paste0(outpath,"/fastqc_res.png"),width = 900,height = 400)
   draw(ht)
   dev.off()

@@ -119,11 +119,19 @@ get_info_sample <- function(file, pattern){
   res_file <- paste0(res_path,"/",paste(tissue,sample,lane,pattern,sep="."))
   return(c(tissue,sample,lane, sample_name, res_file))
 }
-get_info_sample_counts <- function(file){
-  info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
-  tissue <- info[2]
-  sample <- strsplit(info[4],".", fixed = T)[[1]][1]
-  sample_name=paste(tissue,sample,sep=".")
+get_info_sample_counts <- function(file, lanes = TRUE){
+  if (lanes == TRUE){
+    info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
+    tissue <- info[2]
+    sample <- strsplit(info[4],".", fixed = T)[[1]][1]
+    sample_name=paste(tissue,sample,sep=".")
+  }else{
+    info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
+    tissue <- info[3]
+    sample <- strsplit(info[5],".", fixed = T)[[1]][1]
+    sample_name=paste(tissue,sample,sep=".")
+  }
+
   return(c(tissue,sample, sample_name))
 }
 
@@ -141,7 +149,7 @@ get_info_sample_counts <- function(file){
 
 #inpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/03_hisat/Zyagen/"
 #outpath="/Users/luisasantus/Desktop/mn_cluster/mount_dirs/projects/data/02_RNA-Seq/plots/03_hisat/Zyagen"
-barplot_mapped_reads<- function(inpath,outpath){
+barplot_mapped_reads<- function(inpath,outpath, lanes = TRUE){
   mapping_stats<-list()
   files <- list.files(path=inpath, pattern="summary.txt", full.names=TRUE, recursive=TRUE)
   
@@ -151,8 +159,15 @@ barplot_mapped_reads<- function(inpath,outpath){
     info <- strsplit(tail(strsplit(file,"/", fixed = T)[[1]],1),"_", fixed = T)[[1]]
     tissue <- info[2]
     sample <- info[4]
-    lane <- strsplit(info[5],".", fixed = T)[[1]][1]
-    sample_name=paste(tissue,sample,lane,sep=".")
+    if(lanes == TRUE ){
+      lane <- strsplit(info[5],".", fixed = T)[[1]][1]
+      sample_name=paste(tissue,sample,lane,sep=".")
+    }
+    else{
+      tissue <- info[3]
+      sample <- info[5]
+      sample_name=paste(tissue,sample,sep=".")
+    }
     
     res_path <- paste(inpath,tissue,sample,sep="/")
     #res_file <- paste0(res_path,"/",paste(tissue,sample,lane,"hisat2_summary.txt",sep="."))
@@ -174,10 +189,18 @@ barplot_mapped_reads<- function(inpath,outpath){
   # Prepare data structure for plotting
   mapping_stats_df<-do.call(cbind.data.frame,mapping_stats)
   rownames(mapping_stats_df)<-  mapping_stats[[sample_name]]<-report <- names(summary)
+  print(mapping_stats_df)
   # compute number of UNMAPPED reads
-  mapping_stats_df["Unmapped",]<-as.numeric(mapping_stats_df[1,])-apply(mapping_stats_df[c(2:6),],2,sum) 
+  if( lanes == TRUE){
+    mapping_stats_df["Unmapped",]<-as.numeric(mapping_stats_df[1,])-apply(mapping_stats_df[c(2:6),],2,sum) 
+  }
+  else{
+    #mapping_stats_df["Unmapped",]<-as.numeric(mapping_stats_df[1,]) - sum(mapping_stats_df[c(2:6),])
+    print(mapping_stats_df)
+  }
   
-  # -------- plot 
+  
+  # -------- Plot 
   create_barplots_reads_mapping <- function(mapping_stats_df) {
     png(paste0(outpath,"/hisat2_mapping_report.png"),width = 1200,height = 500)
     options(scipen=999)
@@ -186,10 +209,12 @@ barplot_mapped_reads<- function(inpath,outpath){
     barplot(as.matrix(mapping_stats_df[-1,]),yaxt="n", col=brewer.pal(6,"Paired"),las=2,ylim = c(0,32000000), main="Number PE reads")
     axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)
     # Second barplot plotting the proportion
-    barplot(as.matrix(apply(mapping_stats_df[-1,],2,function(x) x/sum(x) )),las=2,col=brewer.pal(6,"Paired"),ylim = c(0,1.2),yaxt='n', main="Proportion PE Reads")
-    axis(2,at=seq(0,1,0.2))
+    if(lanes == TRUE){
+      barplot(as.matrix(apply(mapping_stats_df[-1,],2,function(x) x/sum(x) )),las=2,col=brewer.pal(6,"Paired"),ylim = c(0,1.2),yaxt='n', main="Proportion PE Reads")
+      axis(2,at=seq(0,1,0.2))
+    }
+  
     # Plot
-    ?legend
     legend(-35,-0.6,rownames(mapping_stats_df)[-1],bty="n",pch=15,col=brewer.pal(6,"Paired"),ncol=2,cex=1.1)
     dev.off() 
   }
@@ -457,10 +482,10 @@ barplot_counts_stats_2 <- function(inpath_counts,inpath_counts_2, outpath){
 
 
 # Plot for read distribution 
-plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
+plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000, lanes = TRUE){
   distr_stat <- list()
   for(distr_file in distr_files){
-    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file)
+    c(tissue,sample, sample_name)  %<-% get_info_sample_counts(distr_file, lanes = lanes)
     summary <- parse_distr(distr_file)
     distr_stat[[sample_name]]<- summary 
   }
@@ -471,6 +496,7 @@ plot_read_distribution <- function (distr_files,outpath,name,yli = 80000000){
   options(scipen=999)
   par(mfrow=c(1,2))
   par(oma=c(8,2,0,0),xpd=NA)
+  print(distr_df)
   barplot(as.matrix(distr_df),las=2,col=brewer.pal(10,"Paired"),yaxt='n',ylim=c(0,yli))
   #barplot(as.matrix(counts_df[-c(1,6),]),las=2,col=brewer.pal(5,"Dark2"),yaxt='n',ylim=c(0,70000000))
   axis(2,at=axTicks(2),labels = prettyNum(axTicks(2),big.mark = ","),las=2)

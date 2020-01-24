@@ -17,6 +17,7 @@
 
 // BaseFolders
 params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
+params.dirDataAnnot = "/gpfs/projects/bsc83/Data"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
 params.dataset_bam_dir_zyagen = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
@@ -45,8 +46,10 @@ params.ss = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_
 // Gene annotation
 params.bed = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed"
 params.gtf = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.gtf"
+params.gtf_ref_merged =  "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}_and_novel.gtf"
 //params.bed_rheMac = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/rheMac8/Ensembl/rheMac8.Ensembl.bed"
-params.bed_rheMac = "${params.dirData}/gene_annotation/ensembl_release98/rheMac10/Macaca_mulatta.Mmul_10.98.bed"
+
+params.bed_rheMac = "${params.preliminary_files_dir}/gene_annotations/${params.assembly_name}.bed12"
 
 
 // If set to true the quality assessment will be computed with fastqc
@@ -125,7 +128,7 @@ Channel.fromPath("${params.bed_rheMac}")
                                  .into{ annotation_bed_rhemac }
 Channel.fromPath("${params.dict}").set{dictionary_channel}
 Channel.fromPath("${params.gtf}").into{ gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5; gtfChannel6; gtfChannel7}
-
+Channel.fromPath("${params.gtf_ref_merged}").into{ gtfANDnovel }
 
 /*  ----------------------------------------------------------------------
 *   ----------------------------------------------------------------------
@@ -438,7 +441,7 @@ process dedupUmi{
   output:
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file("${complete_id}.UMI.f3.q60.umi_dedup.bam"),
-      file("${complete_id}.UMI.f3.q60.umi_dedup.bam.bai") into (dedup_umi_bams, dedup_umi_bams_for_count, dedup_umi_bams_for_distr, dedup_umi_bams_for_count_2, dedup_umis_3, dedup_umis_4)
+      file("${complete_id}.UMI.f3.q60.umi_dedup.bam.bai") into (dedup_umi_bams, dedup_umi_bams_for_count, dedup_umi_bams_for_distr, dedup_umi_bams_for_count_2, dedup_umis_3, dedup_umis_4, dedup_umis_5, dedup_umis_6)
   //file "umi_logs" into umi_logs
 
   script:
@@ -494,6 +497,31 @@ process getCountsUMIs{
   script:
   file_prefix = get_file_name_no_extension(bam.name)
   template 'getcounts'
+}
+
+process runRSeQC{
+
+  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rseqc"
+
+  input:
+  set  dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(bam),
+      file(bai) from dedup_umis_6
+  file(bed) from  annotation_bed_rhemac.collect()
+
+  output:
+  file "*" into read_distribution_channel
+
+  script:
+  """
+  read_distribution.py -i ${bam} -r ${bed} > ${complete_id}.UMI.f3.q60.read_distribution.txt
+  infer_experiment.py -i ${bam} -r ${bed} > ${complete_id}.infer_experiment.txt
+  junction_annotation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed}
+  bam_stat.py -i ${bam} > ${complete_id}.bam_stat.txt
+  junction_saturation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed} > ${complete_id}.junction_annotation_log.txt
+  inner_distance.py -i ${bam} -o ${complete_id}.rseqc -r ${bed}
+  read_duplication.py -i ${bam} -o ${complete_id}.read_duplication
+  """
 }
 
 /*
@@ -673,7 +701,7 @@ process gffCompare{
 
 process getHTseqCountMerged{
 
-  storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample"
+  storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   file gtf from merged_de_novo_assembly_4.collect()
@@ -697,7 +725,7 @@ process getHTseqCountMerged{
 
 process getHTseqCountRef{
 
-  storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample"
+  storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   file gtf from gtfChannel1.collect()
@@ -717,7 +745,28 @@ process getHTseqCountRef{
 }
 
 
+// I merge the novel with the reference
 
+process getHTseqCountALL{
+
+  storeDir "${params.output_dir}/06_counts_all/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+
+  input:
+  file gtf from gtfANDnovel.collect()
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(bam),
+      file(bai) from dedup_umis_5
+
+  output:
+  file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsALL_channel
+
+  script:
+  bam_prefix = get_file_name_no_extension(bam.name)
+  """
+  # Calc the counts for the umi_dedup
+  htseq-count -f bam -r pos -s yes -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+  """
+}
 
 
 
