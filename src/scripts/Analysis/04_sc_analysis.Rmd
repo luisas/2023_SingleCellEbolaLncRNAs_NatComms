@@ -18,35 +18,57 @@ library(SingleCellExperiment)
 library(purrr)
 library(stringr)
 library(mvoutlier)
+library(dropbead)
 
 source("utils/sc_utils.R")
 ```
 ## Single Cell Analysis
 
 
+I import the data and merge them into one single Seurat object to proceed with the analysis.
+
 ```{r cars}
 # Load the PBMC dataset
 library(Seurat)
 library(stringr)
-data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/03_scRNA-Seq/01_digital_expression/"
+data_dir <- "/home/luisas/Desktop/cluster/data1/01_Ebola-RNASeq/03_scRNA-Seq_test/01_digital_expression/"
+files <- iterate_files(data_dir, ".dge.txt.gz")
+file <- files[2]
 
-# --------------------------
-#  Create Seurats Object
-# --------------------------
-list <- lapply(iterate_files(data_dir, "dge.txt.gz"), function(x) as.matrix(read.table(x)))
-m <- as.matrix(read.table(iterate_files(data_dir, "dge.txt.gz")))
-mm2 <- matrix(m, ncol = ncol(file), dimnames = NULL)
-# Assign rownames and colnames and drop first row and column.
-rownames(mm2) <- mm2[,1]; colnames(mm2) <- mm2[1,]
-mm2 <- mm2[,-1]; mm2 <- mm2[-1,]
-# Creates dgCMatrix for creating seurats object
-counts_matrix <- as(mm2, "dgCMatrix")
-# Should show barcodes.tsv, genes.tsv, and matrix.mtx
-pbmc <- CreateSeuratObject(counts = counts_matrix, project = "scEbola")
+# ----------------------
+# Obtain Seurat Objects 
+# ----------------------
+get_Seurat_object <- function(file){
+  pbmc.data <- read.table(file = file, header = TRUE, row.names = 1)
+  pbmc <- CreateSeuratObject(pbmc.data, project = "10X_PBMC", min.cells = 3)
+  return(pbmc)
+}
+
+dim(pbmc)
+
+# all matrices files from single cell, still separated per lane
+list <- map(files[2:length(files)], get_Seurat_object)
+pbmc <- get_Seurat_object(files[1])
+list_names <- lapply(files, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
+
+# -------------
+#   Merge
+# -------------
+# Merge all seurats object in one 
+pbmc.big <- merge(pbmc, y = list[2:length(list)], add.cell.ids = list_names, project = "PBMCbig")
+# Check if all ids available
+unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
+table(pbmc.big$orig.ident)
+
 ```
 
 
-Obtain stats
+Doublet Detection  -- Missing !
+
+
+
+## Cell QC Plots 
+
 ```{r cars}
 # --------------------------
 #  Obtain stats
@@ -56,27 +78,28 @@ Obtain stats
 #pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
 
 dim(pbmc)
+
+
 vln <- VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, pt.size=0)
 vln
+
 plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 plot2
 
-ggsave(file.path(data_dir, "plots/ncountVSpercentmt.png"), plot1 ) 
-ggsave(file.path(data_dir, "plots/ncountVSfeature.png"), plot2 ) 
-ggsave(file.path(data_dir, "plots/combo.png"), combo ) 
-ggsave(file.path(data_dir, "plots/violin.png"), vln ) 
+## An object of class Seurat 
+## 13714 features across 2700 samples within 1 assay 
+## Active assay: RNA (13714 features)
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-
+```{r pressure, results='hide', message=FALSE, warning=FALSE}
+library(scater)
 pbmc_sc <- as.SingleCellExperiment(pbmc)
 pbmc_sc <- calculateQCMetrics(pbmc_sc)
 ```
-# plots
+
+
 ```{r}
 # Library size
 lib_size_hist <- plot_histogram(
@@ -105,7 +128,7 @@ ndectplot
 
 ```
 
-We can proceed with the filtering:
+# Filtering 
 
 ```{r}
 pbmc <- pbmc_sc

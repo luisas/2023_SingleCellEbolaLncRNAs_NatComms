@@ -20,11 +20,11 @@ params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirDataAnnot = "/gpfs/projects/bsc83/Data"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
-params.dataset_fastq_dir_ext = "${params.dirData}/00_RawData/extrenal_rhesus_RNA-Seq/SRP016501_rhesus/01_fastq/*/*/*/"
+params.dataset_fastq_dir_ext = "${params.dirData}/00_RawData/extrenal_rhesus_RNA-Seq/SRP016501-rhesus/01_fastq/*/*/*/"
 params.dataset_fastq_dir_ext_two = "${params.dirData}/00_RawData/extrenal_rhesus_RNA-Seq/nhprt-wholeblood-chineserhesus/01_fastq/*/*/*/"
 
 // Folder where the output directories of the pipeline will be placed
-params.output_dir = "${params.dirData}/01_Ebola-RNASeq/02_RNA-Seq_external/"
+params.output_dir = "${params.dirData}/01_Ebola-RNASeq/02_RNA-Seq_external_correctstrand/"
 //params.output_dir = "/gpfs/projects/bsc83/Projects/Ebola/test_data/04_test/"
 
 // ---------- PRELIMINARY FILES
@@ -78,7 +78,7 @@ fastq_one = Channel.fromFilePairs("${params.dataset_fastq_dir_ext}/*_{1,2}.fastq
                            it[1][0].toString().split('/').reverse()[2],
                            it[1][0].toString().split('/').reverse()[1],
                            "1",
-                           it[1][0].toString().split('/').reverse()[5] + "_" +it[1][0].toString().split('/').reverse()[3]+ "_" +it[1][0].toString().split('/').reverse()[2]+ "_" +it[1][0].toString().split('/').reverse()[1],
+                           it[1][0].toString().split('/').reverse()[5] + "_" +it[1][0].toString().split('/').reverse()[3]+ "_" +it[1][0].toString().split('/').reverse()[2]+ "_" +it[1][0].toString().split('/').reverse()[1]+ "_l1",
                            it[1] ) }
 
 
@@ -88,27 +88,29 @@ fastq_two = Channel.fromFilePairs("${params.dataset_fastq_dir_ext_two}/*_R{1,2}_
                            it[1][0].toString().split('/').reverse()[3],
                            it[1][0].toString().split('/').reverse()[2],
                            it[1][0].toString().split('/').reverse()[1],
-                           it.baseName.split('_')[4].split('00')[1],
-                           it[1][0].toString().split('/').reverse()[5] + "_" +it[1][0].toString().split('/').reverse()[3]+ "_" +it[1][0].toString().split('/').reverse()[2]+ "_" +it[1][0].toString().split('/').reverse()[1],
+                           it[1][0].baseName.split('_')[4].split('00')[1],
+                           it[1][0].toString().split('/').reverse()[5] + "_" +it[1][0].toString().split('/').reverse()[3]+ "_" +it[1][0].toString().split('/').reverse()[2]+ "_" +it[1][0].toString().split('/').reverse()[1]+ "_l"+it[1][0].baseName.split('_')[4].split('00')[1],
                            it[1] ) }
 
 
 fastqs = fastq_one.mix(fastq_two)
-fastqs.into{ dataset_fastq_ext; fastq_files_for_mapping}
+fastqs.into{ dataset_fastq_ext; fastq_files_for_mapping; printing }
+
+
 
 // ------------ CHANNELS Creation
 Channel.fromPath("${params.hisat2_indexes}*").into{ indexesForMapping; indexesForMapping2 }
 Channel.fromPath("${params.star_indexes}").set{ star_indexes}
 Channel.fromPath("${params.reference_assembly}").into{ reference_assembly_channel; reference_genome_ch;reference_genome_ch_2; reference_genome_ch_3}
 Channel.fromPath("${params.reference_assembly_fai}").set{reference_genome_fai_ch}
-Channel.fromPath("${params.ss}").into{ known_ss; }
+Channel.fromPath("${params.ss}").set{ known_ss; }
 Channel.fromPath("${params.bed}")
                                  .into{ annotation_bed; annotation_bed2 }
 Channel.fromPath("${params.bed_rheMac}")
-                                 .into{ annotation_bed_rhemac }
+                                 .set{ annotation_bed_rhemac }
 Channel.fromPath("${params.dict}").set{dictionary_channel}
 Channel.fromPath("${params.gtf}").into{ gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4; gtfChannel5; gtfChannel6; gtfChannel7}
-Channel.fromPath("${params.gtf_ref_merged}").into{ gtfANDnovel }
+Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
 
 /*  ----------------------------------------------------------------------
 *   ----------------------------------------------------------------------
@@ -181,7 +183,7 @@ process mapping_hisat{
                       --novel-splicesite-outfile ${complete_id}.novel_ss.txt \
                       --downstream-transcriptome-assembly \
                       --time --summary-file ${complete_id}.hisat2_summary.txt \
-                      --rna-strandness FR > ${complete_id}.sam
+                      --rna-strandness RF > ${complete_id}.sam
   """
 
 }
@@ -205,13 +207,11 @@ process sort_bam{
       file(sam) from mapped_sam
 
   output:
-  set dataset_name, tissue,dayPostInfection, sample, lane, complete_id,
-      file(summary),
-      file(sam), file("${complete_id}.bam")   into (sorted_and_index_bam, sorted_indexed_bams_for_stats, hisat2_bams)
+  set file("${complete_id}.bam")   into sorted_and_index_bam
 
   script:
   """
-  samtools sort ${sam} -T $TMPDIR/${complete_id}.tmp  -O bam -o ${complete_id}.bam
+  samtools sort ${sam} -O bam -o ${complete_id}.bam
   """
 }
 
@@ -233,6 +233,26 @@ sorted_and_index_bam.map { file ->
     .set{ groups_lanes }
 
 
+process merge_lanes{
+
+    tag "${complete_id}"
+    storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
+
+    input:
+    set dataset_name, tissue, dayPostInfection, sample, complete_id, file(samples) from groups_lanes
+
+    output:
+    set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.bam"), file("${complete_id}.UMI.bam.bai") into (merged_bylanes, raw_bams)
+
+    script:
+    """
+    samtools merge -f ${complete_id}.UMI.bam  ${samples}
+    # Merge mapped bam files with UMI info
+    samtools index  ${complete_id}.UMI.bam
+    """
+}
+
+
 /*
 *   STEP 6 filter bams
 *   Filter low-quality reads and retain properly-paired uniquely mapped reads
@@ -247,10 +267,10 @@ process filter_bams_samtools{
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
-  set dataset_name, tissue,dayPostInfection, sample, lane, complete_id, file(summary), file(sam), file(bam) from sorted_and_index_bam
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(bam), file(bai) from merged_bylanes
 
   output:
-  set dataset_name, tissue,dayPostInfection, sample, lane, complete_id, file("${complete_id}.f3.q60.bam"), file("${complete_id}.f3.q60.bam.bai") into (filtered_merged_bams_1, filtered_merged_bams_2,filtered_merged_bams_3, filtered_merged_bams_4, filtered_merged_bams_5, filtered_merged_bams_6)
+  set dataset_name, tissue,dayPostInfection, sample, complete_id, file("${complete_id}.f3.q60.bam"), file("${complete_id}.f3.q60.bam.bai") into (filtered_merged_bams_1, filtered_merged_bams_2,filtered_merged_bams_3, filtered_merged_bams_4, filtered_merged_bams_5, filtered_merged_bams_6)
 
   script:
   """
@@ -265,7 +285,7 @@ process runRSeQC{
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rseqc"
 
   input:
-  set dataset_name, tissue,dayPostInfection, sample, lane, complete_id,
+  set dataset_name, tissue,dayPostInfection, sample, complete_id,
       file(bam),
       file(bai) from filtered_merged_bams_6
   file(bed) from  annotation_bed_rhemac.collect()
@@ -307,7 +327,7 @@ process DeNovoAssembly{
   params.transcriptome_assembly
 
   input:
-  set dataset_name, tissue,dayPostInfection, sample, lane, complete_id, file(bam), file(bai) from filtered_merged_bams_1
+  set dataset_name, tissue,dayPostInfection, sample, complete_id, file(bam), file(bai) from filtered_merged_bams_1
   file gtf from gtfChannel4.collect()
 
   output:
@@ -317,7 +337,7 @@ process DeNovoAssembly{
   script:
   file_prefix = get_file_name_no_extension(bam.name)
   """
-  stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --fr -p ${task.cpus}
+  stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --rf -p ${task.cpus}
   """
 }
 

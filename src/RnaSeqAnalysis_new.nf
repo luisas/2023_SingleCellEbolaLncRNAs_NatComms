@@ -195,7 +195,6 @@ process generate_fastqc{
 /*
 * STEP 3.1: Mapping with HISAT.
 * It maps the reads of the generated fastq files
-* to the assembly defined in params.assembly
 * The indexes were computed WITHOUT the help of known splice sites
 * the known splice sites are now used as input for the mapper.
 */
@@ -235,35 +234,6 @@ process mapping_hisat{
   """
 
 }
-
-// // MAP with STAR
-//
-// process star{
-//
-//   label 'big_mem'
-//   cpus 48
-//   tag "${complete_id}"
-//   storeDir "${params.output_dir}/03_star/$dataset_name/$tissue/$dayPostInfection/$sample"
-//
-//   input:
-//   file indexes from star_indexes.collect()
-//   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
-//
-//   output:
-//   set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file("${complete_id}.Log.final.out"),
-//       file("${complete_id}.Aligned.out.sam") into mapped_sam
-//
-//   script:
-//   """
-//   STAR --genomeDir star/${indexes} \\
-//       --runThreadN ${task.cpus} \\
-//       --readFilesIn ${fastq_1} ${fastq_2}  \\
-//       --readFilesCommand zcat \\
-//       --outFileNamePrefix ${complete_id}.
-//   """
-// }
 
 
 

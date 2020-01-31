@@ -18,14 +18,14 @@ library(tximport); library(tximportData); library(plyr); library(Gviz); library(
 
 # Reused paths
 projdir = "/home/luisas/Desktop/cluster/proj/data/"
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+datadir <- "/home/luisas/Desktop/cluster/data1/01_Ebola-RNASeq"
 assemblies <- "/home/luisas/Desktop/cluster/assemblies"
 
 # Import Utils 
 scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
 source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
 
-  # Human training set
+# Human training set
 lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
 lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
@@ -35,13 +35,16 @@ lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_anno
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
 
 # Candidates lncRNAs  & Prediction
-candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
-lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
-stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04_stringtie/stringtie_merged_reference_guided.gtf"))
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_external/04_stringtie/stringtie_merged_reference_guided.gtf"))
 
 rhemac_and_novel_gtf <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_and_novel.gtf"))
 human_annotation <- import(file.path(dir_assemblies, "ensembl/release-96/Homo_sapiens_hg38/Homo_sapiens.GRCh38.96.gtf"))
+unique(human_annotation$gene_biotype)
+
 
 ```
 
@@ -51,9 +54,9 @@ human_annotation <- import(file.path(dir_assemblies, "ensembl/release-96/Homo_sa
 # Obtain novels from gff compare 
 # remove genes, whose transcript are predicted as both lncrnas and mrnas
 # remove_unconcordant_prediction(lncRNAs_out, mRNAs_out)
-# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/04b_gffCompare/merged.annotated.gtf"))
-# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/01_gffcompare/merged.annotated.gtf"))
-merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/04b_gffCompare/merged.annotated.gtf"))
+# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/01_gffcompare/merged.annotated.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
 
 mask_uix <- merged_annotated$class_code == "u" | merged_annotated$class_code == "x" ;  mask_uix[is.na(mask_uix)] <- FALSE
 mask_u <- merged_annotated$class_code == "u";  mask_u[is.na(mask_u)] <- FALSE
@@ -62,7 +65,7 @@ table(merged_annotated[mask_uix]$class_code)
 novel_transcript_ids <- merged_annotated[mask_uix]$transcript_id
 novel <- merged_annotated[merged_annotated$transcript_id %in% novel_transcript_ids]
 
-#export(novel, "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_after_gffcompare.gtf")
+#export(novel, "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_external/07_liftover/novel_rhemac10_after_gffcompare.gtf")
 
 print(length(unique(novel$transcript_id)))
 ```
@@ -84,7 +87,7 @@ print(length(unique(novel_concordant$transcript_id)))
 # --------------------
 ## Reference
 # --------------------
-dir_counts_ref = file.path(datadir, "02_RNA-Seq_rheMac10/06_counts_all")
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_external/06_counts_all")
 htseq_files_ref <- iterate_files(dir_counts_ref, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
 # Create DDS and DGE
 dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
@@ -316,7 +319,7 @@ p1
 ```{r results='hide', message=FALSE, warning=FALSE}
 # Obtain novels from gff compare 
 # remove genes, whose transcript are predicted as both lncrnas and mrnas
-merged_annotated <- import(file.path(datadir, "02_RNA-Seq_rheMac10/05_lncrnaAnnotation_no_l_option/benchmark_known/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/benchmark_known/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
 mask_eq <- merged_annotated$class_code == "="  ;  mask_eq[is.na(mask_eq)] <- FALSE
 # comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
 known_identified <- (unique(merged_annotated[mask_eq]$transcript_id))
@@ -356,32 +359,28 @@ print(paste0("Proportion correclty identified: ", prop_correctly))
  Save some files 
 ```{r results='hide', message=FALSE, warning=FALSE}
 seqlevelsStyle(novel_expressed) <- "UCSC"
-export(novel_expressed, file.path(datadir,"/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_expressed_all.gtf"))
+export(novel_expressed, file.path(datadir,"/02_RNA-Seq_external/07_liftover/novel_rhemac10_expressed_all.gtf"))
  
 #novel_intronic <- novel_expressed[novel_expressed$type == "transcript" & novel_expressed$class_code == "i"]
 novel_antisense<- novel_expressed[novel_expressed$type == "transcript" & novel_expressed$class_code == "x"]
 novel_intergenic <- novel_expressed[novel_expressed$type == "transcript" & novel_expressed$class_code == "u"]
 
 
-#export(novel_intronic, file.path(datadir,"/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_expressed_intronic.gtf"))
-export(novel_antisense, file.path(datadir,"/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_expressed_antisense.gtf"))
-export(novel_intergenic, file.path(datadir,"/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_expressed_intergenic.gtf"))
+#export(novel_intronic, file.path(datadir,"/02_RNA-Seq_external/07_liftover/novel_rhemac10_expressed_intronic.gtf"))
+export(novel_antisense, file.path(datadir,"/02_RNA-Seq_external/07_liftover/novel_rhemac10_expressed_antisense.gtf"))
+export(novel_intergenic, file.path(datadir,"/02_RNA-Seq_external/07_liftover/novel_rhemac10_expressed_intergenic.gtf"))
 
+?import
 ```
 
 
 ```{r}
 # I have the gff with all the orthologs in human
 seqlevelsStyle(human_annotation) <- "UCSC"
-human_orthologs_all <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/07_liftover/human_novel_expressed.gtf")
-#human_orthologs_intronic <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/07_liftover/human_novel_filtered_outliers_intronic.gtf")
-human_orthologs_antisense <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/07_liftover/human_novel_expressed_antisense.gtf")
-human_orthologs_intergenic <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_rheMac10/07_liftover/human_novel_expressed_intergenic.gtf")
-
-
-
-
-
+human_orthologs_all <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_external/07_liftover/human_novel_expressed.gtf")
+#human_orthologs_intronic <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_external/07_liftover/human_novel_filtered_outliers_intronic.gtf")
+human_orthologs_antisense <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_external/07_liftover/human_novel_expressed_antisense.gtf")
+human_orthologs_intergenic <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/02_RNA-Seq_external/07_liftover/human_novel_expressed_intergenic.gtf")
 
 plot_biotype_orthologs <- function(human_orthologs, title){
     # Find overlaps and biotypes of orthologs 

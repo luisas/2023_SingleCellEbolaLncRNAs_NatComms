@@ -19,39 +19,44 @@ When you click the **Knit** button a document will be generated that includes bo
 library(sva); library(edgeR)
 library("genefilter")
 library("gplots")
+library(plyr)
+
+# Import Utils 
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"de_utils.R"))
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+novel_lnc <- import(file.path(datadir,"/02_RNA-Seq_rheMac10/07_liftover/novel_rhemac10_expressed_intergenic.gtf"))
 
 dir_hisat_all =  file.path(datadir, "02_RNA-Seq_rheMac10/06_counts_all/")
 htseq_files <- iterate_files(dir_hisat_all, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
 
 dds <- create_dds(htseq_files,dir_hisat_all)
 
-sampleFiles <- htseq_files
-directory <- 
-  samples_info <- sapply(sampleFiles,extract_info_sample_from_filename)
-  # Create ddsHTSeq Object 
-  sampleTable <- data.frame(sampleName = sampleFiles,
-                            fileName = sapply(sampleFiles,get_filename_and_dirs),
-                            condition = samples_info[1,],
-                            tissue = samples_info[2,], 
-                            dpo = samples_info[3,], 
-                            id = samples_info[4,],
-                            complete_id = samples_info[5,]
-  )
-  dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
-                                    directory = directory,
-                                    design= ~ 1)
-
-
-dds <- dds[rownames(dds) %in% lncRNAs_ref$gene_id,]
+# Retain only blood and liver
+dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
+# remove bad sample
+#dds <- dds[,!(dds$id == "RA0223")]
+#dds <- dds[,!(dds$id == "RA1834")]
+dds <- dds[, dds$condition == "Batch01"] 
+dds <- dds[,(dds$dpo != "D03")]
+dds <- dds[,(dds$dpo != "D04")]
+# Create DGE
 dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
 
+#all_lnc <- c(novel_lnc$gene_id,  lncRNAs_ref$gene_id) 
+#dds_lnc <- dds[rownames(dds) %in% all_lnc,]
 
 dge <- calcNormFactors(dge)
-assays(dds)$counts
+#assays(dds)$counts
 assays(dds)$logCPM <- edgeR::cpm(dge, log = TRUE,prior.count = 0.5)
-mask <- rowMeans(assays(dds)$logCPM) > 10
+mask <- rowMeans(assays(dds)$logCPM) > 5
 dds <- dds[mask, ]
 dge <- dge[mask, ]
+
+
+
+
 
 
 
@@ -66,15 +71,24 @@ barplot((sorted_dge$samples$lib.size)/1e+06, ylab = "Library sizes (Millions)", 
 # read metadata 
 projdir = "/home/luisas/Desktop/cluster/data/"
 metadata <- read.csv(file.path(projdir, "00_Metadata/batch_metadata.csv"), header = FALSE)
-metadata
+colnames(metadata) <- c("id", "gender", "weight", "birthday", "Type")
 
 # Gender 
 # Age
 # Individual 
 
 
+# Add metadata 
+dds$infection <-ifelse(as.double(sub("D", "", dds$dpo))>0, "infected", "not-infected")
+dds$gender <- metadata$gender[match(dds$id, metadata$id)]
+dds$birthyear <- as.double(str_sub(metadata$birthday, -4))[match(dds$id,metadata$id)]
+dds$weight <- as.double(metadata$weight)[match(dds$id,metadata$id)]
+
+
 # Mixed model!!! sample id!!!
-mod <- model.matrix(~0+factor(dpo) + factor(tissue) + factor(age) + factor(gender), colData(dds))
+#mod <- model.matrix(~0+factor(dpo) + factor(tissue) + factor(age) + factor(gender), colData(dds))
+mod <- model.matrix(~0 + factor(dpo)  , colData(dds))
+
 
 
 v <- voom(dge, mod, plot=TRUE)
@@ -87,13 +101,18 @@ tt5 <- topTable(fit5, coef = 2, n = Inf)
 
 DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
 length(DEgenes5)
+
+top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
 ```
 
 ```{r}
 dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
 colnames(dds) <- dds$dpo 
 matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
+DEgenes5 <- top300$genes
+matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
 print(matrixDE)
+?heatmap.2
 heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
      trace="none", dendrogram="row",Colv=colnames(matrixDE), 
      col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))

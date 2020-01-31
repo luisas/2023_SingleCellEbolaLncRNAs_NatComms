@@ -1,10 +1,6 @@
 process{
 
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseq.simg'
-
-  withName:prepareCountMatrices{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/ubuntu-java-python2.simg'
-  }
+  container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseqnew.simg'
 
   withName:runRSeQC{
    container = 'file:///gpfs/projects/bsc83/containers/singularity/rseqc.simg'
