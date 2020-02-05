@@ -128,3 +128,4 @@ calc_transcript_length <- function(gr, type){
   collapsed["type"] <- type
   return(collapsed)
 }
+

@@ -1,5 +1,5 @@
 ---
-title: "lncrna annotation paper"
+title: "lncrna annotation "
 author: "Luisa Santus"
 date: "12/19/2019"
 output: html_document
@@ -34,64 +34,56 @@ lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
 
-# Candidates lncRNAs  & Prediction
-candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_all/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
-lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_all/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-
-mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_all/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
-stringtie_gtf <- import(file.path(datadir, "02_RNA-Seq_all/04_stringtie/stringtie_merged_reference_guided.gtf"))
-
-#rhemac_and_novel_gtf <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_and_novel.gtf"))
 human_annotation <- import(file.path(dir_assemblies, "ensembl/release-96/Homo_sapiens_hg38/Homo_sapiens.GRCh38.96.gtf"))
-
 ```
 
 
-# Novel Ones : GFF COMPARE UIX
+First, apply the filtering to each dataset separately 
+ - identify novel transcripts ( gff compare "u", "x")
+ - deplete non-concordant predictions
+ - retain only ones expressed in more than 3 samples
+ 
 ```{r results='hide', message=FALSE, warning=FALSE}
-# Obtain novels from gff compare 
-# remove genes, whose transcript are predicted as both lncrnas and mrnas
-# remove_unconcordant_prediction(lncRNAs_out, mRNAs_out)
-# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_all/04b_gffCompare/merged.annotated.gtf"))
-# merged_annotated <- import(file.path(datadir, "02_RNA-Seq_all/05_lncrnaAnnotation_no_l_option/01_gffcompare/merged.annotated.gtf"))
-merged_annotated <- import(file.path(datadir, "02_RNA-Seq_all/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+# ---------------------
+#     RiboDepleted
+# ---------------------
 
+
+# -----------------
+# Feelnc output files
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
+htseq_files_ref <- iterate_files(dir_counts_ref, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
+
+# -----------------
+# Select only the NOVEL ones (gff compare )
 mask_uix <- merged_annotated$class_code == "u" | merged_annotated$class_code == "x" ;  mask_uix[is.na(mask_uix)] <- FALSE
-mask_u <- merged_annotated$class_code == "u";  mask_u[is.na(mask_u)] <- FALSE
 table(merged_annotated[mask_uix]$class_code)
 # comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
 novel_transcript_ids <- merged_annotated[mask_uix]$transcript_id
 novel <- merged_annotated[merged_annotated$transcript_id %in% novel_transcript_ids]
-
-#export(novel, "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/02_RNA-Seq_all/07_liftover/novel_rhemac10_after_gffcompare.gtf")
-
+print("Novel - gff compare")
 print(length(unique(novel$transcript_id)))
-```
 
-# Novel Ones : Non concordant prediction removed
-```{r results='hide', message=FALSE, warning=FALSE}
-# one trascript one gene A predicted as coding, other transcript of gene B predicted as non coding --> non concordant!
+# -----------------
+# Remove Non-Concordant
 df <- data.frame()
 df <- rbind(df, data.frame(gene_id = novel$gene_id, transcript_id = novel$transcript_id, pred = "lncrna" ))
 df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
 unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
 novel_concordant <- novel[!(novel$gene_id %in% unconcordant_prediction$gene_id)]
+print("Novel - concordant")
 print(length(unique(novel_concordant$transcript_id)))
-```
 
-# Novel ones: Expression HTSEQ 
-
-```{r}
-# --------------------
-## Reference
-# --------------------
-dir_counts_ref = file.path(datadir, "02_RNA-Seq_all/06_counts_all")
-htseq_files_ref <- iterate_files(dir_counts_ref, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
-# Create DDS and DGE
+# -----------------
+# Expression Levels ( filter and plot )
 dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
 dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
 # Calc logcpm 
-assays(dds_ref)$logCPM <- cpm(dge_ref, log = TRUE,prior.count = 0.5)
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
 # Create dataframe w/ logcpms
 expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
 colnames(expression_logcpm)
@@ -99,8 +91,8 @@ colnames(expression_logcpm)
 #expression_logcpm <- expression_logcpm[,str_detect(colnames(expression_logcpm), "Liver")]
 #expression_logcpm
 
+# select only when > than 1 at least 3 tissues
 mask<- rowSums(as.data.frame(expression_logcpm) > 1) > 2
-table(mask)
 expression_logcpm <- expression_logcpm[mask,]
 
 # Plotting
@@ -125,119 +117,18 @@ ggplot(mean_expression, aes(x=factor(type,level = c("lncrna", "novel", "mrna")) 
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
 
 novel_expressed <- novel_concordant[novel_concordant$gene_id %in% mean_expression$id]
-  
 length(unique(novel_expressed$gene_id))
 
 
-```
-
-
-# Removing outliers in exon lengths
-
-
-```{r}
-library(extremevalues)
-# to be deleted
-novel_expressed <- novel_concordant
-exon_lengths <- calc_exon_length(novel_expressed, "Novel LncRNAs")
-transcript_length <- calc_transcript_length(novel_expressed, "Novel LncRNAs")
-# identified the exons which are outliers in term of lenghts, remove those transcripts 
-outliers  <- transcript_length[getOutliers(transcript_length$range, method = "I")$iRight,]
-
-ggplot(outliers, aes(x = range)) + 
-  geom_density(color="darkblue", fill="lightblue")+
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line =   element_line(colour = "darkgrey"))+
-          theme(plot.title = element_text(hjust = 0.5))
-
-
-novel_filtered_outliers <- novel_expressed[!(novel_expressed$transcript_id %in% outliers$transcript_id)]
-
-novel_filtered_outliers <- get_only_max_transcript(novel_filtered_outliers)
-length(unique(novel_filtered_outliers$gene_id))
-length(unique(novel_expressed$gene_id))
-
-#### TEST for visual inspection 
-#exon_lengths[ exon_lengths$range == max(exon_lengths$range),]
-#transcript_length[ transcript_length$range == max(transcript_length$range),]
-#export(novel_expressed[novel_expressed$gene_id == "MSTRG.63191"] , "/home/luisas/Desktop/longexon.gtf")
-#novel_expressed[novel_expressed$gene_id == "MSTRG.63191"]
-#gr <- novel_expressed
-#df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-#gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% #dplyr::filter(number > 1)
-#export(novel_expressed[novel_expressed$gene_id %in% gene_with_multiple_isoforms$gene_id], "/home/luisas/Desktop/multi_isoform.gtf")
-```
-
-
-```{r}
-get_only_max_transcript <- function(gr){
-  # given a genomic range gets only the maximum transcript of a gene
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.min(range))
-  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
-  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
-  return(gr)
-}
-
-calc_transcript_length <- function(gr, type){
-  gr <- gr[gr$type =="exon",]
-  gr <- remove_transcripts_with_one_exon(gr)
-  gr <- get_only_max_transcript(gr)
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-  collapsed["type"] <- type
-  return(collapsed)
-}
-
-remove_transcripts_with_one_exon <- function(gr){
-  gr_copy <- gr
-  gr <- gr[gr$type =="exon",]
-  df_all <- data.frame("gene_id" = gr$gene_id,"exon_number" = as.numeric(gr$exon_number))
-  df_all <- df_all %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))%>%  dplyr::filter( max_exon > 1)
-  gr_copy <- gr_copy[gr_copy$gene_id %in% df_all$gene_id ,]
-  return(gr_copy)
-}
-
-calc_exon_length <- function(gr, type){
-  gr <- gr[gr$type =="exon",]
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
-  collapsed["type"] <- type
-  return(collapsed)
-}
-
-get_nr_exons_transcript <- function(gr){
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-  number_exons <- df %>% dplyr::group_by(gene_id, transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-  return(number_exons)
-}
-
-# to remove!!
-df <- data.frame()
-df <- rbind(df,data.frame(calc_transcript_length(novel_expressed, "Novel LncRNAs")))
-df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
-df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
-df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Known mRNAs: Human")))
-df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Known mRNAs: Macaque")))
-
-p1 <- ggplot(df, aes(x = factor(type, level = c('Novel LncRNAs', 'Known lncRNAs: Macaque ', 'Known lncRNAs: Human', "Known mRNAs: Human", "Known mRNAs: Macaque")),  y = range )) +
-        labs( x = "", y = "" , title = "Transcript length")+
-        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
-        geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,10000)+
-        theme(legend.title=element_blank())+
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-        theme(plot.title = element_text(hjust = 0.5))
-p1
+export(novel_expressed, file.path(data_dir, "03_novel_lncrnas/novel_expressed_batchzyagen.gtf"))
 ```
 
 
 #Stats 
 
-
 ```{r results='hide', message=FALSE, warning=FALSE}
 # Palette for all plots below
 palette <-brewer.pal(5,"Paired")
-novel_expressed <- novel_concordant
   # --------------------
 ## EXON COUNT
 # --------------------
@@ -311,8 +202,202 @@ p1
 ```
 
 
+Repeat the same analysis with polyA dataset 
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# ---------------------
+#    PolyA
+# ---------------------
 
 
+# -----------------
+# Feelnc output files
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_external/06_counts_all")
+htseq_files_ref <- iterate_files(dir_counts_ref, "UMI.f3.q60.umi_dedup.HTseq.gene_counts.tab")
+
+# -----------------
+# Select only the NOVEL ones (gff compare )
+mask_uix <- merged_annotated$class_code == "u" | merged_annotated$class_code == "x" ;  mask_uix[is.na(mask_uix)] <- FALSE
+table(merged_annotated[mask_uix]$class_code)
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+novel_transcript_ids <- merged_annotated[mask_uix]$transcript_id
+novel <- merged_annotated[merged_annotated$transcript_id %in% novel_transcript_ids]
+print("Novel - gff compare")
+print(length(unique(novel$transcript_id)))
+
+# -----------------
+# Remove Non-Concordant
+df <- data.frame()
+df <- rbind(df, data.frame(gene_id = novel$gene_id, transcript_id = novel$transcript_id, pred = "lncrna" ))
+df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
+unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
+novel_concordant <- novel[!(novel$gene_id %in% unconcordant_prediction$gene_id)]
+print("Novel - concordant")
+print(length(unique(novel_concordant$transcript_id)))
+
+# -----------------
+# Expression Levels ( filter and plot )
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+# Create dataframe w/ logcpms
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+colnames(expression_logcpm)
+## ADD only if we want to select a certain tissue
+#expression_logcpm <- expression_logcpm[,str_detect(colnames(expression_logcpm), "Liver")]
+#expression_logcpm
+
+# select only when > than 1 at least 3 tissues
+mask<- rowSums(as.data.frame(expression_logcpm) > 1) > 2
+expression_logcpm <- expression_logcpm[mask,]
+
+# Plotting
+mean_expression <- data.frame(id=rownames(expression_logcpm ), Means=rowMedians(expression_logcpm))
+
+print(head(mean_expression))
+mean_expression['type'] <- "0"
+mean_expression <- add_type(mean_expression, novel_concordant$gene_id, "novel")
+mean_expression <- add_type(mean_expression, lncRNAs_ref$gene_id, "lncrna")
+mean_expression <- add_type(mean_expression, mRNAs_ref$gene_id, "mrna")
+mean_expression <- mean_expression[!mean_expression$type == "0",]
+
+length(unique(novel_concordant[novel_concordant$gene_id %in% mean_expression$id]$gene_id))
+length(unique(lncRNAs_ref[lncRNAs_ref$gene_id %in% mean_expression$id]$gene_id))
+length(unique(mRNAs_ref[mRNAs_ref$gene_id %in% mean_expression$id]$gene_id))
+
+ggplot(mean_expression, aes(x=factor(type,level = c("lncrna", "novel", "mrna")) , y=Means, fill = type )) + 
+      geom_boxplot(color="darkgrey",  alpha=0.7, fill = c("#1F78B4","#A6CEE3","#FB9A99"))+
+      labs(y = "logCPM", x = "", title = "Expression" )+
+      theme(legend.title=element_blank())+
+      theme(plot.title = element_text(hjust = 0.5))+
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
+
+novel_expressed <- novel_concordant[novel_concordant$gene_id %in% mean_expression$id]
+length(unique(novel_expressed$gene_id))
+
+export(novel_expressed, file.path(data_dir, "03_novel_lncrnas/novel_expressed_external.gtf"))
+
+```
+
+
+#Stats 
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# Palette for all plots below
+palette <-brewer.pal(5,"Paired")
+  # --------------------
+## EXON COUNT
+# --------------------
+
+ec1 <- barplot_exon_count(novel_expressed, "Novel", palette[1])
+ec2 <- barplot_exon_count(lncRNAs_ref, "lncRNAs - Reference Macaque", palette[2])
+ec3 <- barplot_exon_count(lncRNAs_ref_human, "lncRNAs - Reference Human", palette[3])+labs(y = "Frequency")
+ec4 <- barplot_exon_count(mrna_ref_human, "mRNAs - Reference Human", palette[4])
+ec5 <- barplot_exon_count(mRNAs_ref, "mRNAs - Reference Macaque", palette[5])+labs(x = "Number of Exons") 
+ggarrange( ec1,ec2,ec3,ec4,ec5,  ncol=1, nrow=5, top = "Transcripts Lengths") 
+# Exon count generally lower in lncrnas than mrnas (Ok. same as sources)
+
+# --------------------
+## Transcript lengths: still weird, very long ones ...
+# --------------------
+tl1 <-transcript_length_density(novel_expressed," NOVEL",palette[1]) 
+tl2 <-transcript_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+tl3 <-transcript_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+tl4 <-transcript_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+tl5 <-transcript_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Transcript length")
+ggarrange( tl1,tl2,tl3,tl4,tl5,  ncol=1, nrow=5, top = "Transcripts Lengths",  legend="right")
+
+
+# --------------------
+## Transcript lengths - Boxplot
+# --------------------
+df <- data.frame()
+df <- rbind(df,data.frame(calc_transcript_length(novel_expressed, "Novel LncRNAs")))
+df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
+df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
+df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Known mRNAs: Human")))
+df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Known mRNAs: Macaque")))
+
+p1 <- ggplot(df, aes(x = factor(type, level = c('Novel LncRNAs', 'Known lncRNAs: Macaque ', 'Known lncRNAs: Human', "Known mRNAs: Human", "Known mRNAs: Macaque")),  y = range )) +
+        labs( x = "", y = "" , title = "Transcript length")+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
+        geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,10000)+
+        theme(legend.title=element_blank())+
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+        theme(plot.title = element_text(hjust = 0.5))
+p1
+
+# --------------------
+## Exon lengths - Densities 
+# --------------------
+p1 <-exon_length_density(novel_expressed," NOVEL",palette[1]) 
+p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
+ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
+
+# --------------------
+## Exon lengths - Boxplot
+# --------------------
+df <- data.frame()
+df <- rbind(df,data.frame(calc_exon_length(novel_expressed, "Novel LncRNAs")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
+df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Known mRNAs: Human")))
+df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Known mRNAs: Macaque")))
+
+p1 <- ggplot(df, aes(x = factor(type, level = c('Novel LncRNAs', 'Known lncRNAs: Macaque ', 'Known lncRNAs: Human', "Known mRNAs: Human", "Known mRNAs: Macaque")),  y = range )) +
+        labs( x = "", y = "" , title = "Exon length")+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
+        geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,1000)+
+        theme(legend.title=element_blank())+
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+        theme(plot.title = element_text(hjust = 0.5))
+p1
+```
+
+
+# ------------------------------------
+# Merge them together 
+```{r results='hide', message=FALSE, warning=FALSE}
+
+# Novel from ribodepletion compared to polyA 
+import(file.path(data_dir, "03_novel_lncrnas/01_gffcompare/gff_compare_lncrnas"))
+mask_u <- merged_annotated$class_code == "u";  mask_u[is.na(mask_u)] <- FALSE
+table(merged_annotated[mask_u]$class_code)
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+novel_transcript_ids <- merged_annotated[mask_uix]$transcript_id
+novel <- merged_annotated[merged_annotated$transcript_id %in% novel_transcript_ids]
+print("Novel - gff compare")
+print(length(unique(novel$transcript_id)))
+
+## I could check some stats about the new ones.
+
+# I just append one to the otherm
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -------------------------------------------------------------
 # Known ones: Quick benchmark - should be prob put in the end
 ```{r results='hide', message=FALSE, warning=FALSE}
 # Obtain novels from gff compare 

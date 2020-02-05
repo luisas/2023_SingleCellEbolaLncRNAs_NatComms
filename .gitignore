@@ -21,3 +21,4 @@ src/01_CLUSTER_Marenostrum/work
 singularity
 .Rhistory
 .RData
+src/scripts/Analysis/results/

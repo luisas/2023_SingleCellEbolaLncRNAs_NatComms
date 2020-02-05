@@ -19,88 +19,67 @@ library(purrr)
 library(stringr)
 library(mvoutlier)
 library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+
 
 source("utils/sc_utils.R")
 ```
 ## Single Cell Analysis
 
+------------------------
+  Create Seurat Objects
+------------------------
 
 I import the data and merge them into one single Seurat object to proceed with the analysis.
 
 ```{r cars}
 # Load the PBMC dataset
-library(Seurat)
-library(stringr)
-data_dir <- "/home/luisas/Desktop/cluster/data1/01_Ebola-RNASeq/03_scRNA-Seq_test/01_digital_expression/"
+data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq/03_scRNA-Seq_test/01_digital_expression/"
 files <- iterate_files(data_dir, ".dge.txt.gz")
-file <- files[2]
+
+files_reads <- files[str_detect(files, "reads" )]
+files_umis <- files[!str_detect(files, "reads" )]
 
 # ----------------------
 # Obtain Seurat Objects 
 # ----------------------
 get_Seurat_object <- function(file){
   pbmc.data <- read.table(file = file, header = TRUE, row.names = 1)
-  pbmc <- CreateSeuratObject(pbmc.data, project = "10X_PBMC", min.cells = 3)
+  proj <-str_replace_all(str_replace_all(unlist(rev(unlist(str_split(file, pattern= "/"))[-1])[[1]]), "_", "-"), ".dge.txt.gz", "")
+  proj <- str_sub(proj, 1, str_length(proj)-3)
+  pbmc <- CreateSeuratObject(pbmc.data, project = proj, min.cells = 3, min.features = 200)
   return(pbmc)
 }
 
-dim(pbmc)
-
+# Umis 
 # all matrices files from single cell, still separated per lane
-list <- map(files[2:length(files)], get_Seurat_object)
-pbmc <- get_Seurat_object(files[1])
-list_names <- lapply(files, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
+list <- map(files_umis[2:length(files_umis)], get_Seurat_object)
+pbmc <- get_Seurat_object(files_umis[1])
+list_names <- lapply(files_umis, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
 
 # -------------
 #   Merge
 # -------------
 # Merge all seurats object in one 
-pbmc.big <- merge(pbmc, y = list[2:length(list)], add.cell.ids = list_names, project = "PBMCbig")
+pbmc.big <- merge(pbmc, y = list, add.cell.ids = list_names, project = "PBMCbig")
 # Check if all ids available
 unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
 table(pbmc.big$orig.ident)
 
+
+saveRDS(pbmc.big, "results/ed_seurat_tagged_umis.rds")
 ```
-
-
-Doublet Detection  -- Missing !
-
-
-
-## Cell QC Plots 
-
-```{r cars}
-# --------------------------
-#  Obtain stats
-# --------------------------
-
-# get mitochondrial percentages!!
-#pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
-
-dim(pbmc)
-
-
-vln <- VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2, pt.size=0)
-vln
-
-plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-plot2
-
-## An object of class Seurat 
-## 13714 features across 2700 samples within 1 assay 
-## Active assay: RNA (13714 features)
-
-```
-
-
+##----------------------------
+##           Cell QC 
+##----------------------------  
 ```{r pressure, results='hide', message=FALSE, warning=FALSE}
-library(scater)
-pbmc_sc <- as.SingleCellExperiment(pbmc)
+pbmc.big <- readRDS("results/ed_seurat_umis.rds")
+pbmc_sc <- as.SingleCellExperiment(pbmc.big)
 pbmc_sc <- calculateQCMetrics(pbmc_sc)
-```
 
-
-```{r}
 # Library size
 lib_size_hist <- plot_histogram(
   sce = pbmc_sc, 
@@ -119,22 +98,20 @@ n_detec_hist <- plot_histogram(
 
 
 lsizeplot <- lib_size_hist +
-  geom_vline(xintercept = c(1500, 10000), linetype = "dashed", color = "red")
+  geom_vline(xintercept = c(500, 10000), linetype = "dashed", color = "red")
 ndectplot <- n_detec_hist +
-  geom_vline(xintercept = c(500, 2000), linetype = "dashed", color = "red")
+  geom_vline(xintercept = c(300, 2000), linetype = "dashed", color = "red")
 
 lsizeplot
 ndectplot
-
 ```
-
 # Filtering 
 
 ```{r}
 pbmc <- pbmc_sc
 keep_cells <-
-  pbmc$total_counts > 1500 & pbmc$total_counts < 10000 &
-  pbmc$total_features_by_counts > 500 & pbmc$total_features_by_counts < 2000 
+  pbmc$total_counts > 500 & pbmc$total_counts < 10000 &
+  pbmc$total_features_by_counts > 300 & pbmc$total_features_by_counts < 2000 
 table(keep_cells)
 ```
 
@@ -154,15 +131,15 @@ tsne_poor <- reducedDim(pbmc) %>%
 tsne_poor
 ```
 
-
 Filter cells:
 
 ```{r}
 pbmc <- pbmc[, keep_cells]
 ```
 
-
-## Gene QC
+##----------------------------
+##           Gene QC 
+##----------------------------  
 Let us compute the number of cells that each gene has at least 1 UMI:
 
 ```{r}
@@ -180,8 +157,155 @@ We see two peaks, the firt one of which corresponds to lowly expressed genes. As
 
 ```{r}
 pbmc <- pbmc[n_cells > 15, ]
-pbmc
+saveRDS(pbmc, "results/ed_seurat_umis_afterqc.rds")
 ```
+
+##-------------------------------------------------------------------------------
+##    Doublet Detection ( after QC! should not be applied on integrated data ) Needs to be tested !!!
+##-------------------------------------------------------------------------------
+
+```{r cars}
+library(DoubletFinder)
+library(SingleCellExperiment)
+library(DoubletDecon)
+## Test 
+pbmc <- seu_kidney <- get_Seurat_object(files_umis[1])
+pbmc <- pbmc[,1:100]
+sce <- as.SingleCellExperiment(pbmc)
+pbmc <- SCTransform(pbmc)
+pbmc <- RunPCA(pbmc)
+pbmc <- RunTSNE(pbmc)
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+
+DimPlot(pbmc, reduction = "tsne")
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+
+new.cluster.ids <- c("Naive CD4 T", "Memory CD4 T", "CD14+ Mono", "B", "CD8 T", "FCGR3A+ Mono", 
+    "NK", "DC", "A")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "tsne", label = TRUE, pt.size = 0.5) + NoLegend()
+pbmc$celltype <- Idents(object = pbmc)
+head(x = Idents(object = pbmc))
+Improved_Seurat_Pre_Process(pbmc, num_genes=50, write_files=FALSE)
+WhichCells.Seurat(object = pbmc, idents = ident.1)
+
+# Preprocessing 
+seu_kidney <- get_Seurat_object(files_umis[1])
+seu_kidney <- SCTransform(seu_kidney)
+seu_kidney <- RunPCA(seu_kidney)
+seu_kidney <- RunTSNE(seu_kidney)
+
+sce <- as.SingleCellExperiment(seu_kidney)
+clust.kmeans <- kmeans(reducedDim(sce, "PCA"), centers=6)
+table(clust.kmeans$cluster)
+
+sce$cluster <- factor(clust.kmeans$cluster)
+plotReducedDim(sce, "TSNE", colour_by="cluster", text_by = "cluster")
+
+
+
+library(BiocSingular)
+set.seed(100)
+
+# Setting up the parameters for consistency with denoisePCA();
+# this can be changed depending on your feature selection scheme.
+dbl.dens <- doubletCells(sce, d=ncol(reducedDim(sce)))
+summary(dbl.dens)
+
+sce$DoubletScore <- log10(dbl.dens+1)
+plotTSNE(sce, colour_by="DoubletScore")
+
+
+dbl.out <- doubletCluster(sce, sce$cluster)
+
+chosen.doublet <- rownames(dbl.out)[isOutlier(dbl.out$N, type="lower", log=TRUE)]
+chosen.doublet
+
+markers <- findMarkers(sce, sce$cluster, direction="up")
+dbl.markers <- markers[[chosen.doublet]]
+
+chosen <- rownames(dbl.markers)[dbl.markers$Top <= 10]
+plotHeatmap(sce, order_columns_by="cluster", features=chosen, 
+    center=TRUE, symmetric=TRUE, zlim=c(-5, 5))
+
+plotExpression(sce, features=c("ENSMMUG00000041831--HBB", "ENSMMUG00000013966--LGMN"), 
+    x="cluster", colour_by="cluster")
+```
+
+
+##-------------------------------------------------------------------------------
+##                         Stimulated data analysis 
+##-------------------------------------------------------------------------------
+```{r cars}
+pbmc <- readRDS( "results/ed_seurat_umis_afterqc.rds")
+pbmc <- as.Seurat(pbmc)
+## Add condition 
+pbmc$cond <- unlist(lapply(pbmc$orig.ident, function(x) unlist(str_split(x, "-")[[1]][2])))
+table(pbmc$cond)
+pbmc$hour <- unlist(lapply(pbmc$orig.ident, function(x) unlist(str_split(x, "-")[[1]][5])))
+table(pbmc$hour)
+# Create different object, one for wach condition
+pbmc <- SplitObject(pbmc, split.by = "cond")
+pbmc <- lapply(X = pbmc, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+# Find Anchors btw objects
+immune.anchors <- FindIntegrationAnchors(object.list = pbmc, dims = 1:4)
+# Combne into one object
+immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:4)
+DefaultAssay(immune.combined) <- "integrated"
+immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+# t-SNE and Clustering
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:4)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:4)
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+saveRDS(immune.combined, "results/immune_combined.rds")
+
+
+
+immune.combined <- readRDS("results/immune_combined.rds")
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "cond")
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)
+plot_grid(p1, p2)
+
+DimPlot(immune.combined, reduction = "umap", split.by = "cond")
+
+
+pbmc_seu <- FindVariableFeatures(immune.combined)
+pbmc_seu <- ScaleData(pbmc_seu)
+pbmc_seu <- RunPCA(pbmc_seu)
+ElbowPlot(pbmc_seu)
+pbmc_seu <- FindNeighbors(pbmc_seu, reduction = "pca", dims = 1:6)
+pbmc_seu <- FindClusters(pbmc_seu, resolution = 0.1)
+pbmc_seu <- RunUMAP(pbmc_seu, reduction = "pca", dims = 1:6)
+DimPlot(pbmc_seu, reduction = "umap")
+
+
+markers <- FindAllMarkers(
+  immune.combined, 
+  features = immune.combined@assays$RNA@var.features, 
+  min.pct = 0.25
+)
+
+library(dplyr)
+map(unique(markers$cluster), function(k) {
+  markers %>% 
+    dplyr::filter(cluster == k) %>% 
+    head(30) %>% 
+    select("cluster", "gene", "avg_logFC")
+})
+
+immune.combined <- RenameIdents(immune.combined, `0` = "CD14 Mono", `1` = "CD4 Naive T", `2` = "CD4 Memory T", 
+    `3` = "CD16 Mono")
+
+DimPlot(immune.combined, label = TRUE)
+```
+
 
 ### Identify highly expressed genes
 As a validation, let us check whether the highest expressed genes are housekeeping genes like ACTB:
@@ -206,7 +330,7 @@ plot(sizeFactors(pbmc) ~ pbmc$total_counts)
 ## Save
 
 ```{r}
-saveRDS(pbmc, "results/R_objects/external_dataset_SCE.rds")
+saveRDS(pbmc, "results/external_dataset_SCE.rds")
 ```
 
 # Seurat
@@ -226,8 +350,8 @@ pbmc_seu <- RunUMAP(pbmc_seu, reduction = "pca", dims = 1:6)
 DimPlot(pbmc_seu, reduction = "umap")
 
 # Save Seurat
-saveRDS(pbmc_seu, "results/R_objects/external_dataset_Seurat.rds")
-pbmc_seu <- readRDS("results/R_objects/external_dataset_Seurat.rds")
+saveRDS(pbmc_seu, "results/external_dataset_Seurat.rds")
+pbmc_seu <- readRDS("results/external_dataset_Seurat.rds")
 ```
 
 Find markers:
@@ -253,147 +377,24 @@ Judging by the previous markers, we can annotate the clusters as follows:
 Cluster ID | Markers       | Cell Type
 -----------|---------------|----------
 0          | IL7R          | CD4 T cells
-1          | CD8A          | CD8 T cells
 2          | GNLY, NKG7    | Natural Killer (NK)
 3          | LYZ, S100A8   | CD14+ Monocytes
-4          | MS4A1, CD79A  | B cells
-5          | FCGR3A        | FCGR3A+ Monocytes
+4          | MS4A1  | B cells
 
 We can visualize these markers in UMAP space:
 
 ```{r}
-clust_markers <- c("ENSMMUG00000014381--GZMB", "ENSMMUG00000002122--SPOCK2", "ENSMMUG00000006880--CD19", "ENSMMUG00000019304--IDO1")
-
+clust_markers <- c("ENSMMUG00000001260--MS4A1", "ENSMMUG00000001676--IL7R", "ENSMMUG00000047204--GNLY", "ENSMMUG00000008987--LYZ")
 FeaturePlot(pbmc_seu, features = clust_markers, reduction = "umap")
 ```
 
 Finally, we can label clusters to its cell type:
 
 ```{r}
-new_cluster_ids <- c("CD4 T", "CD8 T", "NK", "CD14+ Mono")
+new_cluster_ids <- c("CD4 T", "NK", "CD14+ Mono",  "B")
 names(new_cluster_ids) <- levels(pbmc_seu)
 pbmc_seu <- RenameIdents(pbmc_seu, new_cluster_ids)
 DimPlot(pbmc_seu, reduction = "umap")
-```
-
-# Score cells based on sampling time signature
-
-```{r}
-# Load PBMC type-specific sampling time signature
-metasignature <- readRDS(file = "results/R_objects/metasignatures.rds")
-signatures_df <- readRDS(file = "results/R_objects/gene_signatures.rds")
-
-# Join CD14+ and FCGR3A+ into a single  monocyte cluster
-pbmc_seu$cell_type <- Idents(pbmc_seu)
-cell_type2 <- str_replace(pbmc_seu$cell_type, ".*Mono$", "Monocyte")
-pbmc_seu$cell_type2 <- cell_type2
-
-# Pre-process meta-signature data frames:
-rankings_list <- list()
-for (type in names(metasignature)) {
-  rankings <- map_dbl(metasignature[[type]], function(g) {
-    ranking <- mean(map_dbl(signatures_df[[type]], ~ which(.[!.$is_random, "gene"] == g)))
-  })
-  names(rankings) <- metasignature[[type]]
-  rankings_list[[type]] <- sort(rankings)
-}
-
-rankings_dfs <- map(names(rankings_list), function(type) {
-  gene_vect <- names(rankings_list[[type]])
-  index_gene_vect <- match(gene_vect, signatures_df[[type]][[1]]$gene)
-  signature_df_sub <- signatures_df[[type]][[1]][index_gene_vect, ]
-  sign_vect <- sign(signature_df_sub$log_fc)
-  df <- data.frame(gene = gene_vect, sign = sign_vect)
-  df
-})
-names(rankings_dfs) <- names(rankings_list)
-
-# Calculate time-score for every cell in SCE
-seu_list <- SplitObject(pbmc_seu, split.by = "cell_type2")
-sce_list <- map(seu_list, as.SingleCellExperiment)
-sce_list <- sce_list[names(metasignature)]
-sce_list <- map2(
-  sce_list, rankings_dfs, 
-  ~ calc_time_score_v3(sce = .x, signature_df = .y, random = FALSE)
-)
-
-# Input time_score to metadata
-cell_names_sce <- map(sce_list, colnames)
-cell_names_sce <- Reduce(c, cell_names_sce)
-time_scores <- map(sce_list, ~ .$time_score)
-time_scores <- Reduce(c, time_scores)
-time_score_df <- data.frame(barcode = cell_names_sce, time_score = time_scores)
-rownames(time_score_df) <- time_score_df$barcode
-time_score_df <- time_score_df[colnames(pbmc_seu), ]
-pbmc_seu$time_score <- time_score_df$time_score
-
-# Visualize time-score in UMAP space
-FeaturePlot(pbmc_seu, features = "time_score") + scale_colour_gradient2()
-```
-
-
-We see that for each cluster, cells segregate by time-score. To validate that this is indeed the signal of sampling time, let us repeat the same process with a reference dataset that was obtained using fresh cells (male_04 from previous analysis):
-
-```{r}
-# Load SingleCellExperiment object
-pbmc_ref <- readRDS("results/R_objects/10X_SingleCellExperiment_clustered.RDS")
-
-# Filter to keep only fresh cells from male
-pbmc_ref <- pbmc_ref[, pbmc_ref$sex == "male" & pbmc_ref$time == "0h"]
-
-# Calculate time-score for every cell in SCE
-pbmc_ref_list <- list()
-cell_types <- names(metasignature)
-for (type in cell_types) {
-  pbmc_ref_list[[type]] <- pbmc_ref[, pbmc_ref$cell_type == type]
-}
-pbmc_ref_list <- map2(
-  pbmc_ref_list, rankings_dfs, 
-  ~ calc_time_score_v3(sce = .x, signature_df = .y, random = FALSE)
-)
-
-# Input time-score to original SCE
-cell_names_sce <- map(pbmc_ref_list, colnames)
-cell_names_sce <- Reduce(c, cell_names_sce)
-time_scores <- map(pbmc_ref_list, ~ .$time_score)
-time_scores <- Reduce(c, time_scores)
-time_score_df <- data.frame(barcode = cell_names_sce, time_score = time_scores)
-rownames(time_score_df) <- time_score_df$barcode
-time_score_df <- time_score_df[colnames(pbmc_ref), ]
-pbmc_ref$time_score <- time_score_df$time_score
-
-# Convert to Seurat object and pre-process
-pbmc_ref_seu <- as.Seurat(pbmc_ref)
-pbmc_ref_seu <- FindVariableFeatures(pbmc_ref_seu)
-pbmc_ref_seu <- ScaleData(pbmc_ref_seu)
-pbmc_ref_seu <- RunPCA(pbmc_ref_seu)
-ElbowPlot(pbmc_ref_seu)
-pbmc_ref_seu <- RunUMAP(pbmc_ref_seu, dims = 1:8, reduction = "pca")
-umap_ref_gg <- FeaturePlot(
-  pbmc_ref_seu, 
-  features = "time_score", 
-  reduction = "umap"
-)
-umap_ref_gg <- umap_ref_gg + 
-  scale_colour_gradient2() +
-  labs(title = "Reference dataset")
-
-# Arrange and save umaps
-umap_external_gg <- FeaturePlot(pbmc_seu, features = "time_score") + 
-  scale_colour_gradient2() +
-  labs(title = "External dataset")
-joint_gg <- ggarrange(
-  plotlist = list(umap_external_gg, umap_ref_gg), 
-  ncol = 2, 
-  nrow = 1, 
-  common.legend = TRUE
-)
-ggsave(
-  filename = "results/plots/time_score_external&reference.pdf", 
-  plot = joint_gg, 
-  width = 12, 
-  height = 8
-)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -49,6 +49,7 @@ cell_selection_script = Channel.fromPath("${baseDir}/scripts/cellselection.R").c
 
 process BamTagHistogram{
 
+  cpus 8
   storeDir "${params.output_dir}/00_BamTagHistogram/$animal_id/$hpi/$exp/$replicate"
 
   input:
@@ -66,6 +67,7 @@ process BamTagHistogram{
 
 process CellSelection{
 
+  cpus 4
   storeDir "${params.output_dir}/00_BamTagHistogram/$animal_id/$hpi/$exp/$replicate"
   input:
   file cell_selection_script
@@ -88,7 +90,7 @@ CellSelectionChannel.into{CellSelectionChannel1; CellSelectionChannel2}
 // // false. This option can be set to 'null' to clear the default value. Possible values:{true, false}
 process DigitalExpressionMatrix_UMI{
 
-
+  cpus 24
   storeDir "${params.output_dir}/01_digital_expression/$animal_id/$hpi/$exp/$replicate"
 
   input:
@@ -113,6 +115,7 @@ process DigitalExpressionMatrix_UMI{
 
 process DigitalExpressionMatrix_READS{
 
+  cpus 24
   storeDir "${params.output_dir}/01_digital_expression/$animal_id/$hpi/$exp/$replicate"
 
   input:

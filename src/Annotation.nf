@@ -43,12 +43,22 @@ Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
 
 // Here it should not be really changed
 params.output_dir_preliminary = "${params.prefix_data}Ebola/01_Ebola-RNASeq_all/01_PreliminaryFiles_${params.macaque_assembly_name}/"
-params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/02_RNA-Seq_all/"
+params.output_dir_name = "02_RNA-Seq_external"
+params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/${params.output_dir_name}/"
+
 
 params.scripts="${baseDir}/scripts/"
 
 params.umi = "true"
 params.strandness = "FR"
+
+
+if( "${params.strandness}" == "FR" ){
+  params.htseq-sense = "yes"
+}
+if( "${params.strandness}" == "RF" ){
+  params.htseq-sense = "reverse"
+}
 
 
 
@@ -86,8 +96,8 @@ unmapped_bams_2 = Channel
 unmapped_bams = unmapped_bams_1.mix(unmapped_bams_2)
 // ---------------------------------
 
-params.fastqs  = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/01_fastq/*/*/*/*.{1,2}.fastq.gz"
-fastqs = Channel.fromFilePairs("/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/*/*/*/*/*.{1,2}.fastq.gz")
+params.fastqs  = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/*/Brain/*/*/*.{1,2}.fastq.gz"
+fastqs = Channel.fromFilePairs("${params.fastqs}")
                 .ifEmpty("No fastqs found")
                 .map { tuple(it[0].split('_')[0],
                              it[0].split('_')[1],
@@ -102,7 +112,7 @@ fastqs = Channel.fromFilePairs("/gpfs/projects/bsc83/Data/Ebola/00_RawData/extre
                              it[1] ) }
 
 
-fastqs.into{ dataset_fastq_ext; fastq_files_for_qc; fastq_files_for_mapping; printing }
+fastqs.into{ fastq_files_for_qc; fastq_files_for_mapping; printing }
 printing.subscribe{ println "$it" }
 
 
@@ -314,18 +324,18 @@ process generate_fastqc{
 process mapping_hisat{
 
   label 'big_mem'
-  cpus 8
+  cpus 12
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
   file indexes from hisat2_indexes.collect()
   set file(exon), file(ss) from extracted_exons_ss_channel.collect()
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(fastq_1),file(fastq_2),file(unpaired)  from fastq_files_for_mapping
+  set dataset_name, tissue, dayPostInfection, sample,lane, complete_id,
+      file(fastq_pair)  from fastq_files_for_mapping
 
   output:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+  set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
       file("${complete_id}.sam") into mapped_sam
 
@@ -338,8 +348,8 @@ process mapping_hisat{
 
   script:
   """
-  hisat2 -p ${task.cpus} -x ${params.prefix} -1  ${fastq_1} \
-                      -2 ${fastq_2} --known-splicesite-infile ${ss} \
+  hisat2 -p ${task.cpus} -x ${params.prefix} -1   ${fastq_pair[0]}  \
+                      -2  ${fastq_pair[1]}  --known-splicesite-infile ${ss} \
                       --novel-splicesite-outfile ${complete_id}.novel_ss.txt \
                       --downstream-transcriptome-assembly \
                       --time --summary-file ${complete_id}.hisat2_summary.txt \
@@ -358,24 +368,25 @@ process mapping_hisat{
 */
 process sort_bam{
 
+  cpus 12
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
 
   input:
-  set lane,lane_number, dataset_name, dayPostInfection, tissue, sample, complete_id,
+  set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(novel_ss),file(summary),
       file(sam) from mapped_sam
 
   output:
-  set complete_id,lane,lane_number, dataset_name, dayPostInfection, tissue, sample,
+  set complete_id,lane, dataset_name, dayPostInfection, tissue, sample,
       file(summary),
       file(sam), file("${complete_id}.bam")   into (sorted_and_index_bam, sorted_indexed_bams_for_stats, hisat2_bams)
   file("${complete_id}.bam") into sorted_and_index_bam_2
 
   script:
   """
-  samtools sort ${sam} -T $TMPDIR/${complete_id}.tmp  -O bam -o ${complete_id}.bam
+  samtools sort ${sam} -T $TMPDIR/${complete_id}.tmp -@ ${task.cpus} -O bam -o ${complete_id}.bam
   """
 }
 
@@ -408,7 +419,7 @@ if( "${params.umi}" == "true" ){
     label 'big_mem'
 
     input:
-    set complete_id,lane,lane_number, dataset_name, dayPostInfection, tissue, sample,
+    set complete_id,lane, dataset_name, dayPostInfection, tissue, sample,
         file(summary),
         file(sam), file(bam),
         file(unmapped_bam) from unmapped_and_mapped_bams
@@ -568,12 +579,12 @@ process runRSeQC{
 
   script:
   """
-  read_distribution.py -i ${bam} -r ${bed} > ${complete_id}.UMI.f3.q60.read_distribution.txt
-  infer_experiment.py -i ${bam} -r ${bed} > ${complete_id}.infer_experiment.txt
-  junction_annotation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed}
+  read_distribution.py -i ${bam} -r ${bed12} > ${complete_id}.UMI.f3.q60.read_distribution.txt
+  infer_experiment.py -i ${bam} -r ${bed12} > ${complete_id}.infer_experiment.txt
+  junction_annotation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed12}
   bam_stat.py -i ${bam} > ${complete_id}.bam_stat.txt
-  junction_saturation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed} > ${complete_id}.junction_annotation_log.txt
-  inner_distance.py -i ${bam} -o ${complete_id}.rseqc -r ${bed}
+  junction_saturation.py -i ${bam} -o ${complete_id}.rseqc -r ${bed12} > ${complete_id}.junction_annotation_log.txt
+  inner_distance.py -i ${bam} -o ${complete_id}.rseqc -r ${bed12}
   read_duplication.py -i ${bam} -o ${complete_id}.read_duplication
   """
 }
@@ -733,6 +744,7 @@ process gffCompare{
 
 process getHTseqCountMerged{
 
+  cpus 48
   storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
@@ -748,13 +760,14 @@ process getHTseqCountMerged{
   bam_prefix = get_file_name_no_extension(bam.name)
   """
   # Calc the counts for the umi_dedup
-  htseq-count -f bam -r pos -s yes -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+  htseq-count -f bam -r name -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
   """
 }
 
 
 process getHTseqCountRef{
 
+  cpus 48
   storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
@@ -770,36 +783,37 @@ process getHTseqCountRef{
   bam_prefix = get_file_name_no_extension(bam.name)
   """
   # Calc the counts for the umi_dedup
-  htseq-count -f bam -r pos -s yes -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+  htseq-count -f bam -r name -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
   """
 }
-
-
-// I merge the novel with the reference
-params.preliminary_files_dir="${params.dirData}/01_Ebola-RNASeq/01_PreliminaryFiles_rheMac10"
-params.gtf_ref_merged =  "${params.preliminary_files_dir}/gene_annotations/${params.prefix}_and_novel.gtf"
-Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
-
-process getHTseqCountALL{
-
-  storeDir "${params.output_dir}/06_counts_all/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
-
-  input:
-  file gtf from gtfANDnovel.collect()
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(bam),
-      file(bai) from filtered_merged_bams_5
-
-  output:
-  file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsALL_channel
-
-  script:
-  bam_prefix = get_file_name_no_extension(bam.name)
-  """
-  # Calc the counts for the umi_dedup
-  htseq-count -f bam -r pos -s yes -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
-  """
-}
+//
+//
+// // I merge the novel with the reference
+// params.preliminary_files_dir="${params.dirData}/01_Ebola-RNASeq/01_PreliminaryFiles_rheMac10"
+// params.gtf_ref_merged =  "${params.preliminary_files_dir}/gene_annotations/${params.prefix}_and_novel.gtf"
+// Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
+//
+// process getHTseqCountALL{
+//
+//   cpus 48
+//   storeDir "${params.output_dir}/06_counts_all/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//
+//   input:
+//   file gtf from gtfANDnovel.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(bam),
+//       file(bai) from filtered_merged_bams_5
+//
+//   output:
+//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsALL_channel
+//
+//   script:
+//   bam_prefix = get_file_name_no_extension(bam.name)
+//   """
+//   # Calc the counts for the umi_dedup
+//   htseq-count -f bam -r pos -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   """
+// }
 
 
 workflow.onComplete {
