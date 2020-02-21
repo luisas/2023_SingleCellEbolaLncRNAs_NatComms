@@ -1,0 +1,19 @@
+# Create all the chrom names
+chroms=""
+for i in {1..20};do chroms=\${chroms}" chr"\${i};done
+
+n=`samtools view ${bam} -c`
+n_autosomes=`samtools view  ${bam} \${chroms} -c`
+n_chrX=`samtools view  ${bam} chrX -c`
+n_chrY=`samtools view  ${bam} chrY -c`
+n_chrM=`samtools view  ${bam} chrM -c`
+n_EBOV=`samtools view  ${bam} EBOV_Kikwit -c`
+n_chrUn=`samtools view ${bam} | awk '{if(\$3~/chrUn/)print}' | wc -l | awk '{print \$1}'`
+
+echo -e "Total\t"\${n} > ${file_prefix}.n_reads.txt
+echo -e "Autosomes\t"\${n_autosomes} >> ${file_prefix}.n_reads.txt
+echo -e "chrX\t"\${n_chrX} >> ${file_prefix}.n_reads.txt
+echo -e "chrY\t"\${n_chrY} >> ${file_prefix}.n_reads.txt
+echo -e "chrM\t"\${n_chrM} >> ${file_prefix}.n_reads.txt
+echo -e "EBOV\t"\${n_EBOV} >> ${file_prefix}.n_reads.txt
+echo -e "chrUn\t"\${n_chrUn} >> ${file_prefix}.n_reads.txt

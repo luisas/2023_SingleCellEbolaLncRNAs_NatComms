@@ -1,0 +1,23 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Test 
+
+```{r cars}
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+library(rtracklayer)
+gtf <- import(file.path(datadir, "03_novel_lncrnas/03_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue.gtf"))                                                                                       
+gtf[is.na(gtf$gene_name)]$gene_name <- paste(gtf[is.na(gtf$gene_name)]$gene_id, "_unkown", sep = "")                                                                                                        
+gtf[is.na(gtf$transcript_name)]$transcript_name <- paste(gtf[is.na(gtf$transcript_name)]$transcript_id, "_unkown", sep = "")                                                                                
+export(gtf, file.path(datadir, "03_novel_lncrnas/03_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))  
+```
+
+

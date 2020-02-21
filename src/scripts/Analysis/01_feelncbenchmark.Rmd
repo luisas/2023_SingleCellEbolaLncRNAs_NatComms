@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Known ones: Quick benchmark - should be prob put in the end
+```{r results='hide', message=FALSE, warning=FALSE}
+
+library(rtracklayer);
+
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
+
+
+# Predicted lncRNAs against reference lncrnas 
+# Predicted lncRNAs against reference mrnas 
+
+merged_annotated <- import(file.path(datadir, "02_benchmark_feelnc/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/lncrnas/reflnc_vs_predlnc.annotated.gtf"))
+mask_eq <- merged_annotated$class_code == "="  ;  mask_eq[is.na(mask_eq)] <- FALSE
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+known_identified <- (unique(merged_annotated[mask_eq]$transcript_id))
+missed <- setdiff(unique(lncRNAs_ref$transcript_id), known_identified)
+length(unique(known_identified))
+length(unique(missed))
+length(unique(lncRNAs_ref$transcript_id))
+
+# calculate the proportion of the correctly idententified ones
+prop_correctly = (length(known_identified)/(length(known_identified) + length(missed)))*100
+print(paste0("Proportion correclty identified: ", prop_correctly))
+
+
+merged_annotated <- import(file.path(datadir, "02_benchmark_feelnc/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/mrnas/reflnc_vs_predmrna.annotated.gtf"))
+mask_eq <- merged_annotated$class_code == "="  ;  mask_eq[is.na(mask_eq)] <- FALSE
+# comparing the merged one with the reference. unkown, intergenic and intronic transcipts are kept.
+known_identified <- (unique(merged_annotated[mask_eq]$transcript_id))
+missed <- setdiff(unique(lncRNAs_ref$transcript_id), known_identified)
+length(unique(known_identified))
+length(unique(missed))
+length(unique(lncRNAs_ref$transcript_id))
+
+# calculate the proportion of the correctly idententified ones
+prop_correctly = (length(known_identified)/(length(known_identified) + length(missed)))*100
+print(paste0("Proportion correclty identified: ", prop_correctly))
+# How many mrnas are predicted as 
+
+
+```
+

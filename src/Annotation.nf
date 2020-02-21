@@ -19,22 +19,24 @@ params.release = "release98"
 
 // BaseFolders
 params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
+//params.dirData = "/home/luisas/Desktop/cluster/data"
 params.dataset_bam_dir_zyagen = "${params.dirData}/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
-params.dataset_bam_dir_batch = "/gpfs/projects/bsc83/Data/Ebola/00_RawData_links/"
+params.dataset_bam_dir_batch = "${params.dirData}/00_RawData_links/"
 
 params.prefix_data = "/gpfs/projects/bsc83/Data/"
+//params.prefix_data = "/home/luisas/Desktop/cluster/"
 params.rhesus_gtf = "${params.prefix_data}gene_annotation/ensembl_${params.release}/${params.macaque_assembly_name}/*.gtf"
 params.rhesus_genome = "${params.prefix_data}assemblies/ensembl/release-98/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
 
 
 
-params.prefix_rawdata = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/"
+params.prefix_rawdata = "${params.dirData}/00_RawData/"
 params.ebov_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
 params.ebov_gtf = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"
 
 
 // TRAINING DATA
-params.data_folder = "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq"
+params.data_folder = "${params.dirData}/01_Ebola-RNASeq"
 params.known_mrna = "${params.data_folder}/01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas_nochr.gtf"
 params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs_nochr.gtf"
 Channel.fromPath("${params.known_mrna}").set{ known_mrna_channel}
@@ -42,7 +44,7 @@ Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
 
 
 // Here it should not be really changed
-params.output_dir_preliminary = "${params.prefix_data}Ebola/01_Ebola-RNASeq_all/01_PreliminaryFiles_${params.macaque_assembly_name}/"
+params.output_dir_preliminary = "${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_${params.macaque_assembly_name}/"
 params.output_dir_name = "02_RNA-Seq_external"
 params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/${params.output_dir_name}/"
 
@@ -54,10 +56,10 @@ params.strandness = "FR"
 
 
 if( "${params.strandness}" == "FR" ){
-  params.htseq-sense = "yes"
+  params.htseqsense="yes"
 }
 if( "${params.strandness}" == "RF" ){
-  params.htseq-sense = "reverse"
+  params.htseqsense="reverse"
 }
 
 
@@ -81,19 +83,22 @@ if( "${params.strandness}" == "RF" ){
 // I would need to rename all the bams of Batch and Zyagen
 // either rename the files or hardcode channels
 // ---------------------------------
-unmapped_bams_1 = Channel
-                .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")
-                .ifEmpty('bam files directory is empty')
-                .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
-                            it)}
 
-unmapped_bams_2 = Channel
-                .fromPath("${params.dataset_bam_dir_batch}/*.bam")
-                .ifEmpty('bam files directory is empty')
-                .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
-                            it)}
+if( "${params.umi}" == "true" ){
+  unmapped_bams_1 = Channel
+                  .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")
+                  .ifEmpty('bam files directory is empty')
+                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                              it)}
 
-unmapped_bams = unmapped_bams_1.mix(unmapped_bams_2)
+  unmapped_bams_2 = Channel
+                  .fromPath("${params.dataset_bam_dir_batch}/*.bam")
+                  .ifEmpty('bam files directory is empty')
+                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+                              it)}
+
+  unmapped_bams = unmapped_bams_1.mix(unmapped_bams_2)
+}
 // ---------------------------------
 
 params.fastqs  = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/*/Brain/*/*/*.{1,2}.fastq.gz"
@@ -108,7 +113,7 @@ fastqs = Channel.fromFilePairs("${params.fastqs}")
                              it[0].split('_')[1] + "_" +\
                              it[0].split('_')[2] + "_" +\
                              it[0].split('_')[3] + "_" +\
-                             it[0].split('_')[4].split("l")[1],
+                             it[0].split('_')[4],
                              it[1] ) }
 
 
@@ -137,6 +142,7 @@ gtfToGenePred_script_ch = Channel
                       .fromPath("${params.scripts}/gtfToGenePred")
 genePredToBed_script_ch = Channel
                       .fromPath("${params.scripts}/genePredToBed")
+
 
 
 
@@ -315,6 +321,7 @@ process generate_fastqc{
 
 }
 
+
 /*
 * STEP 3.1: Mapping with HISAT.
 * It maps the reads of the generated fastq files
@@ -324,7 +331,7 @@ process generate_fastqc{
 process mapping_hisat{
 
   label 'big_mem'
-  cpus 12
+  cpus 1
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
@@ -659,7 +666,7 @@ process gffCompare2{
   input:
   file merged_gtf from merged_denovo_assmebly
   file reference_gtf from gtfChannel6
-//  val dataset_name from dataset_name_ch2
+// val dataset_name from dataset_name_ch2
 
   output:
   file("merged*") into gff_compare_output_channel2
@@ -742,60 +749,58 @@ process gffCompare{
 // ----------------------------------------
 
 
-process getHTseqCountMerged{
-
-  cpus 48
-  storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
-
-  input:
-  file gtf from merged_de_novo_assembly_4.collect()
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(bam),
-      file(bai) from filtered_merged_bams_3
-
-  output:
-  file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsMerged_channel
-
-  script:
-  bam_prefix = get_file_name_no_extension(bam.name)
-  """
-  # Calc the counts for the umi_dedup
-  htseq-count -f bam -r name -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
-  """
-}
-
-
-process getHTseqCountRef{
-
-  cpus 48
-  storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
-
-  input:
-  file gtf from gtfChannel1.collect()
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(bam),
-      file(bai) from filtered_merged_bams_4
-
-  output:
-  file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsRef_channel
-
-  script:
-  bam_prefix = get_file_name_no_extension(bam.name)
-  """
-  # Calc the counts for the umi_dedup
-  htseq-count -f bam -r name -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
-  """
-}
+// process getHTseqCountMerged{
 //
+//   cpus 8
+//   storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//
+//   input:
+//   file gtf from merged_de_novo_assembly_4.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(bam),
+//       file(bai) from filtered_merged_bams_3
+//
+//   output:
+//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsMerged_channel
+//
+//   script:
+//   bam_prefix = get_file_name_no_extension(bam.name)
+//   """
+//   # Calc the counts for the umi_dedup
+//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   """
+// }
+//
+//
+// process getHTseqCountRef{
+//
+//   cpus 8
+//   storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//
+//   input:
+//   file gtf from gtfChannel1.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(bam),
+//       file(bai) from filtered_merged_bams_4
+//
+//   output:
+//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsRef_channel
+//
+//   script:
+//   bam_prefix = get_file_name_no_extension(bam.name)
+//   """
+//   # Calc the counts for the umi_dedup
+//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   """
+// }
 //
 // // I merge the novel with the reference
-// params.preliminary_files_dir="${params.dirData}/01_Ebola-RNASeq/01_PreliminaryFiles_rheMac10"
-// params.gtf_ref_merged =  "${params.preliminary_files_dir}/gene_annotations/${params.prefix}_and_novel.gtf"
+// params.gtf_ref_merged =  "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq_all/03_novel_lncrnas/00_gtf_external/rheMac10_EBOV-Kikwit_and_novel.gtf"
 // Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
 //
 // process getHTseqCountALL{
 //
-//   cpus 48
+//   cpus 24
 //   storeDir "${params.output_dir}/06_counts_all/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 //
 //   input:
@@ -811,7 +816,7 @@ process getHTseqCountRef{
 //   bam_prefix = get_file_name_no_extension(bam.name)
 //   """
 //   # Calc the counts for the umi_dedup
-//   htseq-count -f bam -r pos -s ${params.htseq-sense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
 //   """
 // }
 

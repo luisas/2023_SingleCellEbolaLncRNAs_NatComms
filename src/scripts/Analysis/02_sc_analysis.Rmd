@@ -1,0 +1,527 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE,results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(scater)
+library(SingleCellExperiment)
+library(purrr)
+library(stringr)
+library(mvoutlier)
+library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+
+source("utils/sc_utils.R")
+source("utils/de_utils.R")
+```
+
+## Single Cell Analysis
+
+------------------------
+  Create Seurat Objects
+------------------------
+
+I import the data and merge them into one single Seurat object to proceed with the analysis.
+
+```{r cars}
+# Load the PBMC dataset
+data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_scRNA-Seq_complete/01_digital_expression/"
+files <- iterate_files(data_dir, ".dge.txt.gz")
+
+files_reads <- files[str_detect(files, "reads" )]
+files_umis <- files[!str_detect(files, "reads" )]
+
+# ----------------------
+# Obtain Seurat Objects 
+# ----------------------
+get_Seurat_object <- function(file){
+  pbmc.data <- read.table(file = file, header = TRUE, row.names = 1)
+  proj <-str_replace_all(str_replace_all(unlist(rev(unlist(str_split(file, pattern= "/"))[-1])[[1]]), "_", "-"), ".dge.txt.gz", "")
+  proj <- str_sub(proj, 1, str_length(proj)-3)
+  pbmc <- CreateSeuratObject(pbmc.data, project = proj, min.cells = 3, min.features = 200)
+  return(pbmc)
+}
+
+# Umis 
+# all matrices files from single cell, still separated per lane
+list <- map(files_umis[2:length(files_umis)], get_Seurat_object)
+pbmc <- get_Seurat_object(files_umis[1])
+list_names <- lapply(files_umis, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
+
+# -------------
+#   Merge
+# -------------
+# Merge all seurats object in one 
+pbmc.big <- merge(pbmc, y = list, add.cell.ids = list_names, project = "PBMCbig")
+# Check if all ids available
+unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
+table(pbmc.big$orig.ident)
+
+saveRDS(pbmc.big, "results/seurat_object_tagsdylan.rds")
+```
+##----------------------------
+##           Cell QC 
+##----------------------------  
+```{r pressure, results='hide', message=FALSE, warning=FALSE}
+pbmc.big <- readRDS("results/seurat_object_tagsdylan.rds")
+pbmc.big <- pbmc
+pbmc_sc <- as.SingleCellExperiment(pbmc.big)
+pbmc_sc <- calculateQCMetrics(pbmc_sc)
+
+# Library size
+lib_size_hist <- plot_histogram(
+  sce = pbmc_sc, 
+  qc_metric = "total_counts", 
+  title = "Library Size (total UMI)", 
+  log_scale = FALSE
+)
+
+# Number of detected genes
+n_detec_hist <- plot_histogram(
+  sce = pbmc_sc, 
+  qc_metric = "total_features_by_counts", 
+  title = "Number of detected genes", 
+  log_scale = FALSE
+)
+
+
+lsizeplot <- lib_size_hist +
+  geom_vline(xintercept = c(500, 10000), linetype = "dashed", color = "red")+ xlim(0,2000)
+ndectplot <- n_detec_hist +
+  geom_vline(xintercept = c(500, 2000), linetype = "dashed", color = "red")
+
+lsizeplot
+ndectplot
+```
+# Filtering 
+
+```{r}
+pbmc <- pbmc_sc
+keep_cells <-
+  pbmc$total_counts > 500 & pbmc$total_counts < 10000 &
+  pbmc$total_features_by_counts > 500 & pbmc$total_features_by_counts < 2000 
+table(keep_cells)
+```
+
+
+Filter cells:
+
+```{r}
+pbmc <- pbmc[, keep_cells]
+saveRDS(pbmc, "results/pbmc_dylan_after_cellqc.rds")
+```
+
+##----------------------------
+##           Gene QC 
+##----------------------------  
+Let us compute the number of cells that each gene has at least 1 UMI:
+
+```{r}
+n_cells <- rowSums(as.matrix(counts(pbmc)) > 0)
+gene_qc_gg <- n_cells %>% 
+  as.data.frame() %>% 
+  ggplot(aes(n_cells)) + 
+    geom_histogram(bins = 100, alpha = 0.75) +
+    scale_x_log10("log10(Number of cells)") +
+    theme_bw() 
+gene_qc_gg +
+  geom_vline(xintercept = log10(15), linetype = "dashed", color = "red")
+```
+
+We see two peaks, the firt one of which corresponds to lowly expressed genes. As explained in [Luecken MD et al.](https://www.embopress.org/doi/pdf/10.15252/msb.20188746): "a guideline to setting this threshold is to use the minimum cell cluster size that is of interest and leaving some leeway for dropout effects". As we will not rely on clusters that have fewer than 15 cells, we will use it as a filter:
+
+```{r}
+pbmc <- pbmc[n_cells > 15, ]
+table(pbmc$orig.ident)
+saveRDS(pbmc, "results/dylan_afterqc.rds")
+```
+
+##-------------------------------------------------------------------------------
+##    Doublet Detection 
+##-------------------------------------------------------------------------------
+lets try a different doublet detection approach
+```{r cars}
+pbmc <- readRDS("results/dylan_afterqc.rds")
+sce <- pbmc
+dbl.dens <- doubletCells(sce, d=ncol(reducedDim(sce)))
+
+summary(dbl.dens)
+pbmc$DoubletScore <- dbl.dens
+plotTSNE(pbmc, colour_by="DoubletScore")
+plotColData(pbmc, x="Cluster", y="DoubletScore", colour_by="Cluster")
+
+```
+
+```{r cars}
+library(reshape2)
+pbmc <- readRDS("results/dylan_afterqc.rds")
+pbmc <- as.Seurat(pbmc)
+# Extract count matrix
+m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
+dim(m)
+sparse.gbm <- Matrix(m , sparse = T )
+head(sparse.gbm)
+writeMM(obj = sparse.gbm, file="/home/luisas/Desktop/sparse.mtx")
+```
+
+# Scrublet in Python
+
+```{r cars}
+cell_mask_scrublet <- read.table("/home/luisas/Desktop/predicted_doublet_mask.txt")
+doublet_scores_scrublet <- read.table("/home/luisas/Desktop/predicted_doublet_scores.txt")
+
+table(cell_mask_scrublet)
+list <- as.list(as.character(cell_mask_scrublet$V1))
+mask <- list == "True"
+new <- pbmc[,!mask]
+new <- as.Seurat(new)
+table(mask)
+saveRDS(new, "results/dylan_afterscrublet.rds")
+```
+
+##-------------------------------------------------------------------------------
+##                         Stimulated data analysis 
+##-------------------------------------------------------------------------------
+```{r cars}
+pbmc <- readRDS("results/dylan_afterscrublet.rds")
+pbmc <- as.Seurat(pbmc)
+sce <- as.SingleCellExperiment(pbmc)
+
+## Add condition 
+pbmc$cond <- unlist(lapply(pbmc$orig.ident, function(x) unlist(str_split(x, "-")[[1]][2])))
+table(pbmc$cond)
+pbmc$hour <- unlist(lapply(pbmc$orig.ident, function(x) rev(str_split(x, "-")[[1]])[1]))
+table(pbmc$hour)
+pbmc$sample <- unlist(lapply(pbmc$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][2]),rev(str_split(x, "-")[[1]])[1])))
+table(pbmc$sample)
+
+pbmc <- NormalizeData(object = pbmc)
+pbmc <- FindVariableFeatures(object = pbmc)
+pbmc <- ScaleData(object = pbmc)
+pbmc <- RunPCA(object = pbmc)
+pbmc <- FindNeighbors(object = pbmc)
+pbmc <- FindClusters(object = pbmc)
+pbmc <- RunTSNE(object = pbmc)
+
+saveRDS(pbmc, "results/pbmc_processed_test.rds")
+pbmc <- readRDS("results/pbmc_processed_test.rds")
+
+pbmc <- RunUMAP(pbmc, reduction = "pca", dims = 1:30)
+DimPlot(pbmc, reduction = "umap", group.by = "sample")
+DimPlot(pbmc, reduction = "umap", group.by = "cond")
+DimPlot(pbmc, reduction = "umap", group.by = "hour")
+DimPlot(pbmc, reduction = "umap", group.by = "sample")
+DimPlot(pbmc, reduction = "umap", label = TRUE)
+
+
+# References
+# Check for expression of LncRNAs
+
+library(rtracklayer)
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+
+lnc_ref_id <- unique(ref$gene_name[ref$gene_biotype == "lncRNA"])
+
+# Check number of gene in reference
+length(unique(lncRNAs_ref$gene_id[grepl("ribodepl*", lncRNAs_ref$gene_id)]))
+length(unique(lncRNAs_ref$gene_id[grepl("polya*", lncRNAs_ref$gene_id)]))
+length(unique(lncRNAs_ref$gene_id[grepl("E*", lncRNAs_ref$gene_id)]))
+dim(pbmc)
+
+
+# --------------------
+#     lncRNAs
+#--------------------
+table(grepl("ribodepl*",rownames(pbmc)))
+# Select rownames which are lncrnas according to the reference 
+mask <- unlist(lapply(rownames(pbmc), function(x) any(grepl(str_split(x,"--",simplify = TRUE)[1], lnc_ref_id) == TRUE ) ))
+table(mask)
+# extract expression of the lncrnas only 
+expr <- FetchData(pbmc, rownames(pbmc[mask,]))
+lnc <- WhichCells(pbmc, cells = colnames(pbmc[, which(x = expr > 4)]))
+length(lnc)
+DimPlot(pbmc, label=F, cells.highlight= list(lnc), cols.highlight = c("darkblue"), cols= "grey")+ 
+  scale_color_manual(labels = c(" - ", "lncRNAs expressed"), values = c("grey", "red")) +
+  labs(title = "Cells expressing lncRNAs")
+
+# --------------------
+#     EbolaGenes
+#--------------------
+rownames(pbmc[grepl("VP.*", rownames(pbmc))])
+expr <- FetchData(pbmc, rownames(pbmc[grepl("VP30-unkown", rownames(pbmc))]))
+
+g1 <- WhichCells(pbmc, cells = colnames(pbmc[, which(x = expr > 1)]))
+DimPlot(pbmc, label=F, cells.highlight= list(g1), cols.highlight = c("darkblue"), cols= "grey")+ 
+  scale_color_manual(labels = c(" - ", "lncRNAs expressed"), values = c("grey", "red")) +
+  labs(title = "Cells expressing ebola Genes")
+```
+
+
+# ---- Integration
+
+```{r cars}
+pbmc <- readRDS("results/dylan_afterscrublet.rds")
+sce <- as.SingleCellExperiment(pbmc)
+
+## Add condition 
+pbmc$cond <- unlist(lapply(pbmc$orig.ident, function(x) unlist(str_split(x, "-")[[1]][2])))
+table(pbmc$cond)
+pbmc$hour <- unlist(lapply(pbmc$orig.ident, function(x) rev(str_split(x, "-")[[1]])[1]))
+table(pbmc$hour)
+pbmc$sample <- unlist(lapply(pbmc$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][2]),rev(str_split(x, "-")[[1]])[1])))
+table(pbmc$sample)
+
+all_genes <- rownames(pbmc)
+
+# --------------------------------------
+#           Integration 
+# --------------------------------------
+
+pbmc <- SplitObject(pbmc, split.by = "sample")
+
+pbmc <- lapply(X = pbmc, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, nfeatures = 10000)
+})
+
+# Find Anchors btw objects
+immune.anchors <- FindIntegrationAnchors(object.list = pbmc, dims = 1:30)
+saveRDS(immune.anchors, "results/anchors_30pca.rds")
+
+immune.anchors <- readRDS("results/anchors_30pca.rds")
+ # Combne into one object
+immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:30, features = all_genes )
+DefaultAssay(immune.combined) <- "integrated"
+length(rownames(pbmc))
+immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+# t-SNE and Clustering
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+saveRDS(immune.combined, "results/immune_combined_dylan_30pca.rds")
+
+# --------------------------------------------------------
+# Check if Integration worked well 
+immune.combined <- readRDS("results/immune_combined_dylan_20pca_500genesfilter_done.rds")
+dim(immune.combined)
+p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "cond")
+p5 <- DimPlot(immune.combined, reduction = "umap", group.by = "hour")
+p6 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample")
+p7 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)
+p7
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
+```
+
+Identify Markers 
+
+# ENSMMUG00000047772--CD79A:  B cells 
+
+```{r cars}
+# Check the ones without integration for the moment 
+immune.combined <- readRDS("results/pbmc_processed_test.rds")
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:4)
+saveRDS(immune.combined, "results/pbmc_processed_test.rds")
+
+DefaultAssay(immune.combined) <- "RNA"
+# find markers for every cluster compared to all remaining cells, report only the positive ones
+pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+saveRDS(pbmc.markers, "results/markers.rds")
+pbmc.markers <- readRDS("results/markers.rds")
+pbmc.markers %>% group_by(cluster) %>% top_n(n = 6, wt = avg_logFC)
+
+# Visualize the clusters
+DimPlot(immune.combined, reduction = "umap",  label = T)
+
+FeaturePlot(immune.combined, features = myeoblast_after, min.cutoff = "q9")
+
+# 4 CREM CD4memtcell 
+# 1 ENSMMUG00000023256--LEF1 CD8 T cell 
+# Visualize marker genes
+tcell <- c("ENSMMUG00000022508--CREM", "ENSMMUG00000023256--LEF1", "ENSMMUG00000038615--TRIB2", "ENSMMUG00000003564--ITM2A", "ENSMMUG00000042238--CCR5")
+nkcell <- c("ENSMMUG00000047204--GNLY", "ENSMMUG00000014381--GZMB", "ENSMMUG00000020171--GZMK")
+bcell <- c("ENSMMUG00000001260--MS4A1", "ENSMMUG00000006880--CD19", "ENSMMUG00000020289--CD83", "ENSMMUG00000047772--CD79A")
+neutrophil <- c("ENSMMUG00000042371--PPBP")
+monocyte <- c("ENSMMUG00000012648--GPNMB")
+
+myeoblast_after <- c("ENSMMUG00000028947--CFD", "ENSMMUG00000018454--MNDA", "ENSMMUG00000042751--IL1B")
+
+plot_genes <- function(immune.combined, tcell){
+  mask <- unlist(lapply(rownames(immune.combined), function(x) any(grepl(x, tcell) == TRUE ) ))
+  expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
+  g1 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x = expr > 3)]))
+  DimPlot(immune.combined, label=F, cells.highlight= list(g1), cols.highlight = c("darkblue"), cols= "grey")+ 
+    scale_color_manual(labels = c(" - ", "subset"), values = c("grey", "darkblue")) +
+    labs(title = "Cells expressing subset Genes")
+}
+
+plot_genes(immune.combined, tcell)
+plot_genes(immune.combined, nkcell)
+plot_genes(immune.combined, bcell)
+plot_genes(immune.combined, neutrophil)
+plot_genes(immune.combined, myeoblast_after)
+dim(immune.combined)
+```
+
+
+
+```{r cars}
+
+# MX2 granulocytes 
+library(ggplot2)
+library(cowplot)
+theme_set(theme_cowplot())
+t.cells <- subset(immune.combined, idents = 11)
+Idents(t.cells) <- "cond"
+avg.t.cells <- log1p(AverageExpression(t.cells, verbose = FALSE)$RNA)
+avg.t.cells$gene <- rownames(avg.t.cells)
+
+
+
+rowData(t.cells)
+
+genes.to.label = c("ISG15", "LY6E", "IFI6", "ISG20", "MX1", "IFIT2", "IFIT1", "CXCL10", "CCL8")
+p1 <- ggplot(avg.t.cells, aes(irrad, live)) + geom_point() + ggtitle("Myeloid")
+p1 <- LabelPoints(plot = p1, points = genes.to.label, repel = TRUE)
+p1
+p2 <- ggplot(avg.cd14.mono, aes(CTRL, STIM)) + geom_point() + ggtitle("CD14 Monocytes")
+p2 <- LabelPoints(plot = p2, points = genes.to.label, repel = TRUE)
+plot_grid(p1, p2)
+
+immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$cond, sep = "_")
+immune.combined$celltype <- Idents(immune.combined)
+Idents(immune.combined) <- "celltype.stim"
+b.interferon.response <- FindMarkers(immune.combined, ident.1 = "11_media", ident.2 = "11_live", verbose = FALSE)
+head(b.interferon.response, n = 15)
+
+```
+
+
+
+
+
+
+# -------------------------------------------
+
+
+### Identify highly expressed genes
+As a validation, let us check whether the highest expressed genes are housekeeping genes like ACTB:
+
+```{r}
+plotHighestExprs(immune.combined)
+```
+
+# Normalization
+To normalize for differences in library size and RNA composition, we will use the `scran` package:
+
+```{r}
+library(scran)
+pbmc <- computeSumFactors(pbmc)
+summary(sizeFactors(pbmc))
+pbmc <- normalize(pbmc)
+assays(pbmc)
+logcounts(pbmc)[1:6, 1:6]
+plot(sizeFactors(pbmc) ~ pbmc$total_counts)
+```
+
+## Save
+
+```{r}
+saveRDS(pbmc, "results/external_dataset_SCE.rds")
+```
+
+# Seurat
+
+```{r}
+
+# Seurat pre-processing pipeline
+pbmc_seu <- FindVariableFeatures(immune.combined)
+pbmc_seu <- ScaleData(pbmc_seu)
+pbmc_seu <- RunPCA(pbmc_seu)
+ElbowPlot(pbmc_seu)
+pbmc_seu <- FindNeighbors(pbmc_seu, reduction = "pca", dims = 1:4)
+pbmc_seu <- FindClusters(pbmc_seu, resolution = 0.1)
+pbmc_seu <- RunUMAP(pbmc_seu, reduction = "pca", dims = 1:4)
+pbmc_seu <- RunTSNE(pbmc_seu, dims = 1:4)
+
+DimPlot(pbmc_seu, reduction = "umap")
+
+DefaultAssay(pbmc_seu) <- "RNA"
+markers <- FindAllMarkers(
+  pbmc_seu, 
+  features = pbmc_seu@assays$RNA@var.features, 
+  min.pct = 0.25
+)
+
+library(dplyr)
+map(unique(markers$cluster), function(k) {
+  markers %>% 
+    dplyr::filter(cluster == k) %>% 
+    head(30) %>% 
+    select("cluster", "gene", "avg_logFC")
+})
+# Plot markers 
+
+
+markers.to.plot <- c("ENSMMUG00000020171--GZMK", "ENSMMUG00000006222--ITM2C")
+DotPlot(immune.combined, features = rev(markers.to.plot), cols = c("blue", "red", "green"), dot.scale = 8) + RotatedAxis()
+# Save Seurat
+saveRDS(pbmc_seu, "results/external_dataset_Seurat.rds")
+pbmc_seu <- readRDS("results/external_dataset_Seurat.rds")
+```
+
+Find markers:
+
+```{r}
+markers <- FindAllMarkers(
+  pbmc_seu, 
+  features = pbmc_seu@assays$RNA@var.features, 
+  min.pct = 0.25
+)
+
+library(dplyr)
+map(unique(markers$cluster), function(k) {
+  markers %>% 
+    dplyr::filter(cluster == k) %>% 
+    head(30) %>% 
+    select("cluster", "gene", "avg_logFC")
+})
+```
+
+Judging by the previous markers, we can annotate the clusters as follows:
+
+Cluster ID | Markers       | Cell Type
+-----------|---------------|----------
+0          | IL7R          | CD4 T cells
+2          | GNLY, NKG7    | Natural Killer (NK)
+3          | LYZ, S100A8   | CD14+ Monocytes
+4          | MS4A1  | B cells
+
+We can visualize these markers in UMAP space:
+
+```{r}
+clust_markers <- c("ENSMMUG00000001260--MS4A1", "ENSMMUG00000001676--IL7R", "ENSMMUG00000047204--GNLY", "ENSMMUG00000008987--LYZ")
+FeaturePlot(pbmc_seu, features = clust_markers, reduction = "umap")
+```
+
+Finally, we can label clusters to its cell type:
+
+```{r}
+new_cluster_ids <- c("CD4 T", "NK", "CD14+ Mono",  "B")
+names(new_cluster_ids) <- levels(pbmc_seu)
+pbmc_seu <- RenameIdents(pbmc_seu, new_cluster_ids)
+DimPlot(pbmc_seu, reduction = "umap")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

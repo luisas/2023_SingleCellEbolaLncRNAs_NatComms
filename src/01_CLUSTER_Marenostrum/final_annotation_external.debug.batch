@@ -18,6 +18,7 @@ module load singularity/3.2.0
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/Annotation.nf \
                   --strandness "RF" \
                   --umi "false" \
+                  --output_dir_name "02_RNA-Seq_external" \
                   --fastqs "/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/*/*/*/*/*.{1,2}.fastq.gz" \
                   -w /gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq/work/ \
                   -c ../nextflow.config.rnaseq

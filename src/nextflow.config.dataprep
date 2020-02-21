@@ -1,7 +1,0 @@
-process{
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseq.simg'
-}
-
-singularity {
-    enabled = true
-}

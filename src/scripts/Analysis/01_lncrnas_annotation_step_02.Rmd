@@ -1,0 +1,191 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/10/2020"
+output: html_document
+---
+
+# After computing the expression(HTSeqCount), selects the novel expressed ones in both dataset.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
+library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
+library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
+
+# Reused paths
+projdir = "/home/luisas/Desktop/cluster/proj/data/"
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+assemblies <- "/home/luisas/Desktop/cluster/assemblies"
+
+# Import Utils 
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
+
+
+# Human training set
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
+lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
+
+# The lncRNAs and mRNAs in the reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# ---------------------
+#     RiboDepleted
+# ---------------------
+
+# -----------------
+# Feelnc output files
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+
+#dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+#dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
+batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
+zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
+htseq_files_ref <- c(batch,zyagen)
+
+palette_expression <-c( "#E9A3C9","#F4E3ED", "#E6F5D0")
+
+# Export the novel Concordant 
+novel_concordant <- import(file.path(datadir,"03_novel_lncrnas/00_all_novels/novel_rhemac10_concordant_ribodepleted.gtf"))
+
+# -----------------
+# Expression Levels ( filter and plot )
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+# Create dataframe w/ logcpms
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+## ADD only if we want to select a certain tissue
+#expression_logcpm <- expression_logcpm[,str_detect(colnames(expression_logcpm), "Liver")]
+# select only when > than 1 at least 3 tissues
+mask<- rowSums(as.data.frame(expression_logcpm) > 1) > 2
+expression_logcpm <- expression_logcpm[mask,]
+
+# Plotting
+max_expression <- data.frame(id=rownames(expression_logcpm), expr=rowMax(expression_logcpm))
+
+lncnras_expressed_ribodepl <- unique(lncRNAs_ref[lncRNAs_ref$gene_id %in% max_expression$id]$gene_id)
+mrnas_expressed_ribodepl <- unique(mRNAs_ref[mRNAs_ref$gene_id %in% max_expression$id]$gene_id)
+
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, novel_concordant$gene_id, "novel")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "lncrna")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mrna")
+max_expression <- max_expression[!max_expression$type == "0",]
+
+length(unique(novel_concordant[novel_concordant$gene_id %in% max_expression$id]$gene_id))
+length(unique(lncRNAs_ref[lncRNAs_ref$gene_id %in% max_expression$id]$gene_id))
+length(unique(mRNAs_ref[mRNAs_ref$gene_id %in% max_expression$id]$gene_id))
+
+plot_expression(max_expression)
+
+
+novel_expressed_ribodepleted <- novel_concordant[novel_concordant$gene_id %in% max_expression$id]
+
+print(paste("Novel Genes riboDepleted: ",length(unique(novel_expressed_ribodepleted$gene_id))))
+print(paste("Novel Transcripts ribodepleted: ",length(unique(novel_expressed_ribodepleted$transcript_id))))
+
+length(unique(novel_expressed_ribodepleted$transcript_id))
+length(unique(novel_expressed_ribodepleted$gene_id))
+
+#------------------
+#       Save 
+# -----------------
+export(novel_expressed_ribodepleted, file.path(datadir, "03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"))
+
+plot_stats_annotation(novel_expressed_ribodepleted,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref )
+plot_stats_annotation(remove_one_exon(novel_expressed_ribodepleted),remove_one_exon(lncRNAs_ref),remove_one_exon(lncRNAs_ref_human), remove_one_exon(mrna_ref_human), remove_one_exon(mRNAs_ref))
+
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# ---------------------
+#    PolyA
+# ---------------------
+
+
+# -----------------
+# Feelnc output files
+candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
+lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_external/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".HTseq.gene_counts.tab")
+one <- htseq_files_ref[str_detect(htseq_files_ref, "RhesusmacaqueChinese")]
+two <- htseq_files_ref[str_detect(htseq_files_ref, "SRP016501-rhesus")]
+htseq_files_ref <- c(one,two)
+
+novel_concordant <- import(file.path(datadir,"03_novel_lncrnas/00_all_novels/novel_rhemac10_concordant_polyA.gtf"))
+
+
+
+# -----------------
+# Expression Levels ( filter and plot )
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+# Create dataframe w/ logcpms
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+colnames(expression_logcpm)
+## ADD only if we want to select a certain tissue
+#expression_logcpm <- expression_logcpm[,str_detect(colnames(expression_logcpm), "Liver")]
+#expression_logcpm
+
+# select only when > than 1 at least 3 tissues
+mask<- rowSums(as.data.frame(expression_logcpm) > 1) > 2
+table(mask)
+expression_logcpm <- expression_logcpm[mask,]
+
+# Plotting
+max_expression <- data.frame(id=rownames(expression_logcpm ), expr=rowMax(expression_logcpm))
+
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, novel_concordant$gene_id, "novel")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "lncrna")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mrna")
+
+max_expression <- max_expression[!max_expression$type == "0",]
+
+length(unique(novel_concordant[novel_concordant$gene_id %in% max_expression$id]$gene_id))
+length(unique(lncRNAs_ref[lncRNAs_ref$gene_id %in% max_expression$id]$gene_id))
+length(unique(mRNAs_ref[mRNAs_ref$gene_id %in% max_expression$id]$gene_id))
+
+lncnras_expressed_polyA <- unique(lncRNAs_ref[lncRNAs_ref$gene_id %in% max_expression$id]$gene_id)
+mrnas_expressed_polyA <- unique(mRNAs_ref[mRNAs_ref$gene_id %in% max_expression$id]$gene_id)
+
+head(max_expression)
+plot_expression(max_expression)
+
+novel_expressed_polyA <- novel_concordant[novel_concordant$gene_id %in% max_expression$id]
+length(unique(novel_expressed_polyA$gene_id))
+
+length(unique(novel_expressed_polyA$transcript_id))
+length(unique(novel_expressed_polyA$gene_id))
+
+
+# ---------------
+#       Save
+# ---------------
+export(novel_expressed_polyA, file.path(datadir, "03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"))
+
+plot_stats_annotation(novel_expressed_polyA,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref )
+plot_stats_annotation(remove_one_exon(novel_expressed_polyA),remove_one_exon(lncRNAs_ref),remove_one_exon(lncRNAs_ref_human), remove_one_exon(mrna_ref_human), remove_one_exon(mRNAs_ref))
+
+
+print(paste("Novel Genes polyA: ",length(unique(novel_expressed_polyA$gene_id))))
+print(paste("Novel Transcripts polyA: ",length(unique(novel_expressed_polyA$transcript_id))))
+```

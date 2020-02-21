@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowannotationPipeline
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=48
+#SBATCH --exclusive
+#SBATCH --qos=debug
+
+
+
+module load nextflow
+module load java
+module load curl
+module load singularity
+
+module load fasta_ushuffle/7e4cd85 R/3.6.1 perl/5.26 kmerinshort/1.0.1
+module load feelnc
+module load bedtools
+
+
+srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/lncRNAannotation.nf

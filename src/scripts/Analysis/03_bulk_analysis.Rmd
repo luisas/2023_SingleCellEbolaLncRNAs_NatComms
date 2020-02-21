@@ -1,0 +1,229 @@
+---
+title: "DE_bulk"
+author: "Luisa Santus"
+date: "12/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(sva); library(edgeR)
+library("genefilter")
+library("gplots")
+library(plyr)
+library(geneplotter)
+
+# ----------------------------------
+#           Import Utils 
+# ----------------------------------
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"de_utils.R"))
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
+batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
+zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
+#htseq_files_ref <- c(batch,zyagen)
+htseq_files_ref <- batch
+
+dds <- create_dds(htseq_files_ref,dir_counts_ref)
+# Retain only blood and liver
+dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
+dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
+assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, prior.count=0.5)
+```
+
+```{r cars}
+# ----------------------------------------
+#         Remove lowly expressed genes 
+# ----------------------------------------
+mask <- rowSums(edgeR::cpm(dge) > 0) > 1
+dds.filt <- dds[mask, ]
+dge.filt <- dge[mask, ]
+
+# Plot 
+multidensity(as.list(as.data.frame(assays(dds.filt)$logCPM)), xlab = "log2 CPM", legend = NULL,
+             main = "After Filtering", cex.axis = 0.7,  las = 1)
+
+multidensity(as.list(as.data.frame(assays(dds)$logCPM)), xlab = "log2 CPM", legend = NULL,
+             main = "Before filtering", cex.axis = 0.7,  las = 1)
+
+# How many lncRNAs I am retaining 
+
+retained_lncRNAs_proportion <- length(rownames(dds.filt)[rownames(dds.filt) %in% lncRNAs_ref$gene_id])/length(unique(lncRNAs_ref$gene_id))*100
+lost_lncRNAs_proportion <- 100-retained_lncRNAs_proportion
+sprintf("Retained lncRNAs %s%s", retained_lncRNAs_proportion, "%")
+sprintf("Lost lncRNAs %s%s", lost_lncRNAs_proportion, "%")
+
+```
+
+## Normalization
+
+Since different samples may have different RNA compositions and this could be problematic for further analyses we need to take it into account and normalize the data.
+We estimate a normalization factor for each library using the Trimmed Mean of M-Values and apply it to our data.
+
+```{r}
+dds <- dds.filt
+dge <- dge.filt
+
+boxplot(assays(dds)$logCPM , col = "pink", las=2, main="", names = dds$id)
+title(main="Before Normalization ",ylab="Log-cpm")
+
+dge <- calcNormFactors(dge) 
+assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, normalized.lib.sizes=TRUE, prior.count=0.25)
+
+
+boxplot(assays(dds)$logCPM , col = "pink", las=2, main="" , names = dds$id)
+title(main="After Normalization ",ylab="Log-cpm")
+
+```
+
+```{r cars}
+
+# ---------------------------------------
+#           Add Metadata
+#-----------------------------------------
+# Read metadata 
+projdir = "/home/luisas/Desktop/cluster/data/"
+metadata <- read.csv(file.path(projdir, "00_Metadata/batch_metadata.csv"), header = FALSE)
+colnames(metadata) <- c("id", "gender", "weight", "birthday", "Type")
+# Add metadata 
+dds$infection <-ifelse(as.double(sub("D", "", dds$dpo))>0, "infected", "not-infected")
+dds$gender <- metadata$gender[match(dds$id, metadata$id)]
+dds$birthyear <- as.double(str_sub(metadata$birthday, -4))[match(dds$id,metadata$id)]
+dds$weight <- as.double(metadata$weight)[match(dds$id,metadata$id)]
+
+colnames(dds) <- dds$complete_id
+# Order the levels
+dds$infection <- factor(dds$infection, levels = c("infected","not-infected"), ordered = TRUE )
+dds$gender <- factor(dds$gender, levels = c("Female","Male"), ordered = TRUE )
+dds$birthyear <- factor(dds$birthyear, levels = c("2011","2012"), ordered = TRUE )
+
+dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
+#mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), main=" samples on genes CPM", top=50,  gene.selection="common")
+
+```
+
+
+```{r cars}
+# Mixed model!!! sample id!!!
+target <- colData(dds)
+# I remove DPO because it makes the matrix not full rank!
+design <- model.matrix(~factor(infection)+ factor(tissue)+ factor(birthyear)+ factor(gender), target) 
+is.fullrank(design)
+v <- voom(dge, design, plot=TRUE)
+cor <- duplicateCorrelation(v, design, block = target$id)
+v <- voom(dge, design, plot = TRUE, block = target$id, correlation = cor$consensus)
+fit5 <- lmFit(v, design, block = target$id, correlation = cor$consensus)
+
+FDRcutoff=0.05
+fit5 <- eBayes(fit5)
+res5 <- decideTests(fit5, p.value = FDRcutoff)
+tt5 <- topTable(fit5, coef = 2, n = Inf)
+
+DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
+length(DEgenes5)
+
+top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
+```
+
+```{r}
+# Plot the top 300 differentially expressed genes 
+
+dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
+colnames(dds) <- dds$dpo 
+matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
+
+heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
+     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
+     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+
+
+```
+
+
+```{r}
+# Plot the top 300 differentially expressed genes 
+
+# Long non coding in reference macaque 
+lncRNAs_ref$gene_id
+lnc_de <-DEgenes5[DEgenes5 %in% lncRNAs_ref$gene_id]
+length(lnc_de)
+matrixDE <- assay(dds)[ lnc_de, ][, order(as.integer(colnames(assay(dds)[ lnc_de, ])))]
+
+heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
+     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
+     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+```
+
+```{r}
+library(org.Hs.eg.db)
+library(GSVAdata)
+library(GSVA)
+data(c2BroadSets)
+gsc <- GeneSetCollection(c2BroadSets)
+length(gsc) # number of gene sets in the collection
+head(names(gsc)) # some of the gene sets in the collection
+gsc <- gsc[c(grep("^KEGG", names(gsc)),
+grep("^REACTOME", names(gsc)), grep("^BIOCARTA", names(gsc)))]
+
+gsc <- mapIdentifiers(gsc, AnnoOrEntrezIdentifier(rownames(dds)))
+gsc
+Im <- incidence(gsc)
+dim(Im)
+Im[1:2, 1:10]
+Im <- Im[rowSums(Im) >= 5, ]
+tGSgenes <- DEgenes5[match(colnames(Im),DEgenes5), "t"] # calculate all t-statistics for genes in each gene set
+zS <- sqrt(rowSums(Im)) * (as.vector(Im %*% tGSgenes)/rowSums(Im)) # calculating Zscore statistic
+length(zS)
+head(zS, n=10)
+```
+
+
+
+```{r}
+# Mixed model!!! sample id!!!
+dge_lnc <- dge[unlist(dge$genes) %in% lncRNAs_ref$gene_id,]
+
+# Mixed model!!! sample id!!!
+target <- colData(dds)
+# I remove DPO because it makes the matrix not full rank!
+design <- model.matrix(~factor(infection)+ factor(tissue)+ factor(birthyear)+ factor(gender), target) 
+is.fullrank(design)
+v <- voom(dge_lnc, design, plot=TRUE)
+cor <- duplicateCorrelation(v, design, block = target$id)
+v <- voom(dge_lnc, design, plot = TRUE, block = target$id, correlation = cor$consensus)
+fit5 <- lmFit(v, design, block = target$id, correlation = cor$consensus)
+
+FDRcutoff=0.05
+fit5 <- eBayes(fit5)
+res5 <- decideTests(fit5, p.value = FDRcutoff)
+tt5 <- topTable(fit5, coef = 2, n = Inf)
+
+DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
+length(DEgenes5)
+
+top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
+
+dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
+colnames(dds) <- dds$dpo 
+matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
+
+heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
+     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
+     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+```
+
+
+
+
