@@ -1,5 +1,458 @@
 # This file contains all the function definition used throughout this project
 # They are sorted in the exact same order they are used in the analysis notebooks
+library(data.table);library(dplyr); library(Seurat); library(Matrix); library(scater)
+library(SingleCellExperiment); library(purrr); library(stringr); library(mvoutlier)
+library(dropbead); library(scater); library(stringr); library(scran); library(cowplot)
+library(rtracklayer); library(org.Mmu.eg.db); library(graphics); library(RCy3); library(ggsci)
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+#                           SC GENERAL PATTERNS
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
+# ----------- Donut plots
+donut_plot <- function(data, palette = "PuRd"){
+  # Compute percentages
+  data$fraction <- data$count / sum(data$count)
+  # Compute the cumulative percentages (top of each rectangle)
+  data$ymax <- cumsum(data$fraction)
+  # Compute the bottom of each rectangle
+  data$ymin <- c(0, head(data$ymax, n=-1))
+  # Compute label position
+  data$labelPosition <- (data$ymax + data$ymin) / 2
+  # Compute a good label
+  data$label <- paste0(data$type, "\n ", data$count)
+  # Make the plot
+  ggplot(data, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=type)) +
+    geom_rect() +
+    geom_text( x=2, aes(y=labelPosition, label=label, colour= "black"), size=4) + # x here controls label position (inner / outer)
+    coord_polar(theta="y") +
+    xlim(c(-1, 4)) +
+    theme_void() +
+    theme(legend.position = "none")+ scale_fill_brewer(palette = palette)+ scale_color_manual(values = c("black", "black"))
+}
+
+calc_mean_and_percentage_cell <- function(subset,ident = "", df, threshold = 1 ){
+  if(ident != ""){
+    subset <- subset(subset, idents = ident)
+  }
+  # Using normalized data 
+  expression_matrix <- as.matrix(subset@assays$RNA@data)
+  
+  # The totlal number of cells is the same for each gene. Cells are columns and genes are rows.
+  tot_cells <- rep(ncol(expression_matrix), nrow(expression_matrix))
+  
+  # Count the number of cells per gene showing some expression
+  # Only select cells that are expressed (> threshold) and say they are NA
+  # and compute the number of cells that show some expression 
+  expression_matrix[expression_matrix < threshold] <- NA
+  meanexpr <- rowMeans(expression_matrix, na.rm = TRUE)
+  medianexpr <- rowMedians(expression_matrix, na.rm = TRUE)
+  maxexpr <- rowMaxs(expression_matrix, na.rm = TRUE)
+  minexpr <- rowMins(expression_matrix, na.rm = TRUE)
+  var <- rowVars(expression_matrix, na.rm = TRUE)
+  not_na_cells <- tot_cells- rowCounts(expression_matrix, value = NA)
+  perc_cells_expressing <- not_na_cells/tot_cells
+  gene_id <- rownames(subset)
+  
+  # Save 
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(gene_id = gene_id, meanexpr = meanexpr,medianexpr = medianexpr, perc_cells_expressing = perc_cells_expressing, maxexpr = maxexpr, var = var, n_cells = not_na_cells, tot_cells
+                       = tot_cells)
+  df_new$minexpr <- minexpr
+  df_new$ident <- as.factor(ident)
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
+}
+
+plot_quartiles <- function(df_lnc, df_mrna, y = "proportion"){
+  total_lnc <-  length(unique(df_lnc$gene_id))
+  total_mrna <-  length(unique(df_mrna$gene_id))
+  if(is.na(df_lnc$type[1])){
+    df_lnc$type <- "lncRNA"
+  }
+  if(is.na(df_mrna$type[1])){
+    df_mrna$type   <- "Protein Coding"
+  }
+  df_complete <- rbind(df_lnc, df_mrna)
+  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(maxexpr, quantile(maxexpr, probs=0:4/4), include.lowest=TRUE)))
+  df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
+  if(y == "proportion"){
+    title <- "Proportion of cells expressing genes"
+    ylab <- "% Cells"
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type))
+  }else if( y == "number"){
+    title <- "Number of cells expressing genes"
+    ylab <- " # Cells"
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = n_cells, fill = type))
+  }
+  
+  
+  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")+ scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
+                                                                                                                                                                                                                                                                                                labels=c("1-25","25-50","50-75", "75-100"))
+  return(p1)
+}
+
+plot_celltype <- function(df_lnc, df_mrna, y = "proportion"){
+  total_lnc <-  length(unique(df_lnc$gene_id))
+  total_mrna <-  length(unique(df_mrna$gene_id))
+  if(is.na(df_lnc$type)){
+    df_lnc$type <- "lncRNA"
+  }
+  if(is.na(df_mrna$type)){
+    df_mrna$type   <- "Protein Coding"
+  }
+  df_complete <- rbind(df_lnc, df_mrna)
+
+  if(y == "proportion"){
+    title <- "Proportion of cells expressing genes"
+    ylab <- "% Cells"
+    p1 <- ggplot(df_complete, aes(x = ident, y = perc_cells_expressing, fill = type))
+  }else if( y == "number"){
+    title <- "Number of cells expressing genes"
+    ylab <- " # Cells"
+    p1 <- ggplot(df_complete, aes(x = ident, y = n_cells, fill = type))
+  }
+  
+  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+theme(legend.title = element_blank())+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")
+  return(p1)
+}
+
+boxplot_expression <- function(df_lnc, df_mrna, type = "Max"){
+  
+  total_lnc <-  length(unique(df_lnc$gene_id))
+  total_mrna <-  length(unique(df_mrna$gene_id))
+  
+  if(is.na(df_lnc$type)){
+    df_lnc$type <- "lncRNA"
+  }
+  if(is.na(df_mrna$type)){
+    df_mrna$type   <- "Protein Coding"
+  }
+  df_complete <- rbind(df_lnc, df_mrna)
+  
+  if(type == "Max"){
+    p1 <- ggplot(df_complete, aes(x = ident, y = maxexpr, fill = type))
+  }else if(type == "Mean"){
+    p1 <-ggplot(df_complete, aes(x = ident, y = meanexpr, fill = type))
+  }else if(type == "Median"){
+    p1 <- ggplot(df_complete, aes(x = ident, y = medianexpr, fill = type))
+  }
+  
+  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(type," Expression values of mRNAs across cell type", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "")+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")
+  
+  return(p1)
+  
+}
+
+scatter_plot_expression <- function(df, genetype, type = "Max", col = "blue"){
+  if(type == "Max"){
+    p1 <- ggplot(df, aes(x = maxexpr , y = perc_cells_expressing))
+  }else if(type == "Mean"){
+    p1 <- ggplot(df, aes(x = meanexpr , y = perc_cells_expressing))
+  }else if(type == "Median"){
+    p1 <- ggplot(df, aes(x = medianexpr , y = perc_cells_expressing))
+  }
+  total <- length(unique(df$gene_id))
+  p1 <- p1+geom_point(size = 1, col = col)+theme_classic()+labs(title = paste0(genetype,total), x = paste0(" Normalized", type, "Expression"), y = "Cells proportion")+theme(plot.title = element_text(hjust = 0.5))
+  p1 <- ggExtra::ggMarginal(p1,type = 'boxplot',margins = 'both',size = 8,colour = "darkgrey",fill = col, alpha = 0.5)
+  return(p1)
+}
+
+scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max"){
+  df_lnc$type <- "ncRNA"
+  df_mrna$type   <- "Protein coding"
+  df_complete <- rbind(df_lnc, df_mrna)
+  total_lnc <-  length(unique(df_lnc$gene_id))
+  total_mrna <-  length(unique(df_mrna$gene_id))
+  if(y == "Variance"){
+    p1 <- ggplot(df_complete, aes(x = maxexpr , y = var, col = type))
+    print("herev")
+  }else if(y == "Cell Percentage"){
+    if(type == "Max"){
+      p1 <- ggplot(df_complete, aes(x = maxexpr , y = perc_cells_expressing, col = type))
+    }else if(type == "Median"){
+      p1 <- ggplot(df_complete, aes(x = medianexpr , y = perc_cells_expressing, col = type))
+      print("asdasdasd")
+    }
+  }
+
+  p1 <- p1+geom_point(size = 1, alpha = 0.3)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_brewer(palette = "Dark2")+scale_color_brewer(palette = "Dark2")+theme(legend.position = "")
+  print("here")
+  p1 <- ggExtra::ggMarginal(p1,type = 'boxplot',margins = 'both',size = 8,colour = "darkgrey", alpha = 0.5,groupColour = TRUE, groupFill = TRUE)
+  return(p1)
+}
+
+
+calc_enrichment_score <- function(gene_id, ident_test, df_complete_celltypes){
+  expression_gene <- df_complete_celltypes[df_complete_celltypes$gene_id == gene_id ,]
+  mean_test_ident <- expression_gene[expression_gene$ident == ident_test, ]$meanexpr
+  others <- expression_gene[expression_gene$ident != ident_test, ]
+  num <- sum(mapply(function(x,y) x*y, others$meanexpr, others$tot_cells))
+  den <- sum(others$tot_cells)
+  mean_rest <- num/den
+  score <- mean_test_ident/mean_rest
+  return(list(as.character(gene_id),as.character(ident_test), score))
+}
+
+calc_gene_enrichments <- function(gene_id,df_complete_celltypes, identities ){
+  df <- as.data.frame(matrix(unlist((lapply(identities, function(ident_test)  unlist(calc_enrichment_score(gene_id, ident_test, df_complete_celltypes))))), ncol = 3, byrow = T))
+  return(df)
+}
+
+
+prepare_matrix_for_hm<- function(df_enrichment, top = 15){
+  if(is.na(top)){
+    matrix <- as.matrix(spread(df_enrichment, celltype, score))
+  }else{
+    top_ones <- df_enrichment %>% group_by(celltype) %>% top_n(n = top, wt = score)
+    matrix <- as.matrix(spread(df_enrichment[df_enrichment$gene_id %in% top_ones$gene_id,], celltype, score))
+  }
+  rownames(matrix) <- matrix[,1]
+  m <- apply(matrix[,-1],2,  as.numeric)
+  rownames(m) <- rownames(matrix[,-1])
+  rownames(m) <- gsub("-unkown", "", rownames(m))
+  return(m)
+}
+
+# cell type specificity score 
+calc_specificity_score <- function(gene_id, ident_test, df_complete_celltypes){
+  expression_gene <- df_complete_celltypes[df_complete_celltypes$gene_id == gene_id ,]
+  expression_gene_ident <- expression_gene[expression_gene$ident == ident_test, ]
+  expression_gene_not_ident <- expression_gene[expression_gene$ident != ident_test, ]
+  
+  p <- expression_gene_ident$perc_cells_expressing
+  q <- sum(expression_gene_not_ident$n_cells)/sum(expression_gene_not_ident$tot_cells)
+  num <- p*(1-q)
+  den <- q*(1-p)
+  score <- log(num+0.01/(den+0.01))
+  return(list(as.character(gene_id),as.character(ident_test), as.character(score)))
+}
+
+calc_gene_specificities <- function(gene_id,df_complete_celltypes, identities ){
+  df <- as.data.frame(matrix(unlist((lapply(identities, function(ident_test)  unlist(calc_specificity_score(gene_id, ident_test, df_complete_celltypes))))), ncol = 3, byrow = T),stringsAsFactor = FALSE)
+  names(df) <- c("gene_id", "celltype", "score")
+  return(df)
+}
+
+calc_specificity_enrichment <- function(df_complete_celltypes,all_genes, type = "enrichment"){
+  df <- data.frame(gene_id = c(), celltype = c(), score = c())
+  identities <- unique(df_complete_celltypes$ident)
+  if(type == "enrichment"){
+    df<- rbindlist( lapply(all_genes, function(gene_id) calc_gene_enrichments(gene_id, df_complete_celltypes, identities )))
+    
+  }else if(type == "specificity"){
+    df<- rbindlist( lapply(all_genes, function(gene_id) calc_gene_specificities(gene_id, df_complete_celltypes, identities )))
+  }
+  names(df) <- c("gene_id", "celltype", "score")
+  df$score <- as.double(as.character(df$score))
+  return(df)
+}
+
+
+# -------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+# Exploration single cell funcitons
+# ------------------------------------------------------------
+get_mean_expression_lnc_across_cells <- function(immune.combined,ident, df, threshold = 0 ){
+  # Extract the mean expression for each gene across celltypes
+  # Using normalized data 
+  subset <- subset(immune.combined, idents = ident)
+  expression <- subset@assays$RNA@data
+  expression_matrix <- as.matrix(expression)
+  expression_matrix[expression_matrix ==0] <- NA
+  meanexpr <- rowMeans(expression_matrix, na.rm = TRUE)
+  rowCount <- rowCounts(expression_matrix, na.rm = TRUE)
+  not_na_cells <- nrow(expression_matrix)- colCounts(expression_matrix, value = NA)
+  # Onhly select the cells in which the gene is expressed ?
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(meanexpr = meanexpr)
+  df_new$ident <- as.factor(ident)
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
+}
+
+# -----------------------------------------------------------
+
+
+seurat_preprocess_standard <- function(pbmc){
+  pbmc <- NormalizeData(object = pbmc)
+  pbmc <- FindVariableFeatures(object = pbmc)
+  pbmc <- ScaleData(object = pbmc)
+  pbmc <- RunPCA(object = pbmc)
+  pbmc <- FindNeighbors(object = pbmc)
+  pbmc <- FindClusters(object = pbmc)
+  pbmc <- RunTSNE(object = pbmc)
+  pbmc <- RunUMAP(pbmc, reduction = "pca", dims = 1:30)
+  return(pbmc)
+}
+
+plot_genes_expression_nrgenes_thresholds <- function(immune.combined, tcell, threshold_expression = 1,min_nr_genes = 5, title = "Cells expressing subset Genes", col = "darkblue", cond = "live"){
+  # Threshold: at least one gene in the geneset analyzed must have > threshold expression
+  mask <- unlist(lapply(rownames(immune.combined), function(x) any(grepl(x, tcell) == TRUE ) ))
+  expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
+  g0 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x =rowSums(expr > threshold_expression) > min_nr_genes)]))
+  g2 <- colnames(immune.combined[,immune.combined$cond == cond])
+  g1 <- intersect(g0,g2)
+  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), cols.highlight = c(col), cols= "grey")+ 
+    labs(title = title )+ NoLegend()
+  #DimPlot(integrated, label=T, group.by="Treat", cells.highlight= list(g1_treat, g1_untreat), cols.highlight = c("darkblue",   "darkred"), cols= "grey")
+  return (list(p1,  sprintf("Number of cells %s", length(g1) )))
+}
+
+get_gene_range <-function(missing_gene_line, lnc_ranges){
+  ranges_exons <- lnc_ranges[lnc_ranges$gene_id == missing_gene_line]
+  new_start <- min(start(ranges(ranges_exons))); new_stop <- max(end(ranges(ranges_exons)))
+  # Create New Gene Entry 
+  new_entry<- ranges_exons[1]
+  new_entry$type <- "gene"
+  ranges(new_entry) <- IRanges(new_start, width =new_stop-new_start+1)
+  new_entry$transcript_id <- NA; new_entry$exon_id <- NA; new_entry$transcript_name <-NA
+  return(new_entry)
+}
+do_go <- function(list){
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(ref$gene_name))
+  barplot(ego, showCategory=10)
+  clusterProfiler::dotplot(ego)
+}
+# ----------------------
+# Obtain Seurat Objects 
+# ----------------------
+get_Seurat_object <- function(file){
+  pbmc.data <- read.table(file = file, header = TRUE, row.names = 1)
+  proj <-str_replace_all(str_replace_all(unlist(rev(unlist(str_split(file, pattern= "/"))[-1])[[1]]), "_", "-"), ".dge.txt.gz", "")
+  proj <- str_sub(proj, 1, str_length(proj)-3)
+  pbmc <- CreateSeuratObject(pbmc.data, project = proj, min.cells = 3, min.features = 200)
+  return(pbmc)
+}
+
+# Create data for network
+create_nodes_and_edges <- function(pair, source, target, all, categories){
+  so <- deparse(substitute(source)) ; to <- deparse(substitute(target))
+  ao <- deparse(substitute(all)) ; co <- deparse(substitute(categories))
+  
+  source <- c(source, pair[1]$gene_name)
+  target <- c(target, pair[2]$gene_name)
+  if(!(pair[1]$gene_name %in% all)){
+    
+    all <- c(all, pair[1]$gene_name)
+    categories <- c(categories, "lnc")
+  }
+  if(!(pair[2]$gene_name %in% all)){
+    
+    all <- c(all, pair[2]$gene_name)
+    categories <- c(categories, "mrna")
+  }
+  assign(so, source, envir = .GlobalEnv); assign(to, target, envir = .GlobalEnv)
+  assign(ao, all, envir = .GlobalEnv); assign(co, categories, envir = .GlobalEnv)
+}
+get_n_genes <- function(immune.combined,ident, df, threshold = 0 ){
+  subset <- subset(immune.combined, idents = ident)
+  n_genes <- as.vector((Matrix::colSums(subset@assays$RNA@scale.data>threshold)))
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(n_genes = n_genes)
+  df_new$ident <- as.factor(ident)
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
+}
+
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+  return(data_sum)
+}
+
+dens <- function(list){
+  df <- as.data.frame(list); names(df) <- c("corr")
+  ggplot(df, aes(x=corr)) + geom_density()
+}
+
+get_percentage_genes_expressed <- function(immune.combined, ident, genes_subset, threshold, df){
+  seurat_ident_subset <- subset(immune.combined, idents = ident)
+  seuart_gene_subset <- subset(seurat_ident_subset, features = genes_subset)
+  
+  # Calculate How many genes of the subset genes are expressed per cell 
+  expr_gene_subset <- FetchData(seuart_gene_subset, rownames(seuart_gene_subset))
+  n_subset_genes_expressed <- rowSums(expr_gene_subset > 0)
+  print(length(n_subset_genes_expressed))
+  
+  # Calculate total genes expressed per cell 
+  expr_total <- FetchData(seurat_ident_subset, rownames(seurat_ident_subset))
+  total_genes_expressed <- rowSums(expr_total > 0)
+  print(length(total_genes_expressed))
+  
+  # Calculate the percentage
+  perc <- n_subset_genes_expressed/(total_genes_expressed)
+  print(length(perc))
+  
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(n_genes = total_genes_expressed, n_genes_subset =n_subset_genes_expressed, perc = perc )
+  df_new$celltype <- as.factor(ident)
+  df_new$sample <- seurat_ident_subset$sample
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
+}
+# get the counts of the interesting genes
+calc_correlation <- function(pair, count_matrix, type = "pearson"){
+  gene1 <- str_replace_all(pair[1]$gene_name, "_" , "-")
+  gene2 <- str_replace_all(pair[2]$gene_name, "_" , "-")
+  c1 <- count_matrix[rownames(count_matrix)== gene1,]
+  c2 <- count_matrix[rownames(count_matrix)== gene2,]
+  # calculate the correlation coefficient 
+  if(length(c1)> 0 && length(c2)>0){ pc <- cor(c1, c2, method = c(type)) }else{ pc = 0 }
+  return(pc)
+}
+
+calc_correlation_lists <- function(list1, list2,count_matrix){
+  mix <-cross2(list1,list2)
+  correlations <- lapply(mix, function(x) calc_correlation_with_names(x[1],x[2],count_matrix))
+  return(c(mix,correlations))
+}
+
+calc_correlation_with_names <- function(gene1,gene2,count_matrix, type = "pearson"){
+  gene1 <- str_replace_all(gene1, "_" , "-")
+  gene2 <- str_replace_all(gene2, "_" , "-")
+  c1 <- count_matrix[rownames(count_matrix)== gene1,]
+  c2 <- count_matrix[rownames(count_matrix)== gene2,]
+  # calculate the correlation coefficient 
+  if(length(c1)> 0 && length(c2)>0){ pc <- cor(c1, c2, method = c(type)) }else{ pc = 0 }
+  return(pc)
+}
+
+plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells expressing subset Genes", col = "darkblue"){
+  # Threshold: at least one gene in the geneset analyzed must have > threshold expression
+  mask <- unlist(lapply(rownames(immune.combined), function(x) any(grepl(x, tcell) == TRUE ) ))
+  expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
+  g1 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x = expr > threshold)]))
+ 
+  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), cols.highlight = c(col), cols= "grey")+ 
+    labs(title = title )+ NoLegend()
+  return (list(p1,  sprintf("Number of cells %s", length(g1) )))
+}
+
+get_gene_only <- function(gr){
+  return(gr[gr$type == "gene"])
+}
+
+plot_cells <- function(pbmc, cells, title = "Subset cells", col = "purple"){
+  g1 <- WhichCells(pbmc, cells =cells)
+  p1 <- DimPlot(pbmc, label=F, cells.highlight= list(g1), cols.highlight = c(col), cols= "grey")+ 
+    labs(title = title )+ NoLegend()
+  return (list(p1,  sprintf("Number of cells %s", length(g1) )))
+}
 
 normalize_hash <- function(sce) {
   # Normalizes each hashtag oligonucleotide (HTO) UMI by dividing by the  

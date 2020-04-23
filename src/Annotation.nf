@@ -188,7 +188,6 @@ process merge_annotations{
   script:
   """
   cat  ${rheMac_annotation} ${ebov_annotation} > ${params.prefix}.gtf
-
   """
 
 }
@@ -688,7 +687,7 @@ log.info "=============================================="
 
 process feelnc_filter{
 
-  storeDir "${params.output_dir}/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc"
+  storeDir "${params.output_dir}/05_lncrnaAnnotation_monoexonic_included/feelnc_gencode_linc"
 
   input:
   file merged_gtf from merged_de_novo_assembly_3
@@ -701,13 +700,14 @@ process feelnc_filter{
   """
   FEELnc_filter.pl -i ${merged_gtf} \
                    -a ${reference_gtf} \
+                   --monoex=-1 \
                    -b transcript_biotype=protein_coding > candidate_lncRNA.gtf
   """
 }
 
 process feelnc_codpot{
   cpus 48
-  storeDir "${params.output_dir}/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc"
+  storeDir "${params.output_dir}/05_lncrnaAnnotation_monoexonic_included/feelnc_gencode_linc"
 
   input:
   file candidate_lncrna from candidates
@@ -729,7 +729,7 @@ process feelnc_codpot{
 
 process gffCompare{
 
-  storeDir "${params.output_dir}/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare"
+  storeDir "${params.output_dir}/05_lncrnaAnnotation_monoexonic_included/feelnc_gencode_linc/01_gffcompare"
 
   input:
   set index, codpot from coding_potentials

@@ -1,24 +1,24 @@
 process{
 
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/dropseq.simg'
+  container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/dropseq.simg'
 
-  withName:FastqToBam{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseqnew.simg'
+  withName:BamToFastq{
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseqnew.simg'
   }
   withName:create_star_indexes{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseq.simg'
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseq.simg'
   }
   withName:STAR{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseq.simg'
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseq.simg'
   }
   withLabel:rnaseq{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseqnew.simg'
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseqnew.simg'
   }
   withName:CellSelection{
-    container = 'file:///gpfs/projects/bsc83/containers/singularity/rdropbead.simg'
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rdropbead.simg'
   }
   withName:runRSeQC{
-   container = 'file:///gpfs/projects/bsc83/containers/singularity/rseqc.simg'
+   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rseqc.simg'
   }
 
 

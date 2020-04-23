@@ -8,11 +8,10 @@ params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 params.output_dir_preliminary = "${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_rheMac10/"
 
 params.dataset_bam_dir = "${params.dirData}/00_RawData/scRNAseq_exvivo_alin_bams"
-params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/03_scRNA-Seq_complete"
+params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/03_scRNA-Seq_rhemac8_mt"
 
 //Channel.fromPath("${params.dataset_bam_dir}/EV0003.H024.fresh.a2.std.EX2.live-moi1e-1.bam")
-//Channel.fromPath("${params.dataset_bam_dir}/*.bam")
-Channel.fromPath("${params.dataset_bam_dir}/EV0003.H024.fresh.a2.std.EX2.live-moi1e-1.bam")
+Channel.fromPath("${params.dataset_bam_dir}/*.bam")
               .ifEmpty('bam files directory is empty')
               .map { tuple(it.baseName.split('\\.')[0],
                            it.baseName.split('\\.')[1],
@@ -21,17 +20,15 @@ Channel.fromPath("${params.dataset_bam_dir}/EV0003.H024.fresh.a2.std.EX2.live-mo
                            it.baseName.split('\\.')[0]+ "_" + it.baseName.split('\\.')[6] + "_" + it.baseName.split('\\.')[1] + "_" + it.baseName.split('\\.')[3],
                            it ) }.into{ bams_1; bams_2; bams_3;  }
 
-unmapped_bams= Channel.fromPath("${params.dataset_bam_dir}/EV0003.H024.fresh.a2.std.EX2.live-moi1e-1.bam")
-              .ifEmpty('bam files directory is empty')
-              .map { tuple(it.baseName.split('\\.')[0]+ "_" + it.baseName.split('\\.')[6] + "_" + it.baseName.split('\\.')[1] + "_" + it.baseName.split('\\.')[3],
-                           it ) }
 params.scripts="${baseDir}/scripts/"
 gtfToGenePred_script_ch = Channel
                       .fromPath("${params.scripts}/gtfToGenePred")
 genePredToBed_script_ch = Channel
                       .fromPath("${params.scripts}/genePredToBed")
 
-Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf")
+//Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf")
+//       .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
+Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/03_liftover/rheMac8_EBOV-Kikivit_and_novelcatalogue_with_names_ensembl.gtf")
        .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
 
 Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
@@ -45,10 +42,6 @@ Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_rheM
 
 params.strandness = "FR"
 
-
-if( "${params.strandness}" == "FR" ){
-  params.htseqsense="yes"
-}
 
 
 cell_selection_script = Channel.fromPath("${baseDir}/scripts/cellselection.R").collect()
@@ -243,7 +236,8 @@ process STAR{
         --runThreadN ${task.cpus} \
         --readFilesIn ${fastq}  \
         --readFilesCommand zcat \
-        --outFileNamePrefix ${complete_id}.
+        --outFileNamePrefix ${complete_id}. \
+        --outTmpDir $TMPDIR/${complete_id}.tmp
   """
 }
 
@@ -319,22 +313,27 @@ process RevertSam{
 
 unmapped_and_mapped_bams = sorted_bams1.combine(reverted_bams, by:0)
 
-// TODO: Missing orientation !
+unmapped_and_mapped_bams.into{unmapped_and_mapped_bams0; unmapped_and_mapped_bams1}
+
+unmapped_and_mapped_bams1.subscribe{ println "$it" }
+
+// // TODO: Missing orientation !
 process MergeBamAlignment{
 
+  cpus 12
   label "rnaseq"
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_star/$animal_id/$hpi/$exp/$replicate"
 
   input:
-  file assembly from ReferenceChannel2
-  file(dict) from DictChannel4
+  file assembly from ReferenceChannel2.collect()
+  file(dict) from DictChannel4.collect()
   set complete_id,animal_id, hpi, exp, replicate,
       file(sam), file(bam),
-      file(unmapped_bam) from unmapped_and_mapped_bams
+      file(unmapped_bam) from unmapped_and_mapped_bams0
 
   output:
-  set animal_id, hpi, exp, replicate, complete_id, file("${complete_id}.UMI.bam") into merged_bam_alignments_channel
+  set animal_id, hpi, exp, replicate, complete_id, file("${complete_id}.merged.bam") into merged_bam_alignments_channel
 
 
   script:
@@ -342,7 +341,7 @@ process MergeBamAlignment{
   picard-tools MergeBamAlignment REFERENCE_SEQUENCE=${assembly} \
                UNMAPPED_BAM=${unmapped_bam} \
                ALIGNED_BAM=${bam} \
-               OUTPUT=${complete_id}.UMI.bam \
+               OUTPUT=${complete_id}.merged.bam \
                INCLUDE_SECONDARY_ALIGNMENTS=false \
                PAIRED_RUN=true \
                ORIENTATIONS=${params.strandness} \
@@ -352,7 +351,7 @@ process MergeBamAlignment{
 
 process TagReadWithGeneFunction{
 
-  storeDir "${params.output_dir}/03_ProcessedBams/$animal_id/$hpi/$exp/$replicate"
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate"
 
   input:
   set animal_id, hpi, exp, replicate, complete_id, file(bam) from merged_bam_alignments_channel
@@ -374,8 +373,8 @@ process TagReadWithGeneFunction{
 params.primer = "AAGCAGTGGTATCAACGCAGAGTGAATGGG"
 process DetectBeadSubstitutionError{
 
-  cpus 4
-  storeDir "${params.output_dir}/03_ProcessedBams/$animal_id/$hpi/$exp/$replicate"
+  cpus 8
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate"
 
   input:
   set animal_id, hpi, exp, replicate, complete_id, file(bam) from bams_tagged
@@ -417,7 +416,7 @@ process BamTagHistogram{
 process CellSelection{
 
   cpus 4
-  storeDir "${params.output_dir}/04_CellSelection/$animal_id/$hpi/$exp/$replicate"
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate"
   input:
   file cell_selection_script
   set animal_id, hpi, exp, replicate, complete_id, file(bam), file(cell_readcounts) from BamTagHistogramChannel
@@ -438,7 +437,7 @@ CellSelectionChannel.into{CellSelectionChannel1; CellSelectionChannel2}
 process DigitalExpressionMatrix_UMI{
 
   cpus 24
-  storeDir "${params.output_dir}/05_digital_expression/$animal_id/$hpi/$exp/$replicate"
+  storeDir "${params.output_dir}/04_DigitalExpressionMatrix/$animal_id/$hpi/$exp/$replicate"
 
   input:
   set animal_id, hpi, exp, replicate, complete_id, file(bam), file(barcodes) from CellSelectionChannel1

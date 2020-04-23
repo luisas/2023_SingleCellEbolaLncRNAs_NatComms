@@ -1,0 +1,6 @@
+
+
+```{r cars}
+intersection_table <- read.table("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/01_orthologs_known_mrnas/intersection.tab")
+
+```

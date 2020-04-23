@@ -10,7 +10,7 @@ outfile <- args[2]
 df_cell_readcount=read.table(file, header=F, stringsAsFactors=F)
 # Estimate the number of cell
 # threshold as in : https://doi.org/10.1016/j.celrep.2018.11.003
-max.cells <- 25000
+max.cells <- min(25000, nrow(df_cell_readcount))
 
 #pdf("cumulative_distribution.pdf")
 #p1 <- plotCumulativeFractionOfReads(df_cell_readcount, cutoff = max.cells)

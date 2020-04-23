@@ -21,14 +21,25 @@ library("genefilter")
 library("gplots")
 library(plyr)
 library(geneplotter)
+library(clusterProfiler)
+library(org.Mmu.eg.db)
+library(rtracklayer)
+library(stringr)
+library(edgeR)
+library(zeallot)
+library(DESeq2)
 
 # ----------------------------------
 #           Import Utils 
 # ----------------------------------
 scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
-source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"de_utils.R"))
+source(file.path(scripts_dir,"de_utils.R"));
 
 datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+lncRNAs_ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_all_novels/rheMac10_EBOV-Kikwit_and_both_novel.gtf"))
+
+
 dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
 htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
 batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
@@ -47,7 +58,7 @@ assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, prior.count=0.5)
 # ----------------------------------------
 #         Remove lowly expressed genes 
 # ----------------------------------------
-mask <- rowSums(edgeR::cpm(dge) > 0) > 1
+mask <- rowSums(edgeR::cpm(dge) > 0) > 0
 dds.filt <- dds[mask, ]
 dge.filt <- dge[mask, ]
 
@@ -135,14 +146,14 @@ DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
 length(DEgenes5)
 
 top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
-```
 
-```{r}
 # Plot the top 300 differentially expressed genes 
 
 dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
 colnames(dds) <- dds$dpo 
 matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
+
+
 
 heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
      trace="none", dendrogram="none",Colv=colnames(matrixDE), 
@@ -156,9 +167,20 @@ heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
 # Plot the top 300 differentially expressed genes 
 
 # Long non coding in reference macaque 
-lncRNAs_ref$gene_id
-lnc_de <-DEgenes5[DEgenes5 %in% lncRNAs_ref$gene_id]
-length(lnc_de)
+novel_and_ebola <-lncRNAs_ref[is.na(lncRNAs_ref$gene_biotype)]
+ref <- lncRNAs_ref[!is.na(lncRNAs_ref$gene_biotype)]
+lnc_ref_real <- ref[ref$gene_biotype =="lncRNA"]
+
+length(DEgenes5)
+
+lnc_de_novel <-DEgenes5[DEgenes5 %in% novel_and_ebola$gene_id]
+length(lnc_de_novel)
+
+lnc_de_ref <-DEgenes5[DEgenes5 %in% lnc_ref_real$gene_id]
+length(lnc_de_ref)
+
+
+
 matrixDE <- assay(dds)[ lnc_de, ][, order(as.integer(colnames(assay(dds)[ lnc_de, ])))]
 
 heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
@@ -167,29 +189,40 @@ heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
 ```
 
 ```{r}
-library(org.Hs.eg.db)
-library(GSVAdata)
-library(GSVA)
-data(c2BroadSets)
-gsc <- GeneSetCollection(c2BroadSets)
-length(gsc) # number of gene sets in the collection
-head(names(gsc)) # some of the gene sets in the collection
-gsc <- gsc[c(grep("^KEGG", names(gsc)),
-grep("^REACTOME", names(gsc)), grep("^BIOCARTA", names(gsc)))]
+# ---------------------------------
+#        GO Enrichment Analysis
+# --------------------------------
 
-gsc <- mapIdentifiers(gsc, AnnoOrEntrezIdentifier(rownames(dds)))
-gsc
-Im <- incidence(gsc)
-dim(Im)
-Im[1:2, 1:10]
-Im <- Im[rowSums(Im) >= 5, ]
-tGSgenes <- DEgenes5[match(colnames(Im),DEgenes5), "t"] # calculate all t-statistics for genes in each gene set
-zS <- sqrt(rowSums(Im)) * (as.vector(Im %*% tGSgenes)/rowSums(Im)) # calculating Zscore statistic
-length(zS)
-head(zS, n=10)
+
+table(tt5$genes %in% keys(org.Mmu.eg.db, keytype="ENSEMBL"))
+table(DEgenes5 %in% keys(org.Mmu.eg.db, keytype="ENSEMBL"))
+
+ego <- clusterProfiler::enrichGO(gene = DEgenes5,OrgDb =  org.Mmu.eg.db, keyType = 'ENSEMBL',ont = "BP", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe = rownames(dds), qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = TRUE)
+
+barplot(ego, showCategory=10)
+dotplot(ego)
+
+
+edox <- setReadable(ego, 'org.Mmu.eg.db', 'ENSEMBL')
+p1 <- cnetplot(edox)
+p1
+
+# Only lncRNAs
+ego <- clusterProfiler::enrichGO(gene = lnc_de_ref,OrgDb =  org.Mmu.eg.db, keyType = 'ENSEMBL',ont = "BP", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe = rownames(dds), qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = TRUE)
+barplot(ego, showCategory=10)
+
 ```
 
 
+
+
+
+
+
+
+# -------------------------------------------------------
+# -------------------------------------------------------
+# -------------------------------------------------------
 
 ```{r}
 # Mixed model!!! sample id!!!

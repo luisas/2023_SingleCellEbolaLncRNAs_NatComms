@@ -1,0 +1,238 @@
+---
+title: "DE analysis"
+author: "Luisa Santus"
+date: "3/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
+```
+
+## R Markdown
+
+```{r cars}
+library(DEsingle)
+# Identities are bystander vs infected 
+Idents(myeloids_live_24)
+# Convert to a single cell experiment
+subset <- subset(myeloids_live_24, features = all_lncrnas)
+sce <- as.SingleCellExperiment(subset)
+counts(sce)
+# Specifying the two groups to be compared
+group <- factor(sce$ident)
+
+# Detecting the DE genes with SingleCellExperiment input sce
+results <- DEsingle(counts = sce, group = group, parallel = TRUE)
+results
+saveRDS(results, paste0(robjectsdir, "DEsingle_bystanderinfected_myeloids_lnc.rds"))
+# Dividing the DE genes into 3 categories at threshold of FDR < 0.05
+results.classified <- DEtype(results = results, threshold = 0.1)
+
+# Extract DE genes at threshold of FDR < 0.05
+results.sig <- results.classified[results.classified$pvalue.adj.FDR < 0.1, ]
+
+# Extract three types of DE genes separately
+results.DEs <- results.sig[results.sig$Type == "DEs", ]
+results.DEa <- results.sig[results.sig$Type == "DEa", ]
+results.DEg <- results.sig[results.sig$Type == "DEg", ]
+```
+# --------------------------
+##   Standard DESeq2
+# --------------------------
+```{r pressure, echo=FALSE}
+library(DESeq2)
+library(edgeR)
+
+myeloids_live_24_subset_mrnas <- subset(myeloids_live_24, features = annotated_mrnas)
+myeloids_live_24_subset_lncrnas <- subset(myeloids_live_24, features = all_lncrnas)
+myeloids_live_24_subset_mrnasANDlncrnas <- subset(myeloids_live_24, features = c(all_lncrnas, annotated_mrnas))
+
+# Adding pseudocount of one
+de_deseq <- function(myeloids_live_24){
+  counts <- myeloids_live_24@assays$RNA@counts +1
+  myeloids_live_24$group <- Idents(myeloids_live_24)
+  coldata <-myeloids_live_24@meta.data
+  # Set up design 
+  dds <- DESeqDataSetFromMatrix(countData = counts,
+                                colData = coldata,
+                                design= ~ nFeature_RNA + individual + group)
+  # Run DE
+  dds <- DESeq(dds, sfType="poscounts", useT=TRUE, minmu=1e-6)
+
+  return(dds)
+}
+#dds_mrnas_deseq <- de_deseq(myeloids_live_24_subset_mrnas)
+#dds_lncrnas_deseq <- de_deseq(myeloids_live_24_subset_lncrnas)
+
+# DE Analysis for all
+#dds_mrnasANDlncrnas_deseq <- de_deseq(myeloids_live_24_subset_mrnasANDlncrnas)
+#saveRDS(dds_mrnasANDlncrnas_deseq, paste0(robjectsdir, "dds_mrnasANDlncrnas_deseq.rds"))
+dds_mrnasANDlncrnas_deseq <- readRDS(paste0(robjectsdir, "dds_mrnasANDlncrnas_deseq.rds"))
+
+# Analyze the results 
+ress <- lfcShrink(dds_mrnasANDlncrnas_deseq, contrast=c("group", "bystander", "infected"),
+                   type = "normal")
+saveRDS(ress, paste0(robjectsdir, "ress_mrnasANDlncrnas_deseq.rds"))
+
+de.genes_mrnasANDlncrnas <- find.significant.genes(ress, alpha = 0.1)
+rownames(de.genes_mrnasANDlncrnas)[rownames(de.genes_mrnasANDlncrnas) %in% all_lncrnas]
+
+# ------------ Celltype DE 
+immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$cond, sep = "_")
+immune.combined$celltype <- Idents(immune.combined)
+Idents(immune.combined) <- "celltype.stim"
+table(Idents(immune.combined))
+
+
+de_condition_celltype <- function(subset){
+    subset$group <- Idents(subset)
+    dds <- de_deseq(subset)
+    ress <- lfcShrink(dds, contrast=c("group", levels(Idents(subset))), type = "normal")
+    ress$comparison <- paste0(unique(subset$cond), collapse ="-")
+    return(ress)
+}
+
+calc_destats_per_celltype <- function(immune.combined, features, cell_type){
+    live <- paste(cell_type,"live", sep ="_")
+    media <- paste(cell_type,"media", sep="_")
+    irrad <- paste(cell_type, "irrad", sep="_")
+
+    # media irrad 
+    # subset <- subset(immune.combined, features = features, idents = c(media,irrad))
+    # media_irrad <- de_condition_celltype(subset)
+
+    # irrad - live
+    subset <- subset(immune.combined, features = features, idents = c(irrad,live))
+    irrad_live <- de_condition_celltype(subset)
+    
+    # media - live
+    subset <- subset(immune.combined, features = features, idents = c(media,live))
+    media_live <- de_condition_celltype(subset)
+    
+    df <- rbind(irrad_live,media_irrad, media_live )
+    df$celltype <- cell_type
+    return(df)
+}
+
+deseq_celltypes_lnc <-rbindlist(lapply(unique(immune.combined$celltype), function(celltype) calc_destats_per_celltype(immune.combined, all_lncrnas, celltype)))
+saveRDS(hurdle_summary_celltypes_lnc, paste0(robjectsdir,"celltypes_all.rds"))
+
+
+```
+
+# ---------------------------
+#       Weighted DESEQ2
+# ---------------------------
+```{r }
+library(zinbwave)
+library(matrixStats)
+library(magrittr)
+library(ggplot2)
+library(biomaRt)
+BiocParallel::register(BiocParallel::SerialParam())
+
+find.significant.genes <- function(de.result,alpha=0.1) {
+  # filter out significant genes based on FDR adjusted p-values
+  filtered <- de.result[(de.result$padj < alpha) & !is.infinite(de.result$log2FoldChange) & !is.nan(de.result$log2FoldChange) & !is.na(de.result$padj),]
+  # order by p-value, and print out only the gene name, mean count, and log2 fold change
+  sorted <- filtered[order(filtered$padj),c(1,2,6)]
+}
+
+weighted_DESeq <- function(subset, name){
+  # Create an object of the clss zinbModel that can be used to store all the parameter estimates 
+  sc <- as.SingleCellExperiment(subset)
+  filter <- rowSums(assay(sc)>0)>0
+  sc <- sc[filter, ]
+  filter <- colSums(assay(sc)>0)>0
+  sc <- sc[,filter]
+  counts(sc) <- as.matrix(counts(sc))
+  
+  # Calculate the weights
+  zinb <- zinbwave(sc,K= 0, epsilon = 1000, observationalWeights = TRUE)
+  saveRDS(zinb, paste0(robjectsdir, name))
+  weights <- assay(zinb, "weights")
+  
+  # Compute p-calues and log fold changes 
+  dds_zinb <- DESeqDataSet(zinb, design= ~ nFeature_RNA + individual + group)
+  dds_zinb <- DESeq(dds_zinb, sfType="poscounts", useT=TRUE, minmu=1e-6)
+  res_zinb <- lfcShrink(dds_zinb, contrast=c("group", "bystander", "infected"),
+                   type = "normal")
+  return(res_zinb)
+  
+  
+}
+
+myeloids_live_24_subset_mrnas <- subset(myeloids_live_24, features = annotated_mrnas)
+myeloids_live_24_subset_lncrnas <- subset(myeloids_live_24, features = all_lncrnas)
+myeloids_live_24_subset_mrnasANDlncrnas <- subset(myeloids_live_24, features = c(all_lncrnas, annotated_mrnas))
+
+#res_zinb_lncrnas <- weighted_DESeq(myeloids_live_24_subset_lncrnas,"zinb_lncrnas.rds")
+#saveRDS(res_zinb_lncrnas, paste0(robjectsdir, "res_zinb_lncrnas.rds"))
+res_zinb_lncrnas <- readRDS(paste0(robjectsdir, "res_zinb_lncrnas.rds"))
+
+#res_zinb_mrnas <- weighted_DESeq(myeloids_live_24_subset_mrnas,"zinb_mrnas.rds")
+#saveRDS(res_zinb_mrnas, paste0(robjectsdir, "res_zinb_mrnas.rds"))
+res_zinb_mrnas <- readRDS(paste0(robjectsdir, "res_zinb_mrnas.rds"))
+
+#res_zinb_mrnasANDlncrnas <- weighted_DESeq(myeloids_live_24_subset_mrnasANDlncrnas,"zinb_mrnasANDlncrnas.rds")
+#saveRDS(myeloids_live_24_subset_mrnasANDlncrnas, paste0(robjectsdir, "zinb_mrnasANDlncrnas.rds"))
+#myeloids_live_24_subset_mrnasANDlncrnas <- readRDS(paste0(robjectsdir, "zinb_mrnasANDlncrnas.rds"))
+
+
+# Check for significance 
+de.genes_lnc<- find.significant.genes(res_zinb_lncrnas, alpha = 0.1)
+de.genes_mrna<- find.significant.genes(res_zinb_mrnas, alpha = 0.1)
+#de.genes_all<- find.significant.genes(myeloids_live_24_subset_mrnasANDlncrnas, alpha = 0.05)
+
+
+de.genes_lnc
+de.genes_mrna
+```
+
+
+```{r edger}
+library(edgeR)
+library(zinbwave)
+
+myeloids_live_24_subset_mrnas <- subset(myeloids_live_24, features = annotated_mrnas)
+sc <- as.SingleCellExperiment(myeloids_live_24_subset_mrnas)
+filter <- rowSums(assay(sc)>0)>0
+sc <- sc[filter, ]
+filter <- colSums(assay(sc)>0)>0
+sc <- sc[,filter]
+counts(sc) <- as.matrix(counts(sc))
+sc$group <- sc$ident
+
+zinb <- zinbwave(sc,K= 0, epsilon = 1000, observationalWeights = TRUE)
+#zinb_mrnas <- readRDS(paste0(robjectsdir, "zinb_mrnas.rds"))
+weights <- assay(zinb_mrnas, "weights")
+dge <- DGEList(assay(zinb_mrnas))
+dge <- calcNormFactors(dge)
+
+design <- model.matrix(~group+ nFeature_RNA + individual, data = colData(sc))
+dge$weights <- weights
+dge <- estimateDisp(dge, design)
+fit <- glmFit(dge, design)
+
+lrt <- glmWeightedF(fit, coef = 2)
+
+
+find.significant.genes <- function(de.result,alpha=0.05) {
+  # filter out significant genes based on FDR adjusted p-values
+  filtered <- de.result[(de.result$padj < alpha) & !is.infinite(de.result$log2FoldChange) & !is.nan(de.result$log2FoldChange) & !is.na(de.result$padj),]
+  # order by p-value, and print out only the gene name, mean count, and log2 fold change
+  sorted <- filtered[order(filtered$padj),c(1,2,6)]
+  return(sorted)
+}
+
+lrt$table$padj <-lrt$table$padjFilter
+lrt$table$log2FoldChange <-lrt$table$logFC
+
+de <- find.significant.genes(lrt$table)
+
+
+ggplot(de, aes(x = logFC, y = -log10(padj)))+geom_point()+geom_text(aes(label=rownames(de)),hjust=0, vjust=0)
+
+```

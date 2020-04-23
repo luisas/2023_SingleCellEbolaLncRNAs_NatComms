@@ -1,0 +1,308 @@
+---
+title: "DE sc"
+author: "Luisa Santus"
+date: "3/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(scater)
+library(SingleCellExperiment)
+library(purrr)
+library(stringr)
+library(mvoutlier)
+library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+library(rtracklayer)
+library(org.Mmu.eg.db)
+library(graphics)
+library(RCy3)
+source("utils/sc_utils.R")
+source("utils/de_utils.R")
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
+library(data.table)
+
+immune.combined <- readRDS(file.path(result_path, "seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_dim_red.rds"))
+DefaultAssay(immune.combined) <- "RNA"
+immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
+
+
+mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
+lnc_ref_id <- unique(ref$gene_name[ref$gene_biotype == "lncRNA"])
+ribodepl_genes <- rownames(immune.combined)[grepl("ribodepl*", rownames(immune.combined))]
+polya_genes <- rownames(immune.combined)[grepl("polya*", rownames(immune.combined))]
+novel_lncrnas <- c(ribodepl_genes, polya_genes)
+annotated_lncrna <- rownames(immune.combined)[rownames(immune.combined) %in% str_replace_all(lnc_ref_id, "_" , "-")]
+all_lncrnas <- c(annotated_lncrna, novel_lncrnas)
+annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% str_replace_all(mrna_ref_id, "_" , "-")]
+
+
+
+# Change Identifiers 
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "Myeloid", `2` = "NK", 
+    `3` = "B", `4` = "T", `5` = "T", `6` = "B", `7` = "Myeloid", `8` = "B", `9` = "B", 
+    `10` = "Myeloid", `11` = "B", `12` = "T", `13` = "Myeloid",`14` = "Myeloid", `15` = "T", `16` = "NK")
+ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unkown", sep ="-")]
+```
+
+##  Infected vs Bystander DE analysis with MAST  (Myeloid Live H24)
+
+```{r cars}
+# Identify Infected vs Bystanders
+
+# Select only ones in live 24H
+myeloids <- subset(immune.combined, ident = "Myeloid")
+Idents(myeloids) <- myeloids$sample
+myeloids_live_24 <- subset(myeloids, ident = "live H024")
+dim(myeloids_live_24)
+
+# Identify which are the bystanders and which ones the infected ones 
+# Retrieve unnnormalized expression data and separate the cells with at least one count od ebola
+subset_ebola <- subset(myeloids_live_24, features = ebola_genes)
+expression_ebola <-as.matrix(subset_ebola@assays$RNA@data)
+n_reads_expressed_per_cell <- (Matrix::colSums(myeloids_live_24@assays$RNA@counts))
+n_ebola_expressed_per_cell <- (Matrix::colSums(subset_ebola@assays$RNA@counts))
+
+names(n_reads_expressed_per_cell)[1:3]
+names(n_ebola_expressed_per_cell)[1:3]
+
+df_genes <- data.frame(id = names(n_reads_expressed_per_cell), count= n_reads_expressed_per_cell)
+df_ebola <- data.frame(id =names(n_ebola_expressed_per_cell), count_ebola = n_ebola_expressed_per_cell )
+ebola_summary <- cbind(df_genes, df_ebola)
+ebola_summary$perc_ebola_counts <- ebola_summary$count_ebola / ebola_summary$count
+
+infected_cells <- ebola_summary[ebola_summary$perc_ebola_counts >0.01, "id"]
+bystanders <- setdiff(ebola_summary$id, infected_cells)
+length(infected_cells); length(bystanders)
+
+#Rename identities
+myeloids_live_24 <- SetIdent(object = myeloids_live_24, cells = infected_cells, value = 'infected')
+myeloids_live_24 <- SetIdent(object = myeloids_live_24, cells = bystanders, value = 'bystander')
+unique(Idents(myeloids_live_24))
+```
+# De Analysis
+
+```{r pressure, echo=FALSE}
+# DE analysis - ALL 
+
+de_genes_all <- FindMarkers(myeloids_live_24, ident.1 ="infected", ident.2="bystander", test.use = "MAST", features = all_lncrnas, logfc.threshold = 0, assay = "RNA", slot = "data")
+de_genes_all[de_genes_all$p_val_adj < 0.2,]
+de_genes_all <-de_genes_all[!grepl("ribodepl-MSTRG.72510", rownames(de_genes_all)),]
+de_genes_all
+# DE analysis - ALL 
+de_genes_all <- FindMarkers(myeloids_live_24, ident.1 ="infected", ident.2="bystander", test.use = "DESeq2", latent.vars = "individual")
+de_genes_all[rownames(de_genes_all) == "STAT1",]
+de_genes_all <-de_genes_all[!grepl("ribodepl-MSTRG.72510", rownames(de_genes_all)),]
+nrow(de_genes_all)
+do_go <- function(list){
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Hs.eg.db, keyType = 'SYMBOL',ont = "BP")
+  barplot(ego, showCategory=10)
+  clusterProfiler::dotplot(ego)
+}
+do_go(rownames(de_genes_all))
+
+intersect(all_lncrnas, rownames(de_genes_all))
+
+```
+
+```{r pressure, echo=FALSE}
+# DE analysis - ALL 
+de_genes_all <- FindMarkers(myeloids_live_24, ident.1 ="infected", ident.2="bystander", test.use = "MAST", features = all_lncrnas, logfc.threshold = 0.15)
+de_genes_all <-de_genes_all[!grepl("ribodepl-MSTRG.72510", rownames(de_genes_all)),]
+de_genes_all
+```
+
+# ------------------------
+# DE in other groups 
+
+```{r pressure, echo=FALSE}
+# Rename identities with condition info
+immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$cond, sep = "_")
+immune.combined$celltype <- Idents(immune.combined)
+Idents(immune.combined) <- "celltype.stim"
+table(Idents(immune.combined))
+
+ref_lnc <- rownames(immune.combined)[rownames(immune.combined) %in% str_replace_all(lnc_ref_id, "_" , "-")]
+polya_genes <- rownames(immune.combined)[grepl("poly*", rownames(immune.combined))]
+ribodepl_genes <- rownames(immune.combined)[grepl("ribodepl*", rownames(immune.combined))]
+all_lnc <- c(ref_lnc, polya_genes, ribodepl_genes)
+
+cell_type <- "NK"
+live <- paste(cell_type,"live", sep ="_")
+media <- paste(cell_type,"media", sep="_")
+irrad <- paste(cell_type, "irrad", sep="_")
+Idents(immune.combined)
+immune.combined$individual
+lnc_myeloid_live_irrad <- FindMarkers(immune.combined, ident.1 = live, ident.2 = irrad, verbose = FALSE, features =all_lnc, logfc.threshold = 0, min.pct = 0.1, test.use = "MAST", latent.vars = "individual")
+lnc_myeloid_live_media <- FindMarkers(immune.combined, ident.1 = live, ident.2 = media, verbose = FALSE, features =all_lnc, logfc.threshold = 0,min.pct = 0)
+lnc_myeloid_irrad_media <- FindMarkers(immune.combined, ident.1 = irrad, ident.2 = media, verbose = FALSE, features =all_lnc, logfc.threshold = 0,min.pct = 0))
+nrow(lnc_myeloid_live_irrad)
+nrow(lnc_myeloid_live_media)
+nrow(lnc_myeloid_irrad_media)
+
+de_lnc <- unique(c(rownames(lnc_myeloid_live_irrad),rownames(lnc_myeloid_live_media),rownames(lnc_myeloid_irrad_media)))
+de_lnc
+
+
+```
+
+# Try with linear model 
+# exp ~(log10 viral transcripts per 10,000) + same covariates as the bystander vs. infected comparisons
+
+
+```{r a}
+# Calculate the viral load per cell 
+ebola_genome <- subset(infected, features = ebola_genes)
+count_matrix_ebola <- ebola_genome@assays$RNA@data
+viral_load <- colSums(count_matrix_ebola)
+
+length(viral_load)
+count_matrix <- infected@assays$RNA@data
+all_genes <- rownames(count_matrix)
+length(all_genes)
+calc_slope_linear_model <- function(gene1, count_matrix,individual,viral_load ){
+  gene1 <- str_replace_all(gene1, "_" , "-")
+  exp <- count_matrix[rownames(count_matrix)== gene1,]
+  individual <- infected$individual
+  model1 <- lm(exp ~ viral_load + individual)
+  slope <- as.double(model1$coefficients[2])
+  return(slope)
+}
+calc_linear_model <- function(gene1, count_matrix,individual,viral_load ){
+  gene1 <- str_replace_all(gene1, "_" , "-")
+  exp <- count_matrix[rownames(count_matrix)== gene1,]
+  individual <- infected$individual
+  model1 <- lm(exp ~ viral_load + individual)
+  slope <- as.double(model1$coefficients[2])
+  return(model1)
+}
+
+slopes <- lapply(all_genes, function(gene1) calc_slope_linear_model(gene1, count_matrix,individual,viral_load))
+df <- data.frame(id = all_genes, slope = unlist(slopes))
+
+lowest_df <- head(df[order(df$slope),], n =50 )
+lowest_df$type  <- "lowest"
+highest_df <- head(df[order(-df$slope),], n = 50)
+highest_df$type  <- "highest"
+df <- rbind(lowest_df, highest_df)
+ggplot(df, aes(x = abs(slope), col = type)) + geom_density()+ theme_classic()+labs(title = "Slopes", y = "") 
+
+lowest <- head(df[order(df$slope),], n = 50)$id
+highest <- head(df[order(-df$slope),], n = 59)$id
+
+do_go <- function(list){
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Hs.eg.db, keyType = 'SYMBOL',ont = "BP")
+  clusterProfiler::dotplot(ego)
+}
+
+# Enrichment 
+do_go(as.character(highest))
+do_go(as.character(lowest))
+
+
+
+#  Get one concrete example to check 
+gene1 <- "MX1"
+gene1 <- str_replace_all(gene1, "_" , "-")
+exp <- count_matrix[rownames(count_matrix)== gene1,]
+individual <- infected$individual
+model1 <- lm(exp ~ viral_load + individual)
+model1
+intercept <- as.double(model1$coefficients[1])
+slope <- as.double(model1$coefficients[2])
+abline(intercept, slope)
+plot(model1)
+
+ref$gene_name[grepl("CMPK2", ref$gene_name)]
+id <- unique(ref[which(ref$gene_name == "CMPK2")]$gene_biotype)
+table(grepl(id, lnc_ref_id))
+
+# Compute all models 
+models <- lapply(all_genes, function(x) calc_linear_model(x, count_matrix,individual,viral_load))
+p_values <- lapply(models, function(x) calc_pvalue(x))
+p_values <- as.vector(as.numeric(p_values))
+q_values <- qvalue(p_values)
+
+df <- data.frame(id = all_genes , slope = unlist(slopes),qvalue =-log10(q_values$qvalues) )
+df
+
+others <- which(!(all_genes %in% c("MX1", "MX2", "STAT1", "LAP3", "IFIT2", "OAS2", "GBP2", "ISG15")))
+others <- which(!(all_genes %in% all_lncrnas))
+to_highlight <- which((all_genes %in% all_lncrnas))
+labels <- replace(all_genes,others, "")
+
+labels <- rep("", length(labels))
+ggplot(df, aes(x = slope, y = qvalue))+geom_point()+labs(y = "-log10 Q-value", x = "Slope (log2 FC ?)")+ theme_classic()+ ylim(0,100)+geom_text(aes(label=labels, col = "red"),hjust=0, vjust=0)+geom_hline(yintercept=2, linetype="dashed", color = "red")+geom_point(data=df[to_highlight, ],aes(x = slope, y = qvalue), colour="blue")
+
+calc_pvalue <- function(model1){
+  modelSummary <- summary(model1)  # capture model summary as an object
+  modelCoeffs <- modelSummary$coefficients  # model coefficients
+  beta.estimate <- modelCoeffs["viral_load", "Estimate"]  # get beta estimate for speed
+  std.error <- modelCoeffs["viral_load", "Std. Error"]  # get std.error for speed
+  t_value <- beta.estimate/std.error  # calc t statistic
+  p_value <- 2*pt(-abs(t_value), df=nrow(cars)-ncol(cars))  # calc p Value
+  f_statistic <- model1$fstatistic[1]  # fstatistic
+  f <- summary(model1)$fstatistic  # parameters for model p-value calc
+  model_p <- pf(f[1], f[2], f[3], lower=FALSE)
+  return(model_p)
+}
+
+```
+
+
+
+#-------------------------
+# Try with MAST 
+```{r pressure, echo=FALSE}
+myeloids_live_24.sc <- as.SingleCellExperiment(myeloids_live_24)
+cond<-factor(colData(myeloids_live_24.sc)$ident)
+cond<-relevel(cond,"bystander")
+colData(myeloids_live_24.sc)$cond<-cond
+myeloids_live_24.sc$individual <- unlist(lapply(myeloids_live_24.sc$orig.ident , function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
+
+# SCE to SingleCellAssay
+library("MAST")
+library("scater")
+library("SingleCellExperiment")
+
+sca = as(myeloids_live_24.sc, 'SingleCellAssay')
+assay(sca, "counts")
+head(colData(sca))
+
+# Fit the model 
+zlm.output <- zlm( ~cond+individual, sca=sca) 
+show(zlm.output)
+
+summaryCond <- summary(zlm.output, doLRT='condinfected') 
+summaryCond
+print(summaryCond, n=4)
+
+summaryDt <- summaryCond$datatable
+summaryDt <- as.data.frame(summaryDt)
+summaryDt
+
+summaryDt[summaryDt$component == "H",]
+summaryDt[summaryDt$component == "logFC",]
+
+summaryDt[summaryDt$contrast=='condinfected' & summaryDt$component=='H',)
+
+fcHurdle <- merge(summaryDt[summaryDt$contrast=='condinfected' & summaryDt$component=='H',], summaryDt[summaryDt$contrast=='condinfected' & summaryDt$component=='C', ], by='primerid') #logFC coefficients
+
+fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
+fcHurdleSig <- merge(fcHurdle[fdr<.05 & abs(coef)>FCTHRESHOLD], as.data.table(mcols(sca)), by='primerid')
+setorder(fcHurdleSig, fdr)
+
+
+# quick test 
+ref[grepl("ENSMMUG00000041831",ref$gene_id),]
+```

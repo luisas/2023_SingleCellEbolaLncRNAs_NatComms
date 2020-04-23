@@ -14,10 +14,66 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r cars}
 datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
 library(rtracklayer)
-gtf <- import(file.path(datadir, "03_novel_lncrnas/03_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue.gtf"))                                                                                       
-gtf[is.na(gtf$gene_name)]$gene_name <- paste(gtf[is.na(gtf$gene_name)]$gene_id, "_unkown", sep = "")                                                                                                        
-gtf[is.na(gtf$transcript_name)]$transcript_name <- paste(gtf[is.na(gtf$transcript_name)]$transcript_id, "_unkown", sep = "")                                                                                
-export(gtf, file.path(datadir, "03_novel_lncrnas/03_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))  
+gtf <- import(file.path(datadir, "03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))                        
+gtf[grepl("polya", gtf$gene_id)]
+
+gtf[grepl("ribodepl", gtf$gene_id)]
+
+
+# the question is, a lncRNa which is identified through polyA selection only and is brain specific , is it expressed in ribodepleted samples ? 
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".HTseq.gene_counts.tab")
+
+# See wether it is expressed in brain 
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+# Create dataframe w/ logcpms
+# Select brain only 
+dds_ref <- dds_ref[,dds_ref$tissue == "Brain"]
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+colnames(expression_logcpm)
+# select only when > than 1 at least 3 tissues
+mask<- rowSums(as.data.frame(expression_logcpm) > 5) > 0
+expression_logcpm <- expression_logcpm[mask,]
+
+expression_logcpm <- as.matrix(expression_logcpm)
+
+expressed_in_brain <-rownames(as.matrix((expression_logcpm[grepl("MSTR", rownames(expression_logcpm)),])))
+
+paste("ribodepl",expressed_in_brain, sep = "_")[paste("ribodepl",expressed_in_brain, sep = "_") %in% gtf$gene_id]
+gtf_transcript <- gtf[gtf$type == "transcript"]
+
+gtf[gtf$gene_id == "polya_MSTRG.12932",]
+gtf[grepl("polya", gtf$gene_id)]
+
+gtf[!is.na(gtf$class_code)][gtf[!is.na(gtf$class_code)]$class_code == "x",]
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"))
+
+ref[ref$gene_id =="ENSMMUG00000063142"]
+
+```
+
+
+```{r cars}
+grid.newpage()
+overlap = 98
+ribodepl = 1504-overlap
+polya = 1533-overlap
+draw.pairwise.venn(polya,ribodepl,overlap, category = c("PolyA", "RiboDepleted"), lty = rep("blank", 
+    2), fill = c("red", "light blue"), alpha = rep(0.5, 2), cat.pos = c(0, 
+    0), cat.dist = rep(0.025, 2), scaled = FALSE)
+
+grid.newpage()
+overlap = 543
+ribodepl = 1504-overlap
+polya = 1533-overlap
+draw.pairwise.venn(polya,ribodepl,overlap, category = c("PolyA", "RiboDepleted"), lty = rep("blank", 
+    2), fill = c("red", "light blue"), alpha = rep(0.5, 2), cat.pos = c(0, 
+    0), cat.dist = rep(0.025, 2), scaled = FALSE)
 ```
 
 

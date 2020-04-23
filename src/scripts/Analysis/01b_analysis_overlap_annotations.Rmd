@@ -1,0 +1,190 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer)
+```
+
+## R Markdown
+
+
+```{r cars}
+gtf <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/02_gffcompare_withribodepleted_assembly/gffcompare_polyAexpressed_assemblyribodepl.gtf.annotated.gtf")
+
+gtf2 <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/03_gffcompare_assembltribodepl_novelexpressed/gffcompare_assemblyribodepl_polyAexpressed.gtf.annotated.gtf")
+
+
+polya_expressed <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf")
+
+# Checking the number correspond
+length(unique(polya_expressed$gene_id))
+length(unique(gtf2$gene_id))
+
+
+gtf_one_transcript <- get_only_max_transcript(gtf2)
+
+# How many of the identified polyA have some evidence in ribodepleted as well?
+transcripts <- gtf_one_transcript[gtf_one_transcript$type == "transcript"]
+transcripts$class_mod <- gsub("=|c|k|m|n|j|e|o","overlap",transcripts$class_code)
+
+
+gtf_one_transcript <- transcripts
+
+
+antisense <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_code =="x"]
+
+novel <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_code =="u"]
+
+
+overlap2 <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_mod =="overlap"]
+
+polys_found_evidence_in_ribodepl <- overlap2
+
+# How many of the identified polyA have some evidence in ribodepleted as well?
+table <- table(gsub("=|c|k|m|n|j|e|o","overlap",gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_code)
+barplot(table)
+
+
+
+# In which tissue is it expressed 
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".HTseq.gene_counts.tab")
+# See wether it is expressed in brain 
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+expression_logcpm
+
+
+rownames(expression_logcpm)[grepl("MSTRG.193$",rownames(expression_logcpm))]
+
+length( unique(antisense$gene_id))
+dds_ref_one <- dds_ref[rownames(dds_ref) %in% "MSTRG.42"]
+
+dds_ref_one <- dds_ref[rownames(dds_ref) %in% antisense$gene_id]
+
+
+
+expression <- sapply(dds_ref_one, function(dds_ref_one) unique(dds_ref_one[,assays(dds_ref_one)$logCPM > 0]$tissue))
+table(unlist(expression))
+
+```
+```{r cars}
+
+ribodepl_expressed <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf")
+
+gtf2 <- import("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/04_gffcompare_assemblypolya_ribodeplexpressed/gffcompare_assemblypolya_ribodeplexpressed.gtf.annotated.gtf")
+
+# Checking the number correspond
+length(unique(ribodepl_expressed$gene_id))
+length(unique(gtf2$gene_id))
+
+gtf_one_transcript <- get_only_max_transcript(gtf2)
+
+# How many of the identified polyA have some evidence in ribodepleted as well?
+transcripts <- gtf_one_transcript[gtf_one_transcript$type == "transcript"]
+transcripts$class_mod <- gsub("=|c|k|m|n|j|e|o","overlap",transcripts$class_code)
+
+table <- table(gsub("=|c|k|m|n|j|e|o","overlap",transcripts$class_code))
+barplot(table)
+
+
+gtf_one_transcript <- transcripts
+
+
+antisense <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_code =="x"]
+
+novel <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_code =="u"]
+
+
+overlap2 <- gtf_one_transcript[gtf_one_transcript$type == "transcript"][gtf_one_transcript[gtf_one_transcript$type == "transcript"]$class_mod =="overlap"]
+
+ribodepletion_found_evidence_in_polya <- overlap2
+
+# In which tissue is it expressed 
+dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+htseq_files_ref <- iterate_files(dir_counts_ref, ".HTseq.gene_counts.tab")
+# See wether it is expressed in brain 
+dds_ref <- create_dds(htseq_files_ref,dir_counts_ref)
+dge_ref <- DGEList(counts = assays(dds_ref)$counts, group = dds_ref$dpo, genes = rownames(dds_ref), samples = colData(dds_ref))
+# Calc logcpm 
+assays(dds_ref)$logCPM <- edgeR::cpm(dge_ref, log = TRUE,prior.count = 0.5)
+expression_logcpm <-  as.matrix(assays(dds_ref)$logCPM)
+expression_logcpm
+
+
+dds_ref_one <- dds_ref[rownames(dds_ref) %in% "MSTRG.537"]
+
+dds_ref_one <- dds_ref[rownames(dds_ref) %in% antisense$gene_id]
+
+
+
+expression <- sapply(dds_ref_one, function(dds_ref_one) unique(dds_ref_one[,assays(dds_ref_one)$logCPM > 0]$tissue))
+table(unlist(expression))
+
+```
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+length(unique(polya_expressed$gene_id))
+length(unique(ribodepl_expressed$gene_id))
+
+length(unique(polys_found_evidence_in_ribodepl$gene_id))
+
+table(polys_found_evidence_in_ribodepl$gene_id %in% polya_expressed$gene_id)
+
+
+length(unique(ribodepletion_found_evidence_in_polya$gene_id))
+table(!(unique(polya_expressed$gene_id) %in% unique(polys_found_evidence_in_ribodepl$gene_id)))
+polya_exclusive <- polya_expressed[!(polya_expressed$gene_id %in% polys_found_evidence_in_ribodepl$gene_id),]
+
+length(unique(polya_exclusive$gene_id))
+
+dds_ref_one <- dds_ref[rownames(dds_ref) %in% polya_exclusive$gene_id]
+expression <- sapply(dds_ref_one, function(dds_ref_one) unique(dds_ref_one[,assays(dds_ref_one)$logCPM > 0]$tissue))
+table(unlist(expression))
+```
+
+
+```{r cars}
+grid.newpage()
+n_ribodepletion_found_evidence_in_polya <- length(unique(ribodepletion_found_evidence_in_polya$gene_id))
+n_polys_found_evidence_in_ribodepl <-length(unique(polys_found_evidence_in_ribodepl))
+
+total_polya<- length(unique(polya_expressed$gene_id))
+total_ribo <- length(unique(ribodepl_expressed$gene_id))
+
+overlap = n_ribodepletion_found_evidence_in_polya+n_polys_found_evidence_in_ribodepl
+ribodepl = total_ribo 
+polya = total_polya
+draw.pairwise.venn(polya,ribodepl,overlap, category = c("PolyA", "RiboDepleted"), lty = rep("blank", 
+    2), fill = c("red", "light blue"), alpha = rep(0.5, 2), cat.pos = c(0, 
+    0), cat.dist = rep(0.025, 2), scaled = FALSE)
+
+
+
+rest <- total_polya - n_polys_found_evidence_in_ribodepl
+slices <- c(rest, n_polys_found_evidence_in_ribodepl)
+lbls <- c("polyA exclusive 990", "evidence found 543")
+
+pie(slices, labels = lbls, main="lncRNAs identified with Poly(A)")
+
+
+rest <- total_ribo - n_ribodepletion_found_evidence_in_polya
+slices <- c(rest, n_ribodepletion_found_evidence_in_polya)
+lbls <- c("ribodepl exclusive 766", "evidence found 735")
+
+pie(slices, labels = lbls, main="lncRNAs identified with Ribodepletion")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
