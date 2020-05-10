@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr);library(Seurat); library(Matrix); library(scater); library(SingleCellExperiment); library(purrr); library(stringr)
 library(mvoutlier); library(dropbead); library(scater); library(stringr); library(scran); library(cowplot); library(rtracklayer)
@@ -40,9 +40,6 @@ ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(eb
 
 ```{r pressure, echo=FALSE}
 
-
-
-
 infected <- get_infected_cells(immune.combined, ebola_genes)
 infected
 ```
@@ -69,7 +66,7 @@ library(broom)
 library(org.Hs.eg.db)
 do_go <- function(list, mmu = FALSE){
   if(mmu){
-      ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = 'ENSEMBL',ont = "BP")
+      ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP")
       print("mu")
   }else{
     ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Hs.eg.db, keyType = 'SYMBOL',ont = "BP")

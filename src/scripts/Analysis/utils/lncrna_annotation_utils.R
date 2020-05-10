@@ -77,7 +77,7 @@ barplot_exon_count <- function(gr, type, col){
   levels(h_plotdata$group) <- c(type)
   
   ## plot with geom_bar
-  p1 <-ggplot(h_plotdata, aes(x=x, y=y, fill = group, palette = col)) +
+  p1 <-ggplot(h_plotdata, aes(x=x, y=y, fill = group, palette = col )) +
     geom_bar(stat = "identity", width = 0.8) +
     theme(legend.title=element_blank())+
     labs(y = "", x = "")+
@@ -85,7 +85,8 @@ barplot_exon_count <- function(gr, type, col){
     scale_x_continuous( labels = as.character(h_plotdata$x), breaks = (h_plotdata$x)) + 
     theme(plot.title = element_text(hjust = 0.5))+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    scale_fill_manual(values=c(col))
+    scale_fill_manual(values=c(col))+scale_y_continuous(breaks = c(0, max(h_plotdata$y)))
+
   return(p1)
 }
 
@@ -156,41 +157,47 @@ remove_one_exon <- function(gr){
   return(depleted)
 }
 
-plot_expression <- function(max_expression){
-  plot <- ggplot(max_expression, aes(x=factor(type,level = c("lncrna", "novel", "mrna")) , y=expr, fill = type )) + 
-    geom_boxplot(color="darkgrey",  alpha=1.0, fill = palette_expression )+
-    labs(y = "logCPM", x = "", title = "Expression" )+
+plot_expression <- function(max_expression, palette_expression = palette_expression, level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")){
+  plot <- ggplot(max_expression, aes(x=factor(type,level = level) , y=expr, fill = factor(type,level = level), colour = factor(type,level = level) )) + 
+    geom_violin(alpha = 0.6 )+
+    scale_fill_manual(values =palette_expression)+
+    scale_color_manual(values = palette_expression)+geom_boxplot(colour = "#404040", width = 0.1, fill = "white")+
+    labs(y = "logFPKM", x = "", title = "Maximum Expression" )+
     theme(legend.title=element_blank())+
     theme(plot.title = element_text(hjust = 0.5))+
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(legend.position = "none")
   return(plot)
 }
 
 plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,df){
   palette <-brewer.pal(5,"Paired")
   palette <- c("#F4E3ED", "#E9A3C9", "#C51B7D", "#E6F5D0", "#A1D76A")
-  levels <- c('Novel LncRNAs', 'Known lncRNAs: Macaque ', 'Known lncRNAs: Human',"Known mRNAs: Macaque", "Known mRNAs: Human" )
+  palette <- c("#E8C2D8", "#D4549C", "#900051", "#A1D76A", "#308B1E")
+  #palette <- c("#FF817C","#FF0000", "#A70000", "#AFD2FF", "#040AAF")
+  levels <- c('Novel LncRNAs', 'Annotated LncRNAs - Macaque ', 'Annotated LncRNAs - Human',"Annotated mRNAs - Macaque", "Annotated mRNAs - Human" )
   # --------------------
   ## EXON COUNT
   # --------------------
   
   ec1 <- barplot_exon_count(novel_expressed, "Novel", palette[1])
   ec2 <- barplot_exon_count(lncRNAs_ref, "lncRNAs - Reference Macaque", palette[2])
-  ec3 <- barplot_exon_count(lncRNAs_ref_human, "lncRNAs - Reference Human", palette[3])+labs(y = "Frequency")
+  ec3 <- barplot_exon_count(lncRNAs_ref_human, "lncRNAs - Reference Human", palette[3])+labs(y = "Frequency")+ theme(axis.title = element_text(size = 15))
   ec4 <- barplot_exon_count(mrna_ref_human, "mRNAs - Reference Human", palette[4])
-  ec5 <- barplot_exon_count(mRNAs_ref, "mRNAs - Reference Macaque", palette[5])+labs(x = "Number of Exons") 
-  a <- ggarrange( ec1,ec2,ec3,ec4,ec5,  ncol=1, nrow=5, top = "Transcripts Lengths") 
+  ec5 <- barplot_exon_count(mRNAs_ref, "mRNAs - Reference Macaque", palette[5])+labs(x = "Number of Exons") +theme(axis.title = element_text(size = 22))
+  a <- ggarrange( ec1,ec2,ec3,ec4,ec5,  ncol=1, nrow=5, top = "Number of Exons") 
+
   # Exon count generally lower in lncrnas than mrnas (Ok. same as sources)
   
   # --------------------
   ## Transcript lengths: still weird, very long ones ...
   # --------------------
-  tl1 <-transcript_length_density(novel_expressed," NOVEL",palette[1]) 
-  tl2 <-transcript_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
-  tl3 <-transcript_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
-  tl4 <-transcript_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
-  tl5 <-transcript_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Transcript length")
-  b <- ggarrange( tl1,tl2,tl3,tl4,tl5,  ncol=1, nrow=5, top = "Transcripts Lengths",  legend="right")
+  #tl1 <-transcript_length_density(novel_expressed," NOVEL",palette[1]) 
+  #tl2 <-transcript_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+  #tl3 <-transcript_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+  #tl4 <-transcript_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+  #tl5 <-transcript_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Transcript length")
+  #b <- ggarrange( tl1,tl2,tl3,tl4,tl5,  ncol=1, nrow=5, top = "Transcripts Lengths",  legend="right")
   
   
   # --------------------
@@ -198,18 +205,24 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
   # --------------------
   df <- data.frame()
   df <- rbind(df,data.frame(calc_transcript_length(novel_expressed, "Novel LncRNAs")))
-  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
-  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
-  df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Known mRNAs: Human")))
-  df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Known mRNAs: Macaque")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
   
   p <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
-    labs( x = "", y = "" , title = "Transcript length")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
-    geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,10000)+
-    theme(legend.title=element_blank())+
+    labs( x = "", y = "Transcript Length" , title = "Transcript length")+
+    theme(axis.text.x = element_blank(), plot.title = element_text(size = 22),axis.text.y = element_text(size = 15), axis.title = element_text(size = 15))+
+    geom_boxplot(outlier.shape=NA, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE) + ylim(0,10000)+
+    theme(legend.title=element_blank(), legend.position = "top")+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
+    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
+
+  # Just for having the palette 
+   #p <- ggplot(df, aes(x = factor(type, level = levels),  y = range, fill =factor(type, level = levels), color = factor(type, level = levels) )) +
+  #geom_density()+scale_fill_manual(values = palette)+scale_color_manual(values = palette)
   
   
   # --------------------
@@ -217,47 +230,134 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
   # --------------------
   df <- data.frame()
   df <- rbind(df,data.frame(calc_transcript_length_min(novel_expressed, "Novel LncRNAs")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref, "Known lncRNAs: Macaque ")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref_human, "Known lncRNAs: Human")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(mrna_ref_human, "Known mRNAs: Human")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(mRNAs_ref, "Known mRNAs: Macaque")))
+  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length_min(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length_min(mRNAs_ref, "Annotated mRNAs - Macaque")))
   
   plotmin <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
-    labs( x = "", y = "" , title = "Transcript length ( min transcript length ) ")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
-    geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,10000)+
-    theme(legend.title=element_blank())+
+    labs( x = "", y = "Transcript Length" , title = "Transcript length ( min transcript length ) ")+
+    theme(axis.text.x = element_blank(), plot.title = element_text(size = 22),axis.text.y = element_text(size = 15), axis.title = element_text(size = 15))+
+    geom_boxplot(outlier.shape=NA, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE) + ylim(0,10000)+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
+    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
 
   
   # --------------------
   ## Exon lengths - Densities 
   # --------------------
-  p1 <-exon_length_density(novel_expressed," NOVEL",palette[1]) 
-  p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
-  p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
-  p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
-  p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
-  d <- ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
+  #p1 <-exon_length_density(novel_expressed," NOVEL",palette[1]) 
+  #p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+  #p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+  #p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+  #p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
+  #d <- ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
   
   # --------------------
   ## Exon lengths - Boxplot
   # --------------------
   df <- data.frame()
   df <- rbind(df,data.frame(calc_exon_length(novel_expressed, "Novel LncRNAs")))
-  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Known lncRNAs: Macaque ")))
-  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Known lncRNAs: Human")))
-  df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Known mRNAs: Human")))
-  df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Known mRNAs: Macaque")))
+  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
   
   p1 <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
-    labs( x = "", y = "" , title = "Exon length")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=10))+
-    geom_boxplot(outlier.shape=NA, fill = palette,color = "Darkgrey") + ylim(0,1000)+
+    labs( x = "", y = "Exon Length" , title = "Exon length")+
+    theme(axis.text.x = element_blank(), plot.title = element_text(size = 22),axis.text.y = element_text(size = 15), axis.title = element_text(size = 15))+
+    geom_boxplot(outlier.shape= NA, notch = FALSE, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE)+
     theme(legend.title=element_blank())+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
+    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
 
-  return(list(a,b,p,d,p1,plotmin))
+  return(list(a,p,p1,plotmin))
 }
+
+plot_stats_annotation_separated <- function (novel_expressed_poly, novel_expressed_ribo,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,df){
+  palette <-brewer.pal(5,"Paired")
+  palette <- c("#F4E3ED", "#E9A3C9", "#C51B7D", "#E6F5D0", "#A1D76A")
+  palette <- c("blue", "purple", "#D4549C", "#900051", "#A1D76A", "#308B1E")
+  #palette <- c("#FF817C","#FF0000", "#A70000", "#AFD2FF", "#040AAF")
+  levels <- c('Poly(A) Novel LncRNAs', 'Ribodepleted Novel LncRNAs', 'Annotated LncRNAs - Macaque ', 'Annotated LncRNAs - Human',"Annotated mRNAs - Macaque", "Annotated mRNAs - Human" )
+  # --------------------
+  ## EXON COUNT
+  # --------------------
+  
+  ec1 <- barplot_exon_count(novel_expressed_poly, "Poly(A) Novel LncRNAs", palette[1])
+  ec1b <- barplot_exon_count(novel_expressed_ribo, "Ribodepleted Novel LncRNAs", palette[2])
+  ec2 <- barplot_exon_count(lncRNAs_ref, "lncRNAs - Reference Macaque", palette[3])
+  ec3 <- barplot_exon_count(lncRNAs_ref_human, "lncRNAs - Reference Human", palette[4])+labs(y = "Frequency")+ theme(axis.title = element_text(size = 15))
+  ec4 <- barplot_exon_count(mrna_ref_human, "mRNAs - Reference Human", palette[5])
+  ec5 <- barplot_exon_count(mRNAs_ref, "mRNAs - Reference Macaque", palette[6])+labs(x = "Number of Exons") +theme(axis.title = element_text(size = 22))
+  a <- ggarrange( ec1,ec1b, ec2,ec3,ec4,ec5,  ncol=1, nrow=6, top = "Number of Exons") 
+  
+  # Exon count generally lower in lncrnas than mrnas (Ok. same as sources)
+
+  
+  
+  # --------------------
+  ## Transcript lengths - Boxplot
+  # --------------------
+  df <- data.frame()
+  df <- rbind(df,data.frame(calc_transcript_length(novel_expressed_poly, "Poly(A) Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_transcript_length(novel_expressed_ribo, "Ribodepleted Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+  
+  p <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
+    labs( x = "", y = "Transcript Length" , title = "Transcript length")+
+    theme(axis.text.x = element_blank(), plot.title = element_text(size = 22),axis.text.y = element_text(size = 15), axis.title = element_text(size = 15))+
+    geom_boxplot(outlier.shape=NA, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE) + ylim(0,10000)+
+    theme(legend.title=element_blank(), legend.position = "top")+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
+    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
+  
+  # Just for having the palette 
+  #p <- ggplot(df, aes(x = factor(type, level = levels),  y = range, fill =factor(type, level = levels), color = factor(type, level = levels) )) +
+  #geom_density()+scale_fill_manual(values = palette)+scale_color_manual(values = palette)
+  
+  
+  
+  # --------------------
+  ## Exon lengths - Densities 
+  # --------------------
+  #p1 <-exon_length_density(novel_expressed," NOVEL",palette[1]) 
+  #p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
+  #p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
+  #p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
+  #p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
+  #d <- ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
+  
+  # --------------------
+  ## Exon lengths - Boxplot
+  # --------------------
+  df <- data.frame()
+  df <- rbind(df,data.frame(calc_exon_length(novel_expressed_poly, "Poly(A) Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_exon_length(novel_expressed_ribo, "Ribodepleted Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+  
+  p1 <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
+    labs( x = "", y = "Exon Length" , title = "Exon length")+
+    theme(axis.text.x = element_blank(), plot.title = element_text(size = 22),axis.text.y = element_text(size = 15), axis.title = element_text(size = 15))+
+    geom_boxplot(outlier.shape= NA, notch = FALSE, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE)+
+    theme(legend.title=element_blank())+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
+    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
+  
+  return(list(a,p,p1,plotmin))
+}
+

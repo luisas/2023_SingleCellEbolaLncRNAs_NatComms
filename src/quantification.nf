@@ -1,6 +1,10 @@
 #!/usr/bin/env nextflow
 
-params.output_dir = "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+//params.output_dir = "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+params.output_dir = "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq_all"
+
+
+
 
 //params.dataset= "02_RNA-Seq_BatchZyagen"
 //params.htseqsense="yes"
@@ -29,12 +33,14 @@ printing.subscribe{ println it }
 
 
 
-params.gtf_ref_merged =  "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_gtf_filtering_step_01/rheMac10_EBOV-Kikwit_and_both_novel.gtf"
+//params.gtf_ref_merged =  "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_gtf_filtering_step_01/rheMac10_EBOV-Kikwit_and_both_novel.gtf"
+params.gtf_ref_merged =  "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"
+
 Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
 
 process getHTseqCountALL{
-  cpus 1
-  storeDir "${params.output_dir}/04_Quantification_correct/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+  cpus 8
+  storeDir "${params.output_dir}/04_Quantification_correct_with_names/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
   input:
   file gtf from gtfANDnovel.collect()

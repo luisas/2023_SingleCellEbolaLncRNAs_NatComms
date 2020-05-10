@@ -147,7 +147,7 @@ process STAR{
         --readFilesCommand zcat \
         --outFileNamePrefix ${complete_id}. \
         --outTmpDir $TMPDIR/${complete_id} \
-        --outSAMtype "BAM"
+        --outSAMtype BAM Unsorted
   """
 }
 
@@ -197,7 +197,7 @@ storeDir "${params.output_dir}/03_star/$animal_id/$hpi/$exp/$replicate/$preproce
 
 
 process RevertSam{
-  cpus 24
+  cpus 48
   label "rnaseq"
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
@@ -253,10 +253,10 @@ process MergeBamAlignment{
   """
 }
 
-/*
+
 process TagReadWithGeneFunction{
 
-  cpus 4
+  cpus 12
   storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
@@ -279,7 +279,7 @@ process TagReadWithGeneFunction{
 params.primer = "AAGCAGTGGTATCAACGCAGAGTGAATGGG"
 process DetectBeadSubstitutionError{
 
-  cpus 8
+  cpus 12
   storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
@@ -303,7 +303,7 @@ process DetectBeadSubstitutionError{
 
 process BamTagHistogram{
 
-  cpus 8
+  cpus 12
   storeDir "${params.output_dir}/04_CellSelection/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
@@ -364,7 +364,7 @@ process DigitalExpressionMatrix_UMI{
   """
 }
 
-*/
+
 
 workflow.onComplete {
 	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )

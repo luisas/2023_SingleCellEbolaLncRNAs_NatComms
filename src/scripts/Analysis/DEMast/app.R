@@ -22,12 +22,12 @@ ui <- fluidPage(
                         "FDR Threshold:",
                         min = 0,
                         max = 1,
-                        value = 0.05),
+                        value = 0.1),
             sliderInput("fc",
                             "Fold Change Threshold:",
                             min = 1,
                             max = 3,
-                            value = 1.5, step = 0.1)
+                            value = 1, step = 0.1)
             
         ),
     

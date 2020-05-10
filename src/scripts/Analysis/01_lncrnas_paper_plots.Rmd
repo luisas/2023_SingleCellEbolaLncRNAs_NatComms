@@ -5,26 +5,203 @@ date: "4/23/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
+library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
+library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Reused paths
+projdir = "/home/luisas/Desktop/cluster/proj/data/"
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+assemblies <- "/home/luisas/Desktop/cluster/assemblies"
 
-```{r cars}
-summary(cars)
+# Import Utils 
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
+source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
+
+
+# Human training set
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
+lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
+
+# The lncRNAs and mRNAs in the reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
+```
+# -------------------------------------------------------------------------------
+# STATS PLOTS FOR POLY(A)-SELECTED AND RIBODEPLETED SAMPLES INDIVIDUALLY
+# -------------------------------------------------------------------------------
+```{r POLYA}
+polya_lnc <- import(file.path(datadir, "03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"))
+# Exon Length, Exon number and Transcript Lengths 
+#plot_stats_annotation(polya_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+ribodepl_lnc <- import(file.path(datadir,"03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"))
+#plot_stats_annotation(ribodepl_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+all <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+polya_lnc  <- all[substr(all$gene_id,1,4) == "poly",]
+ribo_lnc  <- all[substr(all$gene_id,1,4) == "ribo",]
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c("poly", "ribo"),]
+
+#plot_stats_annotation(polya_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+#plot_stats_annotation(ribo_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+plot_stats_annotation_separated(polya_lnc,ribo_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+p
+
+barplot_exon_count(mrna_ref_human, "mRNAs - Reference Human", "red")
 ```
 
-## Including Plots
+```{r POLYA}
 
-You can also embed plots, for example:
+palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
+palette_expression <-c("#D4549C", "#A1D76A", "#E8C2D8")
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+# ----------------------------------------------------------------------
+# Extract expression ALL 
+# ----------------------------------------------------------------------
+dir_counts_ref = file.path(datadir, "04_Stringtie_correct_with_names_gene_ab/")
+#dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+# Create Map for Transcript names to Gene names 
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
+
+# Remove non expressed genes 
+expression <- txi$abundance
+mask<- rowSums(as.data.frame(log(expression)) > 0) > 2
+expression <- expression[mask,]
+
+# ----------------------------------------------------------------------
+# Extract expression ALL 
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
+
+# ----------------------------------------------------------------------
+# Extract expression PolyA 
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, polya_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
+
+# ----------------------------------------------------------------------
+# Extract expression ribodepl
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
+
+# ----------------------------------------------------------------------
+# Extract compared
+# ----------------------------------------------------------------------
+palette_expression <-c("blue", "purple", "#D4549C", "#A1D76A")
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
+max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Ribodepleted Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+
+levels <-  c("Poly(A) Novel lncRNAs", "Ribodepleted Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(max_expression, palette_expression, level = levels)+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# -----------------------------
+# Tissue Sharing 
+# -----------------------------
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
+colnames(expression) <- gsub("Testes", "Testis", unlist(lapply(abundance_files, function(x) rev(strsplit(x, "/")[[1]])[5])))
+
+# Check how many tissues express a gene
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
+grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
+n_tissues_expresseing_gene <- rowSums(grouped_expression)
+
+# Create DF for plotting
+df <- as.data.frame(as.data.frame(n_tissues_expresseing_gene))
+df$id <- rownames(df)
+
+
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+
+# Density plot tissue sharing
+
+# Boxplot Tissue Sharing
+p <- ggplot(df, aes(x = n_tissues_expresseing_gene, fill = factor(type, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")), color = factor(type, levels = c("lncrna", "novel", "mrna")))) +labs(y = "", x = "# Tissues", title = "Expression across tissues (Tissue specificity)")+
+            theme_pubclean()+geom_density(alpha=0.7)+
+            theme(legend.title=element_blank())+
+            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+theme(plot.title = element_text(hjust = 0.5))
+p + scale_fill_manual(values=palette_expression) + scale_color_manual(values=palette_expression)
+
+
+p <- ggplot(h_plotdata, aes(x = x, y = y, fill = factor(group, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")), color = factor(group, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")))) +labs(y = "", x = "# Tissues", title = "Expression across tissues (Tissue specificity)")+
+            theme_pubclean()+geom_bar(alpha=0.7, stat= "identity", position = "dodge")+
+            theme(legend.title=element_blank())+
+            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+theme(plot.title = element_text(hjust = 0.5))
+p + scale_fill_manual(values=palette_expression) + scale_color_manual(values=palette_expression)
+
+df
+
+barplot_tissues <- function(df, type, col){
+  ## extract the number of exons
+  df_l <- df[df$type == type,]
+  h <- ggplot(df_l, aes(x=n_tissues_expresseing_gene, fill=type)) + 
+    geom_histogram(position="identity", binwidth =1)+
+    xlim(1,16)
+  
+  h_plotdata <- ggplot_build(h)$data[[1]]
+  h_plotdata$group <- as.factor(h_plotdata$group)
+  levels(h_plotdata$group) <- c(type)
+  
+  ## plot with geom_bar
+  p1 <-ggplot(h_plotdata, aes(x=x, y=y, fill = group, palette = col)) +
+    geom_bar(stat = "identity", width = 0.8) +
+    theme(legend.title=element_blank())+
+    labs(y = "", x = "")+
+    theme(legend.title=element_blank())+ theme(legend.position = "none")+
+    scale_x_continuous( labels = as.character(h_plotdata$x), breaks = (h_plotdata$x)) + 
+    theme(plot.title = element_text(hjust = 0.5))+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
+    scale_fill_manual(values=c(col))+theme(legend.position = "none")+theme(axis.text = element_text(size = 12))
+  return(p1)
+}
+
+type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
+palette <- palette_expression
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) + labs( y  = "Count")+ theme(axis.title = element_text(size = 15))
+tl3 <-barplot_tissues(df,"mRNAs",palette[3]) + labs( x = "#Tissues") + theme(axis.title = element_text(size = 22))
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3, top = "Expression across tissues (Tissue specificity)")
+b
+```
+

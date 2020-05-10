@@ -20,6 +20,9 @@ process{
   withName:runRSeQC{
    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rseqc.simg'
   }
+  withName:FPKM{
+   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rseqc.simg'
+  }
 
 
 }

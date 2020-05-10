@@ -65,30 +65,88 @@ calc_mean_and_percentage_cell <- function(subset,ident = "", df, threshold = 1 )
   assign(dfo, df_complete, envir = .GlobalEnv);
 }
 
-plot_quartiles <- function(df_lnc, df_mrna, y = "proportion"){
+plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.table(c(1,3,4,9))){
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
   if(is.na(df_lnc$type[1])){
     df_lnc$type <- "lncRNA"
   }
   if(is.na(df_mrna$type[1])){
-    df_mrna$type   <- "Protein Coding"
+    df_mrna$type   <- "mRNA"
   }
   df_complete <- rbind(df_lnc, df_mrna)
-  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(maxexpr, quantile(maxexpr, probs=0:4/4), include.lowest=TRUE)))
+  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(df_complete$maxexpr, quantiles, include.lowest=FALSE)))
   df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
   if(y == "proportion"){
     title <- "Proportion of cells expressing genes"
     ylab <- "% Cells"
-    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type))
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type, col = type))
   }else if( y == "number"){
     title <- "Number of cells expressing genes"
     ylab <- " # Cells"
-    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = n_cells, fill = type))
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = n_cells, fill = type, col = type))
+  }
+  else if( y == "median"){
+    title <- "Number of cells expressing genes"
+    ylab <- " median"
+    df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(df_complete$perc_cells_expressing, quantiles, include.lowest=FALSE)))
+    df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = medianexpr, fill = type, col = type))
   }
   
   
-  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")+ scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
+  p1 <- p1+geom_boxplot(alpha = 0.5)+
+    theme_classic()+
+    labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+
+    theme(plot.title = element_text(hjust = 0.5))+
+    scale_fill_brewer(palette = "Set1")+
+    scale_color_brewer(palette = "Set1")+
+    theme(legend.title = element_blank())+
+    scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
+                     labels=c("1-25","25-50","50-75", "75-100"))
+  return(p1)
+}
+
+
+plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4){
+  total_lnc <-  length(unique(df_lnc$gene_id))
+  total_mrna <-  length(unique(df_mrna$gene_id))
+  print(n)
+  if(is.na(df_lnc$type[1])){
+    df_lnc$type <- "lncRNA"
+  }
+  if(is.na(df_mrna$type[1])){
+    df_mrna$type   <- "mRNA"
+  }
+  df_complete <- rbind(df_lnc, df_mrna)
+  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(maxexpr, quantile(maxexpr, probs=0:n/n), include.lowest=TRUE)))
+  df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
+  if(y == "proportion"){
+    title <- "Proportion of cells expressing genes"
+    ylab <- "% Cells"
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type, col = type))
+  }else if( y == "number"){
+    title <- "Number of cells expressing genes"
+    ylab <- " # Cells"
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = n_cells, fill = type, col = type))
+  }
+  else if( y == "median"){
+    title <- "median expression"
+    ylab <- " Median expression "
+    df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(perc_cells_expressing, quantile(perc_cells_expressing, probs=0:n/n), include.lowest=TRUE)))
+    df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = medianexpr, fill = type, col = type))
+  }
+  
+  
+  p1 <- p1+geom_boxplot(alpha = 0.5)+
+          theme_classic()+
+          labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+
+          theme(plot.title = element_text(hjust = 0.5))+
+          scale_fill_brewer(palette = "Set1")+
+          scale_color_brewer(palette = "Set1")+
+          theme(legend.title = element_blank())+
+          scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
                                                                                                                                                                                                                                                                                                 labels=c("1-25","25-50","50-75", "75-100"))
   return(p1)
 }
@@ -107,14 +165,16 @@ plot_celltype <- function(df_lnc, df_mrna, y = "proportion"){
   if(y == "proportion"){
     title <- "Proportion of cells expressing genes"
     ylab <- "% Cells"
-    p1 <- ggplot(df_complete, aes(x = ident, y = perc_cells_expressing, fill = type))
+    p1 <- ggplot(df_complete, aes(x = ident, y = perc_cells_expressing, fill = type, col = type))
   }else if( y == "number"){
     title <- "Number of cells expressing genes"
     ylab <- " # Cells"
-    p1 <- ggplot(df_complete, aes(x = ident, y = n_cells, fill = type))
+    p1 <- ggplot(df_complete, aes(x = ident, y = n_cells, fill = type, col = type))
   }
   
-  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+theme(legend.title = element_blank())+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")
+  p1 <- p1+geom_boxplot(alpha = 0.5)+theme_classic()+labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+theme(legend.title = element_blank())+theme(plot.title = element_text(hjust = 0.5))+
+           scale_fill_brewer(palette = "Set1")+
+           scale_color_brewer(palette = "Set1")
   return(p1)
 }
 
@@ -132,15 +192,16 @@ boxplot_expression <- function(df_lnc, df_mrna, type = "Max"){
   df_complete <- rbind(df_lnc, df_mrna)
   
   if(type == "Max"){
-    p1 <- ggplot(df_complete, aes(x = ident, y = maxexpr, fill = type))
+    p1 <- ggplot(df_complete, aes(x = ident, y = maxexpr, fill = type, col = type))
   }else if(type == "Mean"){
-    p1 <-ggplot(df_complete, aes(x = ident, y = meanexpr, fill = type))
+    p1 <-ggplot(df_complete, aes(x = ident, y = meanexpr, fill = type, col = type))
   }else if(type == "Median"){
-    p1 <- ggplot(df_complete, aes(x = ident, y = medianexpr, fill = type))
+    p1 <- ggplot(df_complete, aes(x = ident, y = medianexpr, fill = type, col = type ))
   }
   
-  p1 <- p1+geom_boxplot()+theme_classic()+labs(title = paste0(type," Expression values of mRNAs across cell type", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "")+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Dark2")
-  
+  p1 <- p1+geom_boxplot(alpha= 0.5)+theme_classic()+labs(title = paste0(type," Expression values of mRNAs across cell type", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "")+theme(plot.title = element_text(hjust = 0.5))+
+          scale_fill_brewer(palette = "Set1")+
+          scale_color_brewer(palette = "Set1")
   return(p1)
   
 }
@@ -162,7 +223,7 @@ scatter_plot_expression <- function(df, genetype, type = "Max", col = "blue"){
 scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max"){
   df_lnc$type <- "ncRNA"
   df_mrna$type   <- "Protein coding"
-  df_complete <- rbind(df_lnc, df_mrna)
+  df_complete <- rbind(df_mrna, df_lnc)
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
   if(y == "Variance"){
@@ -177,8 +238,8 @@ scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max"){
     }
   }
 
-  p1 <- p1+geom_point(size = 1, alpha = 0.3)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_brewer(palette = "Dark2")+scale_color_brewer(palette = "Dark2")+theme(legend.position = "")
-  print("here")
+  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme(legend.position = "")+
+          scale_alpha_manual(values = c(1,0.3))+ylim(0,1)
   p1 <- ggExtra::ggMarginal(p1,type = 'boxplot',margins = 'both',size = 8,colour = "darkgrey", alpha = 0.5,groupColour = TRUE, groupFill = TRUE)
   return(p1)
 }
@@ -254,7 +315,26 @@ calc_specificity_enrichment <- function(df_complete_celltypes,all_genes, type = 
 
 
 
-
+#Function to change x labels of individual violin plots
+VlnPlot_2 <- function(object, features.plot, xlab) {
+  
+  # Main function
+  main_function <- function(object = object, features.plot = features.plot, xlab = xlab) {
+    VlnPlot(object = object, features= features.plot) + 
+      labs(x = xlab)
+  }
+  
+  # Apply main function on all features
+  p <- lapply(X = features.plot, object = object, xlab = xlab,
+              FUN = main_function)
+  
+  # Arrange all plots using cowplot
+  # Adapted from Seurat
+  # https://github.com/satijalab/seurat/blob/master/R/plotting.R#L1100
+  # ncol argument adapted from Josh O'Brien
+  # https://stackoverflow.com/questions/10706753/how-do-i-arrange-a-variable-list-of-plots-using-grid-arrange
+  cowplot::plot_grid(plotlist = p, ncol = ceiling(sqrt(length(features.plot))))
+}
 
 
 
@@ -452,6 +532,49 @@ plot_cells <- function(pbmc, cells, title = "Subset cells", col = "purple"){
   p1 <- DimPlot(pbmc, label=F, cells.highlight= list(g1), cols.highlight = c(col), cols= "grey")+ 
     labs(title = title )+ NoLegend()
   return (list(p1,  sprintf("Number of cells %s", length(g1) )))
+}
+
+
+hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
+  # Only select lncrnas
+  m <- m[rownames(m) %in% features,, drop = FALSE]
+  rownames(m) <- gsub("-unkown","",rownames(m))
+  
+  
+  column_ha <- HeatmapAnnotation(celltype = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])), 
+                                 comparison = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])),
+                                 show_annotation_name = FALSE
+  )
+  row_ha <- rowAnnotation(genetype =substring(rownames(m), 1,3),
+                          show_annotation_name = FALSE)
+  if(!first){
+    
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+                  show_column_dend = FALSE,
+                  cluster_columns = FALSE,
+                  show_column_names = FALSE,
+                  show_row_names = row_names, 
+                  row_title = row_title,
+                  row_title_rot = 0, 
+                  column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])), 
+                  show_heatmap_legend = FALSE
+    )    
+  }else{
+    
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+                  show_column_dend = FALSE,
+                  cluster_columns = FALSE,
+                  show_column_names = FALSE,
+                  show_row_names = row_names, 
+                  row_title = row_title,
+                  row_title_rot = 0, 
+                  top_annotation = column_ha, 
+                  
+                  column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1]))
+    )
+  }
+  print("done")
+  return(h1)
 }
 
 normalize_hash <- function(sce) {

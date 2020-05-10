@@ -7,7 +7,7 @@ output: html_document
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
 source("utils/sc_utils.R")
 source("utils/de_utils.R")
 
@@ -46,6 +46,11 @@ novel_lncrnas <- c(ribodepl_genes, polya_genes)
 
 # Complete Set 
 all_lncrnas <- c(complete_set_annotated_lncrnas_in_object, novel_lncrnas)
+all_lncrnas <- all_lncrnas[!grepl("ribodepl-MSTRG.72510-unkown",all_lncrnas)]
+
+saveRDS(all_lncrnas, paste0(robjectsdir, "all_lncrnas.rds"))
+saveRDS(annotated_mrnas, paste0(robjectsdir, "annotated_mrnas.rds"))
+
 length(unique(complete_set_annotated_lncrnas_in_object)); length(unique(novel_lncrnas))
 length(unique(all_lncrnas))
 
@@ -100,20 +105,21 @@ dc <- c("IRF8")
 # FeaturePlot(immune.combined, features = t, min.cutoff = "q9")
 # FeaturePlot(immune.combined, features = nk, min.cutoff = "q9")
 
-# plot_genes(immune.combined,monocytes,threshold= 2, title = "Monocytes marker expression", col = "purple")
-# plot_genes(immune.combined, nk, threshold = 3 , title = "NK markers expression", col = "purple")
-# plot_genes(immune.combined, b, threshold = 2 , title = "B markers expression", col = "purple")
-# plot_genes(immune.combined, t, threshold = 3 , title = "T-Cell markers expression", col = "purple")
+ plot_genes(immune.combined,monocytes,threshold= 2, title = "Monocytes marker expression", col = "purple")
+ plot_genes(immune.combined, nk, threshold = 3 , title = "NK markers expression", col = "purple")
+ plot_genes(immune.combined, b, threshold = 2 , title = "B markers expression", col = "purple")
+ plot_genes(immune.combined, t, threshold = 3 , title = "T-Cell markers expression", col = "purple")
 
 # Change Identifiers 
 immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "Myeloid", `2` = "NK", 
     `3` = "B", `4` = "T", `5` = "T", `6` = "B", `7` = "Myeloid", `8` = "B", `9` = "B", 
     `10` = "Myeloid", `11` = "B", `12` = "T", `13` = "Myeloid",`14` = "Myeloid", `15` = "T", `16` = "NK")
 
+saveRDS(immune.combined, paste0(robjectsdir,"immune.combined.rds" ))
 # # test 
-# immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "zExtra", `2` = "NK", 
-#     `3` = "B", `4` = "T", `5` = "T", `6` = "B", `7` = "Myeloid", `8` = "B", `9` = "B", 
-#     `10` = "zExtra", `11` = "B", `12` = "T", `13` = "Myeloid",`14` = "Myeloid", `15` = "T", `16` = "NK")
+ immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "zExtra", `2` = "NK", 
+     `3` = "B", `4` = "T", `5` = "T", `6` = "B", `7` = "Myeloid", `8` = "B", `9` = "B", 
+    `10` = "zExtra", `11` = "B", `12` = "T", `13` = "Myeloid",`14` = "Myeloid", `15` = "T", `16` = "NK")
 # # Visualize rename identifiers
 DimPlot(immune.combined, label = TRUE)
 
@@ -128,8 +134,14 @@ DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "
 ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unkown", sep ="-")]
 ebola_genes
 plot_genes(immune.combined, ebola_genes,3, col = "darkred", "Ebola RNA expression")
+saveRDS(ebola_genes, paste0(robjectsdir, "ebola_genes.rds"))
 ```
-
+# Visual inspection for threshold selection for expression
+```{r which threshold to put to say wether they are expressed}
+expression <- immune.combined@assays$RNA@data["STAT1",]
+df <-data.frame(x=expression)
+ggplot(df, aes(x =x))+geom_density(col = "blue", fill ="blue",alpha=0.5)+theme_classic()+geom_vline(xintercept = 1, color = "red")
+```
 
 
 
@@ -166,32 +178,61 @@ palette_plot_percentage <- c(col_lnc, col_mrna)
 # Expression across Quartiles
 ```{r quartiles}
 # Only select genes expressed in at least 50 cells
-df_filtered_mrna <- df_mrna[df_mrna$n_cells > 50, ]
-df_filtered_lnc <- df_lnc[df_lnc$n_cells > 50, ]
 
+df_lnc <- df_lnc[df_lnc$gene_id != "ribodepl-MSTRG.72510-unkown",]
+
+df_filtered_mrna <- df_mrna[df_mrna$n_cells > 150, ]
+df_filtered_lnc <- df_lnc[df_lnc$n_cells > 150, ]
+
+
+df_lnc$gene_id
 df_lnc$type <- NA
 df_mrna$type <- NA
+
 plot_quartiles(df_lnc, df_mrna, "number")
 plot_quartiles(df_lnc, df_mrna, "proportion")
+plot_quartiles(df_lnc, df_mrna, "median", n = 10)
 plot_quartiles(df_filtered_lnc, df_filtered_mrna, "number")
 plot_quartiles(df_filtered_lnc, df_filtered_mrna, "proportion")
 
 
+plot_quantiles(df_lnc, df_mrna, "median", quantiles = as.table(as.double(c(0,0.25, 0.5,0.75, 1))))
+
+df_filtered_lnc$type <- "lncRNAs"
+df_filtered_mrna$type <- "mRNAs"
+df_complete <- rbind(df_lnc, df_mrna)
+df_complete <- rbind(df_filtered_lnc, df_filtered_mrna)
+p <- ggboxplot(df_complete, y="perc_cells_expressing", x = "type", fill = "type", color = "type", alpha = 0.5)+
+                scale_fill_brewer(palette = "Set1")+
+                scale_color_brewer(palette = "Set1")+
+                stat_compare_means(comparisons = list(c("lncRNAs", "mRNAs")))+
+                labs(x = "", y = "% Cells")+
+                theme(legend.title = element_blank(), legend.position = "none")
+p
 # Quartiles on different lncRNAs subclasses
 df_lnc$type <- NA
 df_mrna$type <- NA
-df_lnc[df_lnc$gene_id %in% ribodepl_genes,]$type <- "Novel - Ribodepl"
-df_lnc[df_lnc$gene_id %in% polya_genes,]$type <- "Novel - Poly(A)"
-df_lnc[is.na(df_lnc$type),]$type <- "Annotated"
-df_filtered_mrna <- df_mrna[df_mrna$n_cells > 50, ]
-df_filtered_lnc <- df_lnc[df_lnc$n_cells > 50, ]
+df_lnc[df_lnc$gene_id %in% ribodepl_genes,]$type <- "lncRNA - Novel - Ribodepl"
+df_lnc[df_lnc$gene_id %in% polya_genes,]$type <- "lncRNA - Novel - Poly(A)"
+df_lnc[is.na(df_lnc$type),]$type <- "lncRNA - Annotated"
+df_filtered_mrna <- df_mrna[df_mrna$n_cells > 150, ]
+df_filtered_lnc <- df_lnc[df_lnc$n_cells > 150, ]
 plot_quartiles(df_filtered_lnc, df_filtered_mrna, "number")
 plot_quartiles(df_filtered_lnc, df_filtered_mrna, "proportion")
 
+palette <- brewer.pal(4, "Set1") ; palette[2]<- palette[4]; palette[4] <- brewer.pal(4, "Set1")[2]
+plot_quartiles(df_filtered_lnc, df_filtered_mrna, "proportion")+
+                    scale_fill_manual(values = palette)+
+                    scale_color_manual(values = palette)
 
-# separated by Cell type 
-plot_celltype(df_lnc_celltype, df_mrna_celltype, "number")
-plot_celltype(df_lnc_celltype, df_mrna_celltype, "proportion")
+
+# separated by Cell type
+df_lnc_celltype$type <- NA
+df_mrna_celltype$type <- NA
+df_filtered_mrna_celltype <- df_mrna_celltype[df_mrna_celltype$n_cells > 150, ]
+df_filtered_lnc_celltype <- df_lnc_celltype[df_lnc_celltype$n_cells > 150, ]
+plot_celltype(df_filtered_lnc_celltype, df_filtered_mrna_celltype, "number")
+plot_celltype(df_filtered_lnc_celltype, df_filtered_mrna_celltype, "proportion")
 
 
 # Quartiles on cell type
@@ -209,7 +250,30 @@ df_lnc_celltype$type <- NA
 df_mrna_celltype$type <- NA
 table(Idents(immune.combined))
 
+# Density plots about percentage of cells
+df_lnc$type <- "lncRNAs"
+df_mrna$type <- "mRNAs"
+df_complete <- rbind(df_lnc, df_mrna)
+
+plot_perc <- ggplot(df_complete, aes(x =perc_cells_expressing , color = type, fill = type))
+
+library(ggpubr)
+
+cum_distr_perc <- plot_perc+stat_ecdf()+
+          stat_ecdf(geom="step", size = 1.5)+
+          theme_pubclean()+
+          scale_color_brewer(palette = "Set1")+
+          scale_fill_brewer(palette = "Set1")+
+          labs(x = "%Cells expressing", y  = "Cumulative Density")+theme(legend.title = element_blank(), legend.position = "top")
+
+cum_distr_perc
+
+cum_distr_perc+facet_grid(type~.,scales="free_y")+theme(legend.position = "None")
+
 ```
+
+
+
 
 # ------------------------------------------
 # Calculate the EXPRESSION
@@ -220,6 +284,10 @@ library(ggpubr)
 boxplot_expression(df_lnc_celltype, df_mrna_celltype, type = "Max")
 boxplot_expression(df_lnc_celltype, df_mrna_celltype, type = "Median")
 boxplot_expression(df_lnc_celltype, df_mrna_celltype, type = "Mean")
+
+
+boxplot_expression(df_filtered_lnc_celltype, df_filtered_mrna_celltype, type = "Max")
+
 
 df_lnc_celltype$type <- NA
 df_lnc_celltype[df_lnc_celltype$gene_id %in% ribodepl_genes,]$type <- "Novel - Ribodepl"
@@ -303,7 +371,9 @@ legend("left",legend=c("Marker Genes"),
 #dev.off()
 ```
 
-# test with match it 
+# ------------------------------
+#     Match median expression 
+# ------------------------------
 ```{r examplecherrypicked}
 library(MatchIt)
 df_lnc$type <- "lnc"
@@ -312,78 +382,143 @@ df_complete<- rbind(df_lnc, df_mrna)
 c <- df_complete[complete.cases(df_complete),]
 c$type = ifelse(c$type == "lnc", 1, 0)
 
+ggplot(df_lnc, aes(x= n_cells))+geom_density()
+
+
 
 # match expression 
-mi <- matchit(type ~ medianexpr,c)
-matches <- get_matches(mi, c)
-matches$type = ifelse(matches$type == 0, "mrna", "lnc")
-n_matches <- length(unique(matches[matches$type == "lnc",]$gene_id))
-ggplot(matches, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+theme_classic()+labs(title = " Matched median values", subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+geom_smooth(method = "loess")+ylim(0,1)
+mi_median <- matchit(type ~ medianexpr,c)
+matches_median <- get_matches(mi_median, c)
+table(matches_median$type)
+matches_median$type = ifelse(matches_median$type == 0, "mrna", "lnc")
+n_matches <- length(unique(matches_median[matches_median$type == "lnc",]$gene_id))
+matches_median$type <- as.factor(matches_median$type)
 
-ggplot(matches, aes(y=medianexpr, col = as.factor(type)))+geom_boxplot()+theme_classic()+labs(title = "Comparison of median expression values of matched genes by median (Validation)")
-ggplot(matches, aes(y=perc_cells_expressing, col = as.factor(type)))+geom_boxplot()+theme_classic()+labs(title = "Comparison of %cells expressing of matched genes by median (Validation)")
+
+scatter_plot_matching <- ggplot(matches_median, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+ geom_smooth(method = "loess")+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme(legend.position = "none")+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+labs(x = "Median Expression", y = "% Cells expressing")
+
+scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 5,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)
+scatter_plot_matching_withboxplot
+
+
+
+# Just to check 
+ggboxplot(matches_median, x = "type", y = "perc_cells_expressing", fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("mrna", "lnc")),  label = "p.signif")+  stat_compare_means(label.y = 1)+ labs(x = "", y =" % Cells expressing")+theme_classic()+theme(legend.position = "none")
+
+ggboxplot(matches_median, x = "type", y = "maxexpr", fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("mrna", "lnc")),  label = "p.signif")+  stat_compare_means(label.y = 7)+ labs(x = "")+theme_classic()+theme(legend.position = "none")
+
+ggboxplot(matches_median, x = "type", y = "minexpr", fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("mrna", "lnc")),  label = "p.signif")+  stat_compare_means(label.y = 1.8)+ labs(x = "")+theme_classic()+theme(legend.position = "none")
+
+ggplot(matches_median, aes(y=medianexpr, col = as.factor(type)))+geom_boxplot()+theme_classic()+labs(title = "Comparison of median expression values of matched genes by median (Validation)")
+ggplot(matches_median, aes(y=perc_cells_expressing, col = as.factor(type)))+geom_boxplot()+theme_classic()+labs(title = "Comparison of %cells expressing of matched genes by median (Validation)")
+
+
 ```
+
+
+
 
 ```{r examplecherrypicked}
 # matched perc cells
-mi <- matchit(type ~ perc_cells_expressing,c)
-matches <- get_matches(mi, c)
-matches$type = ifelse(matches$type == 0, "mrna", "lnc")
-n_matches <- length(unique(matches[matches$type == "lnc",]$gene_id))
-ggplot(matches, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+theme_classic()+labs(title = " Matched % cells values", subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+ geom_smooth(method = "loess")
+
+mi_perc <- matchit(type ~ perc_cells_expressing,c)
+matches_perc <- get_matches(mi_perc, c)
+matches_perc$type = ifelse(matches_perc$type == 0, "lnc", "mrna")
+n_matches <- length(unique(matches_perc[matches_perc$type == "lnc",]$gene_id))
+
+scatter_plot_matching <- ggplot(matches_perc, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs(title = " Matched % cells values", subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+ geom_smooth(method = "loess")+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme(legend.position = "none")+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+labs(x = "Median Expression", y = "% Cells expressing")
+
+scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 5,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)
+scatter_plot_matching_withboxplot
+
+# Just checking
+ggboxplot(matches_perc, x = "type", y = "medianexpr", fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 3.5)+ labs(x = "")
+
+ggboxplot(matches_perc, x = "type", y = "maxexpr",fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 7)
+
+ggboxplot(matches_perc, x = "type", y = "minexpr",fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 3)
+
+ggboxplot(matches_perc, x = "type", y = "perc_cells_expressing",fill = "type", alpha = 0.5,
+                color = "type", palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 1)
+```
+
+# Explore ratios to see wether its a tendency or there are subpopulations
+```{r examplecherrypicked}
+table(matches_median$type)
+df_lnc$type <- "lnc"
+df_mrna$type <- "mrna"
+df_complete<- rbind(df_lnc, df_mrna)
+c <- df_complete[complete.cases(df_complete),]
+c$type = ifelse(c$type == "lnc", 1, 0)
 
 
-matches$type <-as.factor(matches$type)
-ggboxplot(matches, x = "type", y = "medianexpr",
-                color = "type", palette =palette_plot_percentage)+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 3.5)
 
-ggboxplot(matches, x = "type", y = "maxexpr",
-                color = "type", palette =palette_plot_percentage)+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 7)
 
-ggboxplot(matches, x = "type", y = "minexpr",
-                color = "type", palette =palette_plot_percentage)+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 3)
+# match expression 
 
-ggboxplot(matches, x = "type", y = "perc_cells_expressing",
-                color = "type", palette =palette_plot_percentage)
+mi_median <- matchit(type ~ medianexpr,c)
+
+get_ratio_line <- function(index, mi_median, matches_median){
+  id_1 <- rownames(mi_median$match.matrix)[index]
+  id_2 <- mi_median$match.matrix[index]
+  entry_1 <- matches_median[matches_median$gene_id == id_1,]
+  entry_2 <- matches_median[matches_median$gene_id == id_2,]
+  # Mrna / lncr
+  ratio <- entry_2$n_cells/entry_1$n_cells
+  lnctype <- switch(substr(entry_1$gene_id,1,1), r = "ribodepl", p = "polyA")
+  if(is.null(lnctype)){lnctype <- "Annotated"}
+  df <- data.frame(ratios_mrna_lncrna = ratio , medianexpr = entry_1$medianexpr, lnctype = lnctype, percellslnc = entry_1$perc_cells_expressing, perccellsmrna =entry_2$perc_cells_expressing, label_lnc = entry_1$gene_id )
+  return(df)
+}
+
+ratios_df <- rbindlist(lapply(1:nrow(mi_median$match.matrix), function(index) (get_ratio_line(index, mi_median, matches_median))))
+
+ggplot(ratios_df, aes(y = ratios_mrna_lncrna, x = perccellsmrna, col = lnctype ) )+geom_point()+geom_hline( yintercept = 1, color= "red", size = 1) + theme_classic()+scale_color_brewer(palette = "Set2")+ylim(0,4)
+
+ggplot(ratios_df, aes(y = ratios_mrna_lncrna, x = medianexpr, col = lnctype ) )+geom_boxplot()+ylim(0,4)
+
+below_one <- ratios_df[ratios_df$ratios_mrna_lncrna < 1,]
+
+ggplot(below_one, aes(y = perccellsmrna, x = percellslnc, col = lnctype, label= label_lnc ))+geom_point()+geom_text()+geom_abline( yintercept = 0, slope = 1, color= "red", size = 1) + theme_classic()+scale_color_brewer(palette = "Set2")+ylim(0,1)
+
+below_zero$ratios_mrna_lncrna
+
+below_one[below_one$percellslnc > 0.4,]
 
 ```
 
+# ------------------------------------------------------
+# Cherry pick an example - highly expressed in low proportion of cells : TSNE
+# ------------------------------------------------------
 
-
-# Cherry pick an example - highly expressed in low proportion of cells
-```{r examplecherrypicked}
-# Identify putative interesting examples
-df_lnc[df_lnc$maxexpr > 4 & df_lnc$perc_cells_expressing < 0.1,]
-gene <- "ENSMMUG00000063272-unkown	"
-
+```{r cellt type specificity}
+a <- df_lnc[df_lnc$perc_cells_expressing < 0.1 & df_lnc$medianexpr>1.5 & df_lnc$n_cells > 50,]
+gene_example_1 <- "ENSMMUG00000038067-unkown"
+gene <- a$gene_id[15]
 
 df_lnc_filtered <- df_lnc[df_lnc$gene_id == gene,]
 df_complete<- rbind(df_lnc_filtered, df_mrna)
 c <- df_complete[complete.cases(df_complete),]
 c$type = ifelse(c$type == "lnc", 1, 0)
 
-mi <- matchit(type ~ perc_cells_expressing,c)
+
+mi <- matchit(type ~ medianexpr,c)
 matches <- get_matches(mi, c)
 matches$type = ifelse(matches$type == 0, "mrna", "lnc")
 genes <- as.character(matches$gene_id)
-
-
-# ---Expresion visualization 
-subset <- subset(immune.combined, features = genes)
-expression_matrix <- as.matrix(subset@assays$RNA@data)
-df <- as.data.frame(t(expression_matrix))
-
-df1 <- data.frame(df$`ENSMMUG00000051984-unkown`)
-df1$gene <- "ENSMMUG00000051984-unkown"
-colnames(df1) <- c("expr", "gene")
-
-df2 <- data.frame(df$SFT2D1)
-df2$gene <- "SFT2D1"
-colnames(df2) <- c("expr", "gene")
-
-df <- rbind(df1,df2)
-ggplot(df, aes(x = expr, fill = gene))+ geom_density(alpha = 0.5)+labs()+ theme_classic()+theme(plot.title = element_text(hjust = 0.5))+scale_fill_brewer(palette = "Set2")+ylim(0,0.25)
+matches[,c("medianexpr", "n_cells", "type")]
+matches
+f1 <- FeaturePlot(immune.combined, features = c(genes), pt.size = 0.6, order = TRUE, cols = c("lightgrey", "blue"), max.cutoff = 3.5)
+f1
 ```
+
+
 # Cell type specificity : TAU 
 
 ```{r cellt type specificity}
@@ -408,62 +543,275 @@ meanExpression
 # Log 2 Transformation
 log2Exp <- log2Tran(meanExpression)
 qnExp <- quantNorm(log2Exp)
-tauExp <- calcTau(qnExp) 
+tauExp <- calcTau(qnExp)
+
+
+
+# Chek marker genes
+tauExp[rownames(tauExp)%in% marker.genes,]
+
+
+# Visualize some examples
+VlnPlot(immune.combined, features = "ENSMMUG00000051358-unkown", pt.size = 0.01, slot = "data")
+VlnPlot(immune.combined, features = "ADAMTSL4", pt.size = 0.01, slot = "data")
+FeaturePlot(immune.combined, features = "ENSMMUG00000051358-unkown", slot = "data")
+
+#df_taus_perc[df_taus_perc$Row.names =="CARD9",]
+#qnExp["CD3D",]
+
+#tauexp <- apply(qnExp, 1, function(test_gene) sum(1-(test_gene/max((test_gene))))/(length(test_gene)-1))
+#tauexp <- as.data.frame(tauexp)
+
+df_perc_tau <- merge(tauExp,df_complete, by = "row.names")
+df_perc_tau <- df_perc_tau[df_perc_tau$n_cells > 200,]
+rownames(df_perc_tau) <- df_perc_tau$Row.names
+table(df_perc_tau$type)
+df_perc_tau
+
+#dim(df_perc_tau)
+top <- df_perc_tau[df_perc_tau$tau ==1 ,]
+top[order(top$n_cells),]
+#hist(df_perc_tau[df_perc_tau$tau ==1,]$n_cells)
 ```
+
+
 ```{r cellt type specificity}
 # Double check they make sense
-tauMarkers <- tauExp[rownames(tauExp) %in% marker.genes,]
-tauMarkers
-tauLnc <- tauExp[rownames(tauExp) %in% all_lncrnas,]
+library(ggpubr)
+#tauMarkers <- tauExp[rownames(tauExp) %in% marker.genes,]
+#tauMarkers
+tauLnc <- df_perc_tau[rownames(df_perc_tau) %in% all_lncrnas,]
 tauLnc$type <- "lnc"
-tauMrna <-  tauExp[rownames(tauExp) %in% annotated_mrnas,]
+tauMrna <-  df_perc_tau[rownames(df_perc_tau) %in% annotated_mrnas,]
 tauMrna$type <- "mrna"
 
 taus <- rbind(tauLnc, tauMrna)
-ggboxplot(taus, x = "type", y = "tau",
-                color = "type", fill = "type", alpha = 0.4, palette =palette_plot_percentage)+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 1.1)+labs(title = "Tau score comparison lncRNAs vs mRNAs", x = "")+theme(legend.position = "none")
 
+# General boxplot
+ggviolin(taus, x = "type", y = "tau",
+                color = "type", fill = "type", alpha = 0.4, palette =brewer.pal(2, "Set1"))+stat_compare_means(comparisons =list(c("lnc", "mrna")),  label = "p.signif")+  stat_compare_means(label.y = 1.1)+labs(title = "Tau score comparison lncRNAs vs mRNAs", x = "")+theme(legend.position = "none")+geom_boxplot(width = 0.1, alpha = 0.9)+ylim(0,1)
+
+ggplot(df_perc_tau, aes(x = tau, col = type, fill = type ))+geom_density(alpha = 0.9)+theme_classic()
+
+ggplot(df_perc_tau, aes(x = tau, col = type, fill = type ))+geom_density(alpha = 0.6)+theme_classic()+
+  scale_fill_brewer(palette ="Set1")+scale_color_brewer(palette= "Set1")
 ```
 
 ```{r }
-
-df_complete_celltype[df_complete_celltype$gene_id == "CDC42EP2",]
-df_complete[df_complete$gene_id == "CDC42EP2",]
-taus[rownames(taus) == "CDC42EP2",]$tau
-70/48332
-
+df_mrna$type<- "mrna"
+df_lnc$type <- "lncrna"
+df_complete <- rbind(df_mrna, df_lnc)
+df_complete$type <- as.factor(df_complete$type)
 genes <-intersect(df_complete$gene_id, rownames(taus))
-df_taus_perc <- cbind(taus[rownames(taus) %in% genes, 1:5 ], df_complete[df_complete$gene_id %in% genes,])
 
-df_layer_1 <- df_taus_perc[df_taus_perc$type=="mrna",]
-df_layer_2 <- df_taus_perc[df_taus_perc$type=="lnc",]
-ggplot() + 
-    geom_point(
-        data=df_layer_1,
-        aes(x = perc_cells_expressing, y = tau), 
-        colour="orange")+ 
-    geom_point(
-        data=df_layer_2,
-        aes(x = perc_cells_expressing, y = tau), 
-        colour="blue")
+df_taus_perc <- merge(as.data.frame(tauExp[rownames(tauExp) %in% genes, 1:5 ]), as.data.frame(df_complete[df_complete$gene_id %in% genes,]), by='row.names', all=TRUE)
 
+# -------------------------------------
+# Boxplot quantiles specificity 
+# -------------------------------------
+quantiles = as.table(c(0,.25,.5,.75,1))
+quantiles = quantile(df_complete_quantiles$perc_cells_expressing, probs  = 0:4/4)
+df_complete_quantiles <- within(df_taus_perc, quartile <- as.integer(cut(df_complete$perc_cells_expressing, quantiles, include.lowest = TRUE)))
 
-ggplot(df_taus_perc[df_taus_perc$type == "mrna",],aes( x = tau, col = type))+geom_histogram(fill = "white")
-
-
-ggplot(df_taus_perc[df_taus_perc$type == "mrna",],aes( x = tau, y = medianexpr,  col = type))+geom_point()
-
-bins  <- 10 
-df_complete_quartiles <- within(df_taus_perc, quartile <- as.integer(cut(perc_cells_expressing, quantile(perc_cells_expressing, c(0,0.1,0.2,0.3, 0.4,0.5, 0.6, 0.7 ,0.8, 0.9, 1)), include.lowest=TRUE)))
+df_complete_quartiles <- within(df_taus_perc, quartile <- as.integer(cut(df_complete$perc_cells_expressing, quantile(df_complete$perc_cells_expressing, probs=0:4/4), include.lowest=TRUE)))
 df_complete_quartiles$quartile <- as.numeric(df_complete_quartiles$quartile)
 
+ggviolin(df_complete_quartiles, x = "quartile", y = "tau",
+                color = "type", fill = "type", alpha = 0.4, palette =brewer.pal(2, "Set1"))+labs(title = "Tau score comparison lncRNAs vs mRNAs", x = "")+
+theme(legend.title = element_blank())+
+    scale_x_discrete(name ="Percentage of Cells Expressing", 
+                     labels=c("1-25%","25-50%","50-75%", "75-100%"))
 
-ggboxplot(df_complete_quartiles, x = "quartile", y = "tau",
-                color = "type", fill = "type", alpha = 0.4, palette =palette_plot_percentage)+labs(title = "Tau score comparison lncRNAs vs mRNAs", x = "")+theme(legend.position = "none")+geom_smooth(method = "loess")
+ggplot(df_perc_tau, aes(x =n_cells, y = tau ))+geom_density()
+
+# -----------------------------------------
+# Percentage cells expressing vs tau 
+# -----------------------------------------
+p <- ggplot(df_complete_quartiles, aes(x = perc_cells_expressing, y = tau, color = type, fill = type))
+p  +geom_point(alpha = 0.2, size = 0.2) + 
+  geom_smooth(se = FALSE)+ scale_color_brewer(palette = "Set1")+ theme_classic()
+
+
+
+# -----------------------------------------
+#    Correlation plots
+# -----------------------------------------
+df_complete_quartiles$ide
+df_cor <- df_complete_quartiles[,c("tau", "perc_cells_expressing", "maxexpr")]
+M <-cor(df_cor)
+library(corrplot)
+
+# DOT correlation plot
+source("http://www.sthda.com/upload/rquery_cormat.r")
+require("corrplot")
+rquery.cormat(df_cor)
+
+library("PerformanceAnalytics")
+chart.Correlation(df_cor, pch=1)
+
+cor(df_cor$tau, df_cor$perc_cells_expressing)
+cor(df_cor$medianexpr, df_cor$perc_cells_expressing)
+
+
+taus[order(-taus$tau),]
+```
+
+
+#-----------------------------
+# Matchit analysis with taus
+#-----------------------------
+```{r matchit taus}
+library(MatchIt)
+df_perc_tau$type
+c <- df_perc_tau[complete.cases(df_perc_tau),]
+c$type = ifelse(c$type == "lnc", 1, 0)
+
+mi <- matchit(type ~ perc_cells_expressing,c)
+matches <- get_matches(mi, c)
+n_matches <- nrow(matches)
+table(matches$type)
+matches$type = ifelse(matches$type == 0, "mrna", "lnc")
+genes <- as.character(matches$gene_id)
+matches[,c("medianexpr", "n_cells", "type")]
+
+scatter_plot_matching <- ggplot(matches, aes(x=perc_cells_expressing, y =tau, col = as.factor(type)))+geom_point(size = 0.8)+labs(title = " Matched % cells values", subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+ geom_smooth(method = "loess")+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme()+theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 5,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)
+scatter_plot_matching_withboxplot
+
+# ----------
+mi <- matchit(type ~ tau,c)
+matches <- get_matches(mi, c)
+n_matches <- nrow(matches)
+matches$type = ifelse(matches$type == 0, "mrna", "lnc")
+genes <- as.character(matches$gene_id)
+
+
+scatter_plot_matching <- ggplot(matches, aes(x=perc_cells_expressing, y =tau, col = as.factor(type)))+geom_point(size = 0.8)+labs(title = " Matched tau  values", subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+ geom_smooth(method = "loess")+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme()+theme(panel.background = element_rect(fill = "white", colour = "grey50"))
+
+scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 5,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)
+scatter_plot_matching_withboxplot
 
 ```
 
 
 
+# ------------------------
+# ------- END ------------
+# ------------------------
+```{r a }
+
+
+data_matrix <- immune.combined@assays$RNA@data
+
+live <- as.matrix(immune.combined[,immune.combined$cond == "live"]@assays$RNA@data)
+rest <- as.matrix(immune.combined[,immune.combined$cond != "live"]@assays$RNA@data)
+
+# select lncrnas that show high expression in a low proportion of cells
+interesting_set <- df_complete[df_complete$medianexpr > 2 & df_complete$type == "lnc" & df_complete$n_cells < 300,]
+gene_inspection <- interesting_set$gene_id[1]
+
+calc_enrichment_condition <- function(gene_inspection){
+  gene_exp_live <- as.vector(live[gene_inspection,])
+  gene_exp_live <- gene_exp_live[gene_exp_live > 1]
+  
+  gene_exp_rest <- as.vector(rest[gene_inspection,])
+  gene_exp_rest <- gene_exp_rest[gene_exp_rest > 1]
+  
+  enrichment_score <- mean(gene_exp_live)/mean(gene_exp_rest)
+  return(enrichment_score)
+}
+
+unlist(lapply(interesting_set$gene_id, function(gene_inspection) calc_enrichment_condition(gene_inspection)))
+
+# Does the proportion of cells grow depending on condition 
+
+calc_mean_and_percentage_cell_cond <- function(subset,cond = "", df, threshold = 1 ){
+  if(cond != ""){
+    subset <- subset[,subset$cond == cond]
+  }
+  # Using normalized data 
+  expression_matrix <- as.matrix(subset@assays$RNA@data)
+  
+  # The totlal number of cells is the same for each gene. Cells are columns and genes are rows.
+  tot_cells <- rep(ncol(expression_matrix), nrow(expression_matrix))
+  
+  # Count the number of cells per gene showing some expression
+  # Only select cells that are expressed (> threshold) and say they are NA
+  # and compute the number of cells that show some expression 
+  expression_matrix[expression_matrix < threshold] <- NA
+  meanexpr <- rowMeans(expression_matrix, na.rm = TRUE)
+  medianexpr <- rowMedians(expression_matrix, na.rm = TRUE)
+  maxexpr <- rowMaxs(expression_matrix, na.rm = TRUE)
+  minexpr <- rowMins(expression_matrix, na.rm = TRUE)
+  var <- rowVars(expression_matrix, na.rm = TRUE)
+  not_na_cells <- tot_cells- rowCounts(expression_matrix, value = NA)
+  perc_cells_expressing <- not_na_cells/tot_cells
+  gene_id <- rownames(subset)
+  
+  # Save 
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(gene_id = gene_id, meanexpr = meanexpr,medianexpr = medianexpr, perc_cells_expressing = perc_cells_expressing, maxexpr = maxexpr, var = var, n_cells = not_na_cells, tot_cells
+                       = tot_cells)
+  df_new$minexpr <- minexpr
+  df_new$cond <- as.factor(cond)
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
+}
+
+df_lnc_cond <- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(), tot_cells = c())
+
+subset <- subset(immune.combined, features = all_lncrnas)
+invisible(lapply(c("media", "irrad", "live"), function(x) calc_mean_and_percentage_cell_cond(subset, x, df_lnc_cond)))
+
+df_mrna_cond <- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(), tot_cells = c())
+
+subset <- subset(immune.combined, features = annotated_mrnas)
+invisible(lapply(c("media", "irrad", "live"), function(x) calc_mean_and_percentage_cell_cond(subset, x, df_mrna_cond)))
+
+
+ggplot(df_lnc_cond, aes(y = perc_cells_expressing, fill = cond, col = cond))+geom_boxplot()+theme_classic()
+ggplot(df_lnc_cond, aes(y = medianexpr, fill = cond, col = cond))+geom_boxplot()+theme_classic()
+ggplot(df_lnc_cond, aes(y = maxexpr, fill = cond, col = cond))+geom_boxplot()+theme_classic()
+
+ggplot(df_lnc_cond, aes(y = perc_cells_expressing, x = maxexpr, fill = cond, col = cond))+geom_point()+theme_classic()+geom_smooth()
+
+
+```
+
+
+#----------------------------
+# Check if taus makes sense 
+#-----------------------------
+
+
+# Explore the dataset 
+````{r }
+
+marker.genes
+count_matrix <- as.matrix(immune.combined@assays$RNA@counts)
+gene <- rownames(count_matrix)[1]
+
+
+counts <- count_matrix[rownames(count_matrix) == "IL7R", ]
+celltype <- Idents(immune.combined)
+nfeature <- immune.combined$nFeature_RNA
+
+library(MASS)
+library(lattice)
+library(lmtest)
+library(pscl)
+unique(celltype)
+model <- zeroinfl(counts ~ celltype+nfeature, dist = "negbin")
+summary(model)
+
+E2 <- resid(model, type = "pearson")
+N <- length(counts)
+p <- length(coef(model))+1
+sum(E2^2)/(N-p)
+
+t
+
+````
 
 

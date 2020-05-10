@@ -228,6 +228,13 @@ plot_genes_expression_nrgenes_thresholds(immune.combined, ebola_genes, threshold
 # -------------------------------------
 
 ```{r cars}
+
+# Normalize 
+immune.combined <- NormalizeData(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+
 # Check the ones without integration for the moment 
 #immune.combined <- readRDS(file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_after-integration.rds"))
 # Import the newly computed cellswith 5k features and 
@@ -267,6 +274,11 @@ nk <- c("KLRB1")
 neutrophil <- c("CD177", "SOD2")
 monocytes <- c( "LYZ", "CTSB")
 t <- c("CD3D", "IL7R")
+
+
+immune.
+DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8, 
+    split.by = "cond") + RotatedAxis()
 
 plot_genes(immune.combined,c("CD14", "LYZ", "CTSB"), threshold = 3 , title = "Myeloid markers expression", col = "purple")
 plot_genes(immune.combined, nk, threshold = 3 , title = "NK markers expression", col = "purple")
@@ -310,6 +322,8 @@ table(ref$gene_id == "ribodepl-MSTRG.72510_unkown")
 
 
 FeaturePlot(immune.combined, features = "MX2")
+
+
 
 ```
 

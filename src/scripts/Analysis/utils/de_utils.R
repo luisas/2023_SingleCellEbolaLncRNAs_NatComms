@@ -120,7 +120,16 @@ get_colData <- function(matrix){
   return(samples)
 }
 
-
+extract_info_sample_from_dir <- function(file){
+  file_no_ext <- strsplit(file,".", fixed = T)[[1]][1]
+  info <- rev(strsplit(file, "/")[[1]])
+  dataset <- info[6]
+  tissue <- info[5]
+  dpo <- info[4]
+  sample <- info[3]
+  sample_name=paste(dataset,tissue,dpo,sample,sep="_")
+  return(c(dataset,tissue,dpo,sample, sample_name))
+}
 
 
 get_info_from_file_path <- function(file){
@@ -149,8 +158,13 @@ get_filename_and_dirs <- function(file){
 }
 
 
-create_dds <- function(sampleFiles,directory){
-  samples_info <- sapply(sampleFiles,extract_info_sample_from_filename)
+create_dds <- function(sampleFiles,directory, names_from_dir = FALSE, tximport = FALSE, tx_obj =NA){
+  
+  if(names_from_dir){
+    samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)
+  }else{
+    samples_info <- sapply(sampleFiles,extract_info_sample_from_filename)
+  }
   # Create ddsHTSeq Object 
   sampleTable <- data.frame(sampleName = sampleFiles,
                             fileName = sapply(sampleFiles,get_filename_and_dirs),
@@ -160,9 +174,18 @@ create_dds <- function(sampleFiles,directory){
                             id = samples_info[4,],
                             complete_id = samples_info[5,]
   )
-  dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
-                                    directory = directory,
-                                    design= ~ 1)
+  if(tximport){
+    print("UsingTXimport")
+    dds <- DESeqDataSetFromTximport(tx_obj,sampleTable,
+                                      ~ 1)
+    
+  }else{
+    dds <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                      directory = directory,
+                                      design= ~ 1)
+  }
+
+  
   return(dds)
 }
 

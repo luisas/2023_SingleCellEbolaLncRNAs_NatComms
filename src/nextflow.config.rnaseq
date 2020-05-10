@@ -1,16 +1,19 @@
 process{
 
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/rnaseqnew.simg'
+  container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseqnew.simg'
 
   withName:runRSeQC{
-   container = 'file:///gpfs/projects/bsc83/containers/singularity/rseqc.simg'
+   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rseqc.simg'
+  }
+  withName:FPKM{
+   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rseqc.simg'
   }
 
   withName:feelnc_filter{
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/feelnc-0.1.1_supp.simg'
+  container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/feelnc-0.1.1_supp.simg'
   }
   withName:feelnc_codpot{
-  container = 'file:///gpfs/projects/bsc83/containers/singularity/feelnc-0.1.1_supp.simg'
+  container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/feelnc-0.1.1_supp.simg'
   }
 
 }

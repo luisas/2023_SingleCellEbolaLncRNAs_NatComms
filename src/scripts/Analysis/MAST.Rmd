@@ -5,7 +5,7 @@ date: "4/9/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(devtools)
 suppressPackageStartupMessages({
@@ -26,13 +26,18 @@ suppressPackageStartupMessages({
 #options(mc.cores = detectCores() - 1) #if you have multiple cores to spin
 options(mc.cores = 1)
 knitr::opts_chunk$set(message = FALSE,error = FALSE,warning = FALSE,cache = TRUE,fig.width=8,fig.height=6, auto.dep=TRUE)
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
+
+
 ```
 
 ## Standard DE: MAST
 
 #Select infected vs bystander cells 
 ```{r cars}
-# Identify Infected vs Bystanders
+# Read in needed files
+
+
 
 # Select only ones in live 24H
 myeloids <- subset(immune.combined, ident = "Myeloid")
@@ -47,8 +52,6 @@ expression_ebola <-as.matrix(subset_ebola@assays$RNA@data)
 n_reads_expressed_per_cell <- (Matrix::colSums(myeloids_live_24@assays$RNA@counts))
 n_ebola_expressed_per_cell <- (Matrix::colSums(subset_ebola@assays$RNA@counts))
 
-names(n_reads_expressed_per_cell)[1:3]
-names(n_ebola_expressed_per_cell)[1:3]
 
 df_genes <- data.frame(id = names(n_reads_expressed_per_cell), count= n_reads_expressed_per_cell)
 df_ebola <- data.frame(id =names(n_ebola_expressed_per_cell), count_ebola = n_ebola_expressed_per_cell )
@@ -63,17 +66,30 @@ length(infected_cells); length(bystanders)
 myeloids_live_24 <- SetIdent(object = myeloids_live_24, cells = infected_cells, value = 'infected')
 myeloids_live_24 <- SetIdent(object = myeloids_live_24, cells = bystanders, value = 'bystander')
 unique(Idents(myeloids_live_24))
+
+#saveRDS(myeloids_live_24, paste0(robjectsdir, "myeloids_live_24_1perc.rds"))
 ```
 
 # Perform DE Analysis
 ```{r pressure, echo=FALSE}
+#robjectsdir <- "/gpfs/projects/bsc83/Data/Ebola/RObject/"
+immune.combined  <- readRDS(paste0(robjectsdir,"immune.combined.rds" ))
+ebola_genes <- readRDS(paste0(robjectsdir, "ebola_genes.rds"))
+all_lncrnas <- readRDS(paste0(robjectsdir, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(paste0(robjectsdir, "annotated_mrnas.rds"))
+myeloids_live_24 <- readRDS(paste0(robjectsdir, "myeloids_live_24_1perc.rds"))
+
+
 
 get_mast_model  <- function(subset, relevel = "bystander", contarst = "conditioninfected"){
+    # Convert to single cell experiment
     subset <- as.SingleCellExperiment(subset)
+    # Extract ident column and use it as level
     cond<-factor(colData(subset)$ident)
     cond<-relevel(cond,relevel)
     colData(subset)$cond<-cond
     colData(subset)$wellKey<-colnames(subset)
+    # add individual column in case is missing
     subset$individual <- unlist(lapply(subset$orig.ident , function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
     scam <- as(subset, 'SingleCellAssay')
     rowData(scam)$primerid <- rownames(rowData(scam))
@@ -102,9 +118,9 @@ get_mast_model  <- function(subset, relevel = "bystander", contarst = "condition
 all_lncrnas <- all_lncrnas[!grepl("ribodepl-MSTRG.72510-unkown",all_lncrnas)]
 
 # Path were to save Robjects
-robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
 
 
+table(Idents(immune.combined))
 # Bystander vs Infected 
 fcHurdle_all_infectedVSbystanders<- get_mast_model(myeloids_live_24, relevel = "bystander", contarst= "conditioninfected")
 fcHurdle_all_infectedVSbystanders$type <- NA
@@ -112,7 +128,7 @@ fcHurdle_all_infectedVSbystanders$type[fcHurdle_all_infectedVSbystanders$primeri
 fcHurdle_all_infectedVSbystanders$type[fcHurdle_all_infectedVSbystanders$primerid %in% annotated_mrnas] <- "mRNA"
 fcHurdle_all_infectedVSbystanders$type[fcHurdle_all_infectedVSbystanders$primerid %in% ebola_genes] <- "ebola"
 fcHurdle_all_infectedVSbystanders$type[is.na(fcHurdle_all_infectedVSbystanders$type)]<- "rest"
-saveRDS(fcHurdle_all_infectedVSbystanders, paste0(robjectsdir, "MAST_bystanderVSinfected_myeloid.rds"))
+saveRDS(fcHurdle_all_infectedVSbystanders, paste0(robjectsdir, "MAST_bystanderVSinfected_myeloid_zextra.rds"))
 
 # Remove Ebola genes, renormalize, rerun differential expression 
 all_genes_noebola <-setdiff(rownames(myeloids_live_24), c(ebola_genes, "ribodepl-MSTRG.72510-unkown"))
@@ -124,14 +140,14 @@ fcHurdle_all_infectedVSbystanders_ebolaremoved$type[fcHurdle_all_infectedVSbysta
 fcHurdle_all_infectedVSbystanders_ebolaremoved$type[fcHurdle_all_infectedVSbystanders_ebolaremoved$primerid %in% annotated_mrnas] <- "mRNA"
 fcHurdle_all_infectedVSbystanders_ebolaremoved$type[fcHurdle_all_infectedVSbystanders_ebolaremoved$primerid %in% ebola_genes] <- "ebola"
 fcHurdle_all_infectedVSbystanders_ebolaremoved$type[is.na(fcHurdle_all_infectedVSbystanders_ebolaremoved$type)]<- "rest"
-saveRDS(fcHurdle_all_infectedVSbystanders_ebolaremoved, paste0(robjectsdir, "MAST_bystanderVSinfected_myeloid_ebolaremoved.rds"))
+saveRDS(fcHurdle_all_infectedVSbystanders_ebolaremoved, paste0(robjectsdir, "MAST_bystanderVSinfected_myeloid_ebolaremoved_zextra.rds"))
 ```
 
 
 ```{r pressure, echo=FALSE}
 fcHurdle_all_infectedVSbystanders <- readRDS(paste0(robjectsdir,"MAST_bystanderVSinfected_myeloid.rds"))
 fcHurdle_all_infectedVSbystanders_ebolaremoved <- readRDS(paste0(robjectsdir,"MAST_bystanderVSinfected_myeloid_ebolaremoved.rds"))
-
+fcHurdle_all_infectedVSbystanders_ebolaremoved
 
 # Check which are the significant ones 
 FDRTHRESHOLD <- 0.05
@@ -160,14 +176,20 @@ rowData(scam)$type <- NA
 rowData(scam)$type[rownames(rowData(scam)) %in% all_lncrnas]<- "lncrnas"
 rowData(scam)$type[rownames(rowData(scam)) %in% annotated_mrnas]<- "mrnas"
 
-aheatmap(mat_to_plot,annCol=colData(scam)[,"ident"], annRow = rowData(scam[entrez_to_plot])[,"type"], main="DE genes",Colv = order(as.factor(scam[entrez_to_plot,]$ident)))
+aheatmap(mat_to_plot,annCol=colData(scam)[,"ident"], annRow = rowData(scam[entrez_to_plot])[,"type"], main="DE genes")
 
 aheatmap(mat_to_plot,annCol=colData(scam)[,"ident"], annRow = rowData(scam[entrez_to_plot])[,"type"], main="DE genes", cexRow = 2.1)
 
 ```
+# --------# --------# --------# --------# --------
+# Differential expression bystanders vs infected
+# --------# --------# --------# --------# --------
 
 ```{r pressure, echo=FALSE}
 # Rename identities with condition info
+myeloids_live_24 <- readRDS(paste0(robjectsdir,"myeloid_live_24h.rds"))
+immune.combined <- readRDS( paste0(robjectsdir,"immune.combined.rds" ))
+
 immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$cond, sep = "_")
 immune.combined$celltype <- Idents(immune.combined)
 Idents(immune.combined) <- "celltype.stim"
@@ -230,9 +252,9 @@ hurdle_summary_celltypes_lnc <- readRDS(paste0(robjectsdir,"hurdle_summary_cellt
 # Obtain Significant one
 FDRTHRESHOLD <- 0.1
 FCTHRESHOLD <- log2(1.5)
-df_filtered <- hurdle_summary_celltypes_lnc[fdr<FDRTHRESHOLD & >FCTHRESHOLD,]
+df_filtered <- hurdle_summary_celltypes_lnc[fdr<FDRTHRESHOLD,]
 df_filtered$celltype
-df_plot_ready <- df_filtered %>% group_by(celltype, comparison) %>% mutate(count= n_distinct(primerid))
+df_plot_ready <- df_filtered %>% dplyr::group_by(celltype, comparison) %>% dplyr::mutate(count= n_distinct(primerid))
 
 ggplot(df_plot_ready, aes(x = celltype, y =count, fill = comparison))+
         geom_bar(stat = "identity", color = "black", position =position_dodge())+
@@ -240,7 +262,95 @@ ggplot(df_plot_ready, aes(x = celltype, y =count, fill = comparison))+
         scale_fill_brewer(palette = "Set2")+
         labs(x = "", y = "# DE Genes ", title = "DE lncRNAs across celltype")
 
-df_plot_ready$celltype == "Myeloid"
+unique(df_plot_ready[df_plot_ready$celltype == "Myeloid",]$primerid)
+
+
+# Plot HeatMap 
+
+
+heatmap_de <- function(df_filtered, immune.combined){
+        df_plot_ready <- df_filtered %>% dplyr::group_by(celltype, comparison) %>% dplyr::mutate(count= n_distinct(primerid))
+    entrez_to_plot <- df_plot_ready$primerid
+    immune.combined$condition <- unlist(lapply(immune.combined$orig.ident, function(x) str_split(x, "-")[[1]][2]))
+    test <- subset(immune.combined, features = entrez_to_plot)
+    scam <- as(Seurat::as.SingleCellExperiment(test), 'SingleCellAssay')
+    rowData(scam)$primerid <- rownames(rowData(scam))
+    rowData(scam)$type <- NA
+    rowData(scam)$type[rownames(rowData(scam)) %in% all_lncrnas]<- "lncrnas"
+    rowData(scam)$type[rownames(rowData(scam)) %in% annotated_mrnas]<- "mrnas"
+    m <- as.matrix(test@assays$RNA@data)
+    colnames(m) <- nms <- as.vector(test$celltype.stim)
+    plot_m <- sapply(unique(nms), function(i) rowMeans(m[, nms==i]))
+    rownames(plot_m) <- gsub("-unkown","",rownames(plot_m))
+    
+    celltypes <- unlist(lapply(colnames(plot_m), function(x) str_split(x, "_")[[1]][1]))
+    cond <- unlist(lapply(colnames(plot_m), function(x) str_split(x, "_")[[1]][2]))
+    genetype <- unlist(lapply(rownames(plot_m), function(x) substring(str_split(x, "-")[[1]][1], 1,4)))
+    Celltype = c("lightgreen", "navy","pink","red")
+    Condition = c("brown", "yellow", "orange")
+    GeneType = c("lightgreen", "navy", "pink")
+    ann_colors = list(Celltype = Celltype, Condition = Condition, GeneType = GeneType)
+    p1 <- aheatmap(plot_m,annCol=list(Celltype =celltypes, Condition= cond), annRow = list( GenType = genetype), main="DE lncRNAs",  Colv = order(as.factor(celltypes)), width = 600, height = 600,  annColors = ann_colors)
+    return(p1)
+    
+}
+
+
+df_filtered <- df_filtered[df_filtered$primerid != "ribodepl-MSTRG.72510-unkown",]
+
+subset_heatmap <- subset(immune.combined, features = df_filtered$primerid, cells = colnames(immune.combined)[1:5000]) 
+matrix_heatmap <- as.matrix(subset_heatmap@assays$RNA@data)
+heatmap.2(matrix_heatmap, col=rev(brewer.pal(9,"RdBu")), scale="row", Colv = "NA")
+
+
+
+#df_filtered <- hurdle_summary_celltypes_lnc[fdr<FDRTHRESHOLD,]
+p1 <- heatmap_de(df_filtered, immune.combined)
+
+df_filtered <- hurdle_summary_celltypes_lnc[fdr<FDRTHRESHOLD & abs(coef)>log2(1.09),]
+p1 <- heatmap_de(df_filtered, immune.combined)
+
+
+
+
+```
+
+# ----------------------------------------
+# Differetnial expression 4 vs 24 
+# ----------------------------------------
+
+```{r plot}
+myeloids <- subset(immune.combined, idents = "Myeloid")
+nk <- subset(immune.combined, idents = "NK")
+t <- subset(immune.combined, idents = "T")
+b <- subset(immune.combined, idents = "B")
+
+myeloids_live <- myeloids[, myeloids$cond == "live"] ; Idents(myeloids_live) <- myeloids_live$hour
+model_hour_myeloid <- get_mast_model(myeloids_live, relevel = "H004", contarst = paste0("conditionH024"))
+saveRDS(model_hour_myeloid, file.path(robjectsdir, "MAST_myeloids_hour.rds"))
+
+nk_live <- nk[, nk$cond == "live"] ; Idents(nk_live) <- nk_live$hour
+model_nk <- get_mast_model(nk_live, relevel = "H004", contarst = paste0("conditionH024"))
+saveRDS(model_nk, file.path(robjectsdir, "MAST_nk_hour.rds"))
+
+b_live <- b[, b$cond == "live"] ; Idents(b_live) <- b_live$hour
+model_b <- get_mast_model(b_live, relevel = "H004", contarst = paste0("conditionH024"))
+saveRDS(model_b, file.path(robjectsdir, "MAST_b_hour.rds"))
+
+t_live <- t[, t$cond == "live"] ; Idents(t_live) <- t_live$hour
+model_t <- get_mast_model(t_live, relevel = "H004", contarst = paste0("conditionH024"))
+saveRDS(model_t, file.path(robjectsdir, "MAST_t_hour.rds"))
+
+FDRTHRESHOLD <- 0.1
+FCTHRESHOLD <- log2(1.3)
+df_filtered <- model_nk[fdr<FDRTHRESHOLD & abs(coef) > FCTHRESHOLD,]
+lnc_de <- df_filtered[df_filtered$primerid %in% all_lncrnas,]
+pc_de <- df_filtered[df_filtered$primerid %in% annotated_mrnas,]
+
+FeaturePlot(immune.combined[,immune.combined$cond == "media"], features = "ENSMMUG00000064224-unkown")
+FeaturePlot(immune.combined[,immune.combined$cond == "live"], features = "ENSMMUG00000064224-unkown")
+DoHeatmap(immune.combined, features = lnc_de$primerid)
+DoHeatmap(myeloids_live, features = pc_de$primerid)
 
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

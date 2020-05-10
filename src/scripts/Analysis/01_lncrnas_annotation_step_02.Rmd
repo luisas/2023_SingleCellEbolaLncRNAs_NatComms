@@ -47,8 +47,10 @@ merged_annotated <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaA
 
 #dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
 dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+
 #dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
 htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
+
 batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
 zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
 htseq_files_ref <- c(batch,zyagen)
