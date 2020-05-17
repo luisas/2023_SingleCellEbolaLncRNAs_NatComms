@@ -850,9 +850,63 @@ venn.diagram(
           rotation = 1
         )
 ```
+
+
 # -------------------------------------------
+# Overlap with bulk 
+# -------------------------------------------
+```{r colocation}
+# Overlap is quite low, maybe we can mention if we select a specific lncRNA
+bulk_de_genes_all <-  readRDS(file.path(robjectsdir, "bulkDEgenes.rds"))
+de_sc <- gsub("-", "_",gsub("-unkown", "", c(unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
+intersect(de_sc, bulk_de_genes_all)
+
+setdiff(de_lists_lnc_my$lnc_myeloid_middle, de_lists_lnc_my$lnc_myeloid_late)
+
+# One Cell Type Specific Myeloid
+plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000052585-unkown"), ident = "group")
+
+# One Cell Type Specific Myeloid
+lapply(de_lists_lnc_my$lnc_myeloid_late, function(gene) plot_seperate_features(immune.combined, gene  = c(gene), ident = "group", pt.size = 1))
+
+plot_seperate_features(immune.combined, gene  = c("ribodepl-MSTRG.3272-unkown"), ident = "group")
+
+# One Cell Type Specific B
+plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000061948-unkown"), ident = "group", pt.size = 1, colors =c('#DCD9DE','navy'))
+plot_seperate_features(immune.combined, gene  = c("PVRL1"), ident = "group", pt.size = 1)
+plot_seperate_features(immune.combined, gene  = c("THY1"), ident = "group", pt.size = 1)
+plot_seperate_features(immune.combined, gene  = c("CCDC153"), ident = "group", pt.size = 1)
+plot_seperate_features(immune.combined, gene  = c("ABCG4"), ident = "group", pt.size = 1)
+
+rownames(immune.combined)[grep("PVRL", rownames(immune.combined))]
+unlist(all_lnc_1mb)[unlist(all_lnc_1mb) %in% rownames(immune.combined)]
+unlist(all_lnc_1mb)["PVRL1" %in% rownames(immune.combined)]
+lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "","ENSMMUG00000061948-unkown")), ]
+all_lnc_1mb <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb))
+
+pairs_list <- lapply(1:(length(lnc_ranges_complete_de)), function(index) (get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = Inf, maxgap = 1000000L)))[[1]]
+
+myeloids <- subset(immune.combined, idents = "Myeloid")
+count_matrix <- myeloids@assays$RNA@counts
+correlations <- lapply(pairs_list, function(x) calc_correlation(x, count_matrix, type = "spearman"))
+pvals <- (lapply(correlations, function(correlation) ifelse(length(correlation)== 1, print(1),print(correlation$p.value))))
+rhos <- as.vector(lapply(correlations, function(correlation) ifelse(length(correlation)== 1, print(NA),print(correlation$estimate))))
+# Select the significant one
+rhos[pvals < 0.1]
+pvals[pvals < 0.1]
+correlated <- unlist(pairs_list[pvals < 0.1])[c(rep(FALSE,1), TRUE)]$gene_name
+
+do_go(unlist(correlated))
+
+
+df <- data.frame(a = c(1,2), c = c("THY1", "ENSMMUG00000061948"))
+ggplot(df, aes(x = a, fill = c ))+geom_bar()+scale_fill_manual(values  = c("navy", "#870052"))
+```
+
 # -------------------------------------------
 # Analysis colocation in genomic regions
+# -------------------------------------------
 
 ```{r colocation}
 # 1) For each gene lncrna find neighbour protein coding genes. ( either overlapping or in close region) --> putative pairs
@@ -872,12 +926,11 @@ exp_matrix <-myeloids@assays$integrated@data
 mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id  ]
 lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas))]
 
-# Add missing gene entries 
+# Add missing gene entries (as novel lncrnas only prsent transcript and exon entries)
 genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
 missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
 gr_list <- lapply(missing_gene_lines, function(x) get_gene_range(x, lnc_ranges))
 missing_gene_ranges <- do.call(c,gr_list)
-
 lnc_ranges_complete <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
 
 
@@ -901,33 +954,24 @@ get_n_closest_gr <- function(gr_gene, gr_hits =mrnas_ranges , n = 5, maxgap =100
   return(closest_5_pairs)
 }
 
-#lnc_myeloid_late_annot<-lnc_myeloid_late[(unlist(lapply(lnc_myeloid_late, function(x) substr(x,1,3))) == "rib")]
 
-lnc_myeloid_late_annot<-lnc_myeloid_late
 # Only select the DE interestin
-lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "",lnc_myeloid_late_annot)), ]
+lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "",de_sc)), ]
 
+# maximum 1Mb
+all_lnc_1mb <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = Inf, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb))
 
-ranges_5_cl_genes <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
-ranges_5_cl_genes
-
-
-mask_ensembl <- unlist(lapply(lnc_ranges_complete_de$gene_id, function(x) substr(x,1,3))) == "ENS"
-table(mask_ensembl)
-# GO En
-do_go(unlist(ranges_5_cl_genes))
-length(unique(ranges_5_cl_genes))
+logfc <- stats_complete[stats_complete$primerid %in% unlist(unique(all_lnc_1mb)),]$coef
+ ego <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_1mb)),OrgDb =org.Hs.eg.db, keyType = keytype,ont = "BP",universe =unique(ref$gene_name))
  
+cnetplot(ego, foldChange = 2^logfc, colorEdge = TRUE, node_label = "gene")
+barplot(ego)+theme(axis.text.y = element_text(size = 17))
+dotplot(ego)+theme(axis.text.y = element_text(size = 17))
 
-# ----------------------
-# Find pairs allowing 10K gap on both sides
-pairs <- findOverlapPairs(lnc_ranges_complete_de, get_gene_only(mrnas_ranges), maxgap=1000000L, ignore.strand = TRUE)
-# Get a list of ranges objects in pairs
-pairs_list <- zipup(pairs)
-unlist(pairs_list)
-do_go(unlist(pairs_list)[c(rep(FALSE,1), TRUE)]$gene_name)
-do_go(unlist(pairs_list)[c(rep(FALSE,1), TRUE)]$gene_name, mmu = TRUE)
-
+# 1Mb, 15 closest genes
+all_lnc_1mb_max10 <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb_max10))
 
 
 ```
@@ -1005,9 +1049,10 @@ significant_correlations <- correlations[pvals < FDRTHRESHOLD & rhos !=1]
 significant_pairs <- pairs_list[pvals < FDRTHRESHOLD & rhos !=1]
 significant_correlations
 
+list <- genes
 # Extract mrnas from significant correlations 
 do_go <- function(list, keytype = "SYMBOL"){
-  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =unique(ref$gene_name))
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Hs.eg.db, keyType = keytype,ont = "BP",universe =unique(ref$gene_name))
   barplot(ego, showCategory=10)
   clusterProfiler::dotplot(ego)
 }

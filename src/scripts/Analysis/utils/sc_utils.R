@@ -496,6 +496,65 @@ calc_correlation <- function(pair, count_matrix, type = "pearson"){
   return(pc)
 }
 
+calc_correlation <- function(pair, count_matrix, type = "spearman"){
+  gene1 <- str_replace_all(pair[1]$gene_name, "_" , "-")
+  gene2 <- str_replace_all(pair[2]$gene_name, "_" , "-")
+  c1 <- count_matrix[rownames(count_matrix)== gene1,]
+  c2 <- count_matrix[rownames(count_matrix)== gene2,]
+  # calculate the correlation coefficient 
+  if(length(c1)> 0 && length(c2)>0){ pc <- cor.test(c1, c2, method = c(type)) }else{ pc = 0 }
+  return(pc)
+}
+plot_seperate_features <- function(object, gene, limit = NULL,ident=NULL,pt.size=0.5,revers.order = F,numcol=NULL, colors =c('#DCD9DE','#870052'), ...){
+  
+  if(is.null(ident)){
+    Idents(object) <- 'combined'
+  }
+  else{
+    Idents(object) <- object[[ident]]
+  }
+  p <- vector("list", length = (length(gene)*length(levels(Idents(object)))))
+  for(g in 1:(length(gene))){
+    
+    if(is.null(limit)==TRUE){
+      
+      for(i in 1:length(levels(Idents(object)))){
+        
+        j <- i+((g-1)*length(levels(Idents(object))))
+        print("A")
+        p[[j]] <- FeaturePlot(object, cells = WhichCells(object,idents = levels(Idents(object))[i]), features = gene[g],order = TRUE,cols = colors, pt.size = pt.size, sort.cell = TRUE,...) +
+          scale_color_gradient(low = colors[1], high = colors[2], limits = c(0,ceiling(max(object@assays$RNA@data[gene[g],]))),oob = squish) +
+          ggtitle(paste(levels(Idents(object))[i],gene[g],sep=", "))
+        print("A")
+      }
+    }
+    else{
+      for(i in 1:length(levels(Idents(object)))){
+        j <- i+((g-1)*length(levels(Idents(object))))
+        p[[j]] <- FeaturePlot(object, cells = WhichCells(object,idents = levels(Idents(object))[i]), features = gene[g],order = T,cols = colors, pt.size = pt.size, sort.cell = TRUE,...) +
+          scale_color_gradient(low = colors[1], high = colors[2], limits = limit,oob = squish) +
+          ggtitle(paste(levels(Idents(object))[i],gene[g],sep=", "))
+      }
+    }
+  }
+  print("A")
+  #correct axis in all plots
+  y_axis_max <- 1:length(p)
+  y_axis_min <- 1:length(p)
+  x_axis_max <- 1:length(p)
+  x_axis_min <- 1:length(p)
+  for(i in 1:length(p)){
+    x_axis_max[i] <- max(layer_scales(p[[i]])$x$range$range)
+    x_axis_min[i] <- min(layer_scales(p[[i]])$x$range$range)
+    y_axis_max[i] <- max(layer_scales(p[[i]])$y$range$range)
+    y_axis_min[i] <- min(layer_scales(p[[i]])$y$range$range)
+  }
+  for(i in 1:length(p)){
+    p[[i]] <- p[[i]]+coord_equal(xlim=c(min(x_axis_min),max(x_axis_max)),ylim=c(min(y_axis_min),max(y_axis_max)))
+  }
+  if(revers.order==TRUE) p <- rev(p)
+  gridExtra::grid.arrange(grobs = p,ncol=numcol)
+}
 calc_correlation_lists <- function(list1, list2,count_matrix){
   mix <-cross2(list1,list2)
   correlations <- lapply(mix, function(x) calc_correlation_with_names(x[1],x[2],count_matrix))
