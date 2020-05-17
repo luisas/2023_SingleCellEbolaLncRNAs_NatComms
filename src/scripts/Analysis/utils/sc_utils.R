@@ -518,8 +518,9 @@ plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells exp
   expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
   g1 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x = expr > threshold)]))
  
-  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), cols.highlight = c(col), cols= "grey")+ 
-    labs(title = title )+ NoLegend()
+  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), sizes.highlight = 0.5, cols.highlight = c(col), cols= "grey", pt.size = 0.1)+ 
+    labs(title = title )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
+    theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
   return (list(p1,  sprintf("Number of cells %s", length(g1) )))
 }
 

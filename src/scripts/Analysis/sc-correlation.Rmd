@@ -71,7 +71,9 @@ do_go <- function(list, mmu = FALSE){
   }else{
     ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Hs.eg.db, keyType = 'SYMBOL',ont = "BP")
   }
-  clusterProfiler::dotplot(ego)
+  
+  
+  return(list(clusterProfiler::dotplot(ego),barplot(ego, showCategory=10) ))
 }
 ```
 

@@ -435,6 +435,8 @@ missing_gene_ranges <- do.call(c,gr_list)
 lnc_ranges_complete <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
 length(unique(lnc_ranges$gene_id))
 length(unique(de_lnc))
+
+lnc_ranges_complete
 # ----------------------
 # Find pairs allowing 10K gap on both sides
 pairs <- findOverlapPairs(lnc_ranges_complete, get_gene_only(mrnas_ranges), maxgap=5000)

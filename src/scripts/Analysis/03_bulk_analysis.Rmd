@@ -36,11 +36,11 @@ scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scr
 source(file.path(scripts_dir,"de_utils.R"));
 
 datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
-lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
-lncRNAs_ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_all_novels/rheMac10_EBOV-Kikwit_and_both_novel.gtf"))
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
 
 
-dir_counts_ref = file.path(datadir, "04_Quantification_correct/")
+dir_counts_ref = file.path(datadir, "04_Quantification_correct_with_names/")
 htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
 batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
 zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
@@ -50,6 +50,10 @@ htseq_files_ref <- batch
 dds <- create_dds(htseq_files_ref,dir_counts_ref)
 # Retain only blood and liver
 dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
+dds <- dds[!rownames(dds) %in% ebola_ref$gene_id,]
+
+# remove one sample
+#dds <- dds[,dds$complete_id != "Batch01_Blood_D07_RA0700"]
 dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
 assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, prior.count=0.5)
 ```
@@ -84,6 +88,7 @@ Since different samples may have different RNA compositions and this could be pr
 We estimate a normalization factor for each library using the Trimmed Mean of M-Values and apply it to our data.
 
 ```{r}
+
 dds <- dds.filt
 dge <- dge.filt
 
@@ -92,6 +97,7 @@ title(main="Before Normalization ",ylab="Log-cpm")
 
 dge <- calcNormFactors(dge) 
 assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, normalized.lib.sizes=TRUE, prior.count=0.25)
+
 
 
 boxplot(assays(dds)$logCPM , col = "pink", las=2, main="" , names = dds$id)
@@ -121,6 +127,8 @@ dds$gender <- factor(dds$gender, levels = c("Female","Male"), ordered = TRUE )
 dds$birthyear <- factor(dds$birthyear, levels = c("2011","2012"), ordered = TRUE )
 
 dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
+dge <- calcNormFactors(dge) 
+dge <- estimateCommonDisp(dge)
 #mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), main=" samples on genes CPM", top=50,  gene.selection="common")
 
 ```
@@ -142,24 +150,14 @@ fit5 <- eBayes(fit5)
 res5 <- decideTests(fit5, p.value = FDRcutoff)
 tt5 <- topTable(fit5, coef = 2, n = Inf)
 
-DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
+DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff & !is.na(tt5$logFC)]
 length(DEgenes5)
-
-top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
-
-# Plot the top 300 differentially expressed genes 
 
 dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
 colnames(dds) <- dds$dpo 
-matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
 
-
-
-heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
-     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
-     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
-
-
+bulk_de_genes_all <- DEgenes5
+saveRDS(bulk_de_genes_all, file.path(robjectsdir, "bulkDEgenes.rds"))
 ```
 
 
@@ -167,51 +165,59 @@ heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
 # Plot the top 300 differentially expressed genes 
 
 # Long non coding in reference macaque 
-novel_and_ebola <-lncRNAs_ref[is.na(lncRNAs_ref$gene_biotype)]
-ref <- lncRNAs_ref[!is.na(lncRNAs_ref$gene_biotype)]
-lnc_ref_real <- ref[ref$gene_biotype =="lncRNA"]
-
-length(DEgenes5)
+novel_and_ebola <-lncRNAs_ref[is.na(ref$gene_biotype)]
+annotated_all <- ref[!is.na(ref$gene_biotype)]
+annotated_lncrnas <- annotated_all[annotated_all$gene_biotype =="lncRNA"]
 
 lnc_de_novel <-DEgenes5[DEgenes5 %in% novel_and_ebola$gene_id]
 length(lnc_de_novel)
 
-lnc_de_ref <-DEgenes5[DEgenes5 %in% lnc_ref_real$gene_id]
+lnc_de_ref <-DEgenes5[DEgenes5 %in% annotated_lncrnas$gene_id]
 length(lnc_de_ref)
 
+lnc_de <- c(lnc_de_ref, lnc_de_novel)
 
 
-matrixDE <- assay(dds)[ lnc_de, ][, order(as.integer(colnames(assay(dds)[ lnc_de, ])))]
+matrixDE <- assays(dds)$logCPM[ lnc_de, ][, order(as.integer(colnames(assay(dds)[ lnc_de, ])))]
 
-heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
-     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
-     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
+rowlabels <- replace(substring(rownames(matrixDE), 1,4),substring(rownames(matrixDE), 1,4) %in% substr(ebola_ref$gene_id, 1,4), NA)
+row_ha_type <- rowAnnotation(genetype =rowlabels,
+                        show_annotation_name = FALSE)
+labels_viral <- ifelse(rownames(matrixDE) %in% ebola_ref$gene_id, "viralRNA", "na")
+row_ha <- rowAnnotation(viral =labels_viral,
+                        show_annotation_name = FALSE, col = list(viral = c("na" = "white", viralRNA = "darkred")))
+Heatmap(calc_z(matrixDE), column_order = order(as.integer(colnames(matrixDE))),
+        show_row_names = FALSE, right_annotation = row_ha,heatmap_legend_param = list(title = "Z-Score"))
+
+
+#------ on protein coding
+pc_de <- DEgenes5[DEgenes5 %in% annotated_all[annotated_all$gene_biotype == "protein_coding",]$gene_id]
+
+matrixDE <- assays(dds)$logCPM[ pc_de, ][, order(as.integer(colnames(assay(dds)[ pc_de, ])))]
+labels_viral <- ifelse(rownames(matrixDE) %in% ebola_ref$gene_id, "viralRNA", "na")
+row_ha <- rowAnnotation(genetype =labels_viral,
+                        show_annotation_name = FALSE, col = list(genetype = c("na" = "white", viralRNA = "orange")))
+Heatmap(calc_z(matrixDE), column_order = order(as.integer(colnames(matrixDE))),
+        show_row_names = FALSE, right_annotation = row_ha, heatmap_legend_param = list(title = "Z-Score") )
+
+
+# General GO 
+names_pc_de <- unique(annotated_all[annotated_all$gene_id %in% pc_de]$gene_name)
+do_go(names_pc_de)
+
+# GO in upregulated 
+tt5_pc_de <- tt5[pc_de,]
+pc_up <- tt5_pc_de[tt5_pc_de$logFC > 0, ]
+pc_down <- tt5_pc_de[tt5_pc_de$logFC < 0, ]
+
+names_up <- unique(annotated_all[annotated_all$gene_id %in% pc_up$genes]$gene_name)
+do_go(names_up)
+
+names_down <- unique(annotated_all[annotated_all$gene_id %in% pc_down$genes]$gene_name)
+do_go(names_down)
+
 ```
 
-```{r}
-# ---------------------------------
-#        GO Enrichment Analysis
-# --------------------------------
-
-
-table(tt5$genes %in% keys(org.Mmu.eg.db, keytype="ENSEMBL"))
-table(DEgenes5 %in% keys(org.Mmu.eg.db, keytype="ENSEMBL"))
-
-ego <- clusterProfiler::enrichGO(gene = DEgenes5,OrgDb =  org.Mmu.eg.db, keyType = 'ENSEMBL',ont = "BP", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe = rownames(dds), qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = TRUE)
-
-barplot(ego, showCategory=10)
-dotplot(ego)
-
-
-edox <- setReadable(ego, 'org.Mmu.eg.db', 'ENSEMBL')
-p1 <- cnetplot(edox)
-p1
-
-# Only lncRNAs
-ego <- clusterProfiler::enrichGO(gene = lnc_de_ref,OrgDb =  org.Mmu.eg.db, keyType = 'ENSEMBL',ont = "BP", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe = rownames(dds), qvalueCutoff = 0.2, minGSSize = 10, maxGSSize = 500, readable = TRUE)
-barplot(ego, showCategory=10)
-
-```
 
 
 
@@ -220,42 +226,7 @@ barplot(ego, showCategory=10)
 
 
 
-# -------------------------------------------------------
-# -------------------------------------------------------
-# -------------------------------------------------------
 
-```{r}
-# Mixed model!!! sample id!!!
-dge_lnc <- dge[unlist(dge$genes) %in% lncRNAs_ref$gene_id,]
-
-# Mixed model!!! sample id!!!
-target <- colData(dds)
-# I remove DPO because it makes the matrix not full rank!
-design <- model.matrix(~factor(infection)+ factor(tissue)+ factor(birthyear)+ factor(gender), target) 
-is.fullrank(design)
-v <- voom(dge_lnc, design, plot=TRUE)
-cor <- duplicateCorrelation(v, design, block = target$id)
-v <- voom(dge_lnc, design, plot = TRUE, block = target$id, correlation = cor$consensus)
-fit5 <- lmFit(v, design, block = target$id, correlation = cor$consensus)
-
-FDRcutoff=0.05
-fit5 <- eBayes(fit5)
-res5 <- decideTests(fit5, p.value = FDRcutoff)
-tt5 <- topTable(fit5, coef = 2, n = Inf)
-
-DEgenes5 <- rownames(tt5)[tt5$adj.P.Val < FDRcutoff]
-length(DEgenes5)
-
-top300 <- head(tt5[order(tt5$adj.P.Val),], n=300)
-
-dds$dpo <- as.numeric(str_remove(dds$dpo , "D"))
-colnames(dds) <- dds$dpo 
-matrixDE <- assay(dds)[ DEgenes5, ][, order(as.integer(colnames(assay(dds)[ DEgenes5, ])))]
-
-heatmap.2( matrixDE, scale="row", cexCol = 1.1,cexRow = 0.9,
-     trace="none", dendrogram="none",Colv=colnames(matrixDE), 
-     col = colorRampPalette( rev(brewer.pal(9, "RdBu")) )(255))
-```
 
 
 
