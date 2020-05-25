@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowLncRNAsAnnotationPipeline
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --cpus-per-task=48
+
+
+module load java/8u131
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/Annotation.nf \
+                  --strandness "FR" \
+                  --umi "true" \
+                  --output_dir_name "02_RNA-Seq_BatchZyagen" \
+                  --fastqs "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_BatchZyagen/01_fastq/*/*/*/*/*.{1,2}.fq.gz" \
+                  -w /gpfs/projects/bsc83/Data/Ebola/work/ \
+                  -c ../configs/nextflow.config.rnaseq

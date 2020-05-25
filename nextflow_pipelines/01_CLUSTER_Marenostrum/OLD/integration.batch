@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowQAPipeline
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --cpus-per-task=48
+#SBATCH --constraint=highmem
+
+module load java/8u131
+module load intel/2017.1
+module load R/3.6.1
+
+
+srun Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/SeuratForCluster/integration.R "/gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/Analysis/results/seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet.rds"
