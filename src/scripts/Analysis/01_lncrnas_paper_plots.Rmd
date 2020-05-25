@@ -52,15 +52,14 @@ all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c("poly", "ribo"),]
 plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
 
 plot_stats_annotation_separated(polya_lnc,ribo_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-p
 
-barplot_exon_count(mrna_ref_human, "mRNAs - Reference Human", "red")
+
 ```
 
 ```{r POLYA}
 
 palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
-palette_expression <-c("#D4549C", "#A1D76A", "#E8C2D8")
+palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
 
 
 # ----------------------------------------------------------------------
@@ -99,7 +98,7 @@ max_expression <- add_type(max_expression, polya_lnc$gene_id, "Novel lncRNAs")
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
 max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
 max_expression <- max_expression[!max_expression$type == "0",]
-plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 20),axis.title.y  = element_text(size = 20))
 
 # ----------------------------------------------------------------------
 # Extract expression ribodepl
@@ -115,7 +114,7 @@ plot_expression(max_expression, palette_expression)+theme(plot.title = element_t
 # ----------------------------------------------------------------------
 # Extract compared
 # ----------------------------------------------------------------------
-palette_expression <-c("blue", "purple", "#D4549C", "#A1D76A")
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
 max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
 max_expression['type'] <- "0"
 max_expression <- add_type(max_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
@@ -134,7 +133,7 @@ plot_expression(max_expression, palette_expression, level = levels)+theme(plot.t
 
 
 ```{r results='hide', message=FALSE, warning=FALSE}
-palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
+
 colnames(expression) <- gsub("Testes", "Testis", unlist(lapply(abundance_files, function(x) rev(strsplit(x, "/")[[1]])[5])))
 
 # Check how many tissues express a gene
@@ -154,54 +153,22 @@ df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
 df <- df[!df$type == "0",]
 
 
-# Density plot tissue sharing
-
-# Boxplot Tissue Sharing
-p <- ggplot(df, aes(x = n_tissues_expresseing_gene, fill = factor(type, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")), color = factor(type, levels = c("lncrna", "novel", "mrna")))) +labs(y = "", x = "# Tissues", title = "Expression across tissues (Tissue specificity)")+
-            theme_pubclean()+geom_density(alpha=0.7)+
-            theme(legend.title=element_blank())+
-            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+theme(plot.title = element_text(hjust = 0.5))
-p + scale_fill_manual(values=palette_expression) + scale_color_manual(values=palette_expression)
-
-
-p <- ggplot(h_plotdata, aes(x = x, y = y, fill = factor(group, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")), color = factor(group, levels = c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")))) +labs(y = "", x = "# Tissues", title = "Expression across tissues (Tissue specificity)")+
-            theme_pubclean()+geom_bar(alpha=0.7, stat= "identity", position = "dodge")+
-            theme(legend.title=element_blank())+
-            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+theme(plot.title = element_text(hjust = 0.5))
-p + scale_fill_manual(values=palette_expression) + scale_color_manual(values=palette_expression)
-
-df
-
-barplot_tissues <- function(df, type, col){
-  ## extract the number of exons
-  df_l <- df[df$type == type,]
-  h <- ggplot(df_l, aes(x=n_tissues_expresseing_gene, fill=type)) + 
-    geom_histogram(position="identity", binwidth =1)+
-    xlim(1,16)
-  
-  h_plotdata <- ggplot_build(h)$data[[1]]
-  h_plotdata$group <- as.factor(h_plotdata$group)
-  levels(h_plotdata$group) <- c(type)
-  
-  ## plot with geom_bar
-  p1 <-ggplot(h_plotdata, aes(x=x, y=y, fill = group, palette = col)) +
-    geom_bar(stat = "identity", width = 0.8) +
-    theme(legend.title=element_blank())+
-    labs(y = "", x = "")+
-    theme(legend.title=element_blank())+ theme(legend.position = "none")+
-    scale_x_continuous( labels = as.character(h_plotdata$x), breaks = (h_plotdata$x)) + 
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    scale_fill_manual(values=c(col))+theme(legend.position = "none")+theme(axis.text = element_text(size = 12))
-  return(p1)
-}
 
 type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
-palette <- palette_expression
-tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])
-tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) + labs( y  = "Count")+ theme(axis.title = element_text(size = 15))
-tl3 <-barplot_tissues(df,"mRNAs",palette[3]) + labs( x = "#Tissues") + theme(axis.title = element_text(size = 22))
-b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3, top = "Expression across tissues (Tissue specificity)")
+palette <- c("#E8C2D8", "#D4549C", "#8195D7")
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[3]) 
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
 b
+
 ```
 
