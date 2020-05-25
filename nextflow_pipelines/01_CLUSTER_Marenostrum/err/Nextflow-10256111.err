@@ -1,0 +1,12 @@
+load java/8u131 (PATH, MANPATH, JAVA_HOME, JAVA_ROOT, JAVA_BINDIR, SDK_HOME,
+JDK_HOME, JRE_HOME) 
+Set INTEL compilers as MPI wrappers backend 
+
+The following have been reloaded with a version change:
+  1) intel/2017.4 => intel/2017.1
+
+load nextflow/19.03.0 (PATH) 
+load SINGULARITY/3.2.0 (PATH) 
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 10256111.0 ON s02r1b46 CANCELLED AT 2020-05-25T14:29:39 ***
+slurmstepd: error: *** JOB 10256111 ON s02r1b46 CANCELLED AT 2020-05-25T14:29:39 ***

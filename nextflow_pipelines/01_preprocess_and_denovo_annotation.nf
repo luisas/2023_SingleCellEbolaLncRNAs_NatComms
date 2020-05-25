@@ -13,19 +13,20 @@ log.info "=============================================="
 // ------------------------------------------------------------
 
 // Prefix used for labeling throughout the pipeline
+params.prefix = "rheMac10_EBOV-Kikwit"
 // BaseFolders
-params.prefix_data = "/gpfs/projects/bsc83/Data/"
+params.prefix_data = "/gpfs/projects/bsc83/Data"
 params.dataset_bam_dir_zyagen = "${params.prefix_data}/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
 params.dataset_bam_dir_batch = "${params.prefix_data}/Ebola/00_RawData_links/"
 
 // Reference Annotation and Assembly - Macaque
-params.rhesus_gtf = "${params.prefix_data}gene_annotation/ensembl_release98/rheMac10/*.gtf"
-params.rhesus_genome = "${params.prefix_data}assemblies/ensembl/release-98/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
+params.rhesus_gtf = "${params.prefix_data}/gene_annotation/ensembl_release98/rheMac10/*.gtf"
+params.rhesus_genome = "${params.prefix_data}/assemblies/ensembl/release-98/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
 
 // Ebola virus annotation and assembly
-params.prefix_rawdata = "${params.prefix_data}/Ebola/00_RawData/"
-params.ebov_genome = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
-params.ebov_gtf = "${params.prefix_rawdata}pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"
+params.prefix_rawdata = "${params.prefix_data}/Ebola/00_RawData"
+params.ebov_genome = "${params.prefix_rawdata}/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
+params.ebov_gtf = "${params.prefix_rawdata}/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"
 
 // FEELNC: TRAINING DATA (Human Gencode)
 params.data_folder = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation"
