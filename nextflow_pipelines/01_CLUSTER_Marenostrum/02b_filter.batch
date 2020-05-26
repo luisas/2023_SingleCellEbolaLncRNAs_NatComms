@@ -14,10 +14,10 @@ module load singularity/3.2.0
 
 
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/02_filtering_and_merge_novel_annotations.nf \
-                  --dataset "02_RNA-Seq_BatchZyagen" \
-                  --umi "true" \
-                  --htseqsense "yes" \
-                  --strandrule "1++,1--,2+-,2-+" \
-                  --prefix_label "ribodepleted" \
+                  --dataset "02_RNA-Seq_external" \
+                  --umis "false" \
+                  --htseqsense "reverse" \
+                  --strandrule "1+-,1-+,2++,2--" \
+                  --prefix_label "polya" \
                   -w /gpfs/projects/bsc83/Data/Ebola/work/ \
                   -c ../configs/nextflow.config.01b_filter.config

@@ -17,6 +17,7 @@ ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
 mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
 
+rownames(immune.combined)[grep("poly",rownames(immune.combined))]
 immune.combined <- readRDS(file.path(result_path, "seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_dim_red.rds"))
 DefaultAssay(immune.combined) <- "RNA"
 immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
