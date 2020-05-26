@@ -20,10 +20,13 @@ params.dataset= "02_RNA-Seq_BatchZyagen"
 params.htseqsense="yes"
 params.umis = "true"
 params.strandrule="1++,1--,2+-,2-+"
+params.prefix_label = "ribodepleted"
+
 //params.dataset = "02_RNA-Seq_external"
 //params.htseqsense="reverse"
 //params.umis = "true"
 //params.strandrule="1+-,1-+,2++,2--"
+//params.prefix_label = "polya"
 
 
 // Fastq1 have no lanes
@@ -56,23 +59,35 @@ if("${params.umis}" == "false"){
 files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing}
 printing.subscribe{ println it }
 
+params.data_dir = "${params.output_dir}/${params.dataset}"
+params.lnc_novel_compared_to_ref= "${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"
+params.mrnas_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"
 
-params
+
+novel_concordant_script = Channel.fromPath("${baseDir}/scripts/01_filter_novel_concordant.R").collect()
+lnc_novel_compared_to_ref = Channel.fromPath("${params.lnc_novel_compared_to_ref}").collect()
+mrnas_predicted = Channel.fromPath("${params.mrnas_predicted}").collect()
+
 
 process novelANDconcordant{
-  storeDir "${params.output_dir}/03_novel_lncRNAs_list/$dataset_name/$tissue/$dayPostInfection/$sample/"
 
+  storeDir "${params.output_dir}/03_novel_lncRNAs_list/00_all_novels/"
 
+  input:
+  file novel_concordant_script
+  file lnc_novel_compared_to_ref
+  file mrnas_predicted
+
+  output:
+  file("novel_rhemac10_concordant_${params.prefix_label}.gtf") into novel_concordant_channel
+
+  script:
+  """
+  Rscript ${novel_concordant_script} ${lnc_novel_compared_to_ref} ${mrnas_predicted} novel_rhemac10_concordant_${params.prefix_label}.gtf
+  """
 }
 
-
-
-//params.gtf_ref_merged =  "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_gtf_filtering_step_01/rheMac10_EBOV-Kikwit_and_both_novel.gtf"
-params.gtf_ref_merged =  "/gpfs/projects/bsc83/Data/Ebola/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"
-
-Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
-
-process stringtie{
+process expression{
   cpus 1
   storeDir "${params.output_dir}/04_Stringtie_correct_with_names_gene_ab/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
 
@@ -87,10 +102,12 @@ process stringtie{
   script:
   """
   # Calc the counts for the umi_dedup
-  stringtie -eB   --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
+  stringtie -eB  --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
 
   """
 }
+
+
 
 workflow.onComplete {
 	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )

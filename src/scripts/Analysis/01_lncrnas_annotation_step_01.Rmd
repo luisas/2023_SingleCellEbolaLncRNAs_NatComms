@@ -24,13 +24,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load data and libraries
 
 ```{r results='hide', message=FALSE, warning=FALSE}
-library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
+library(rtracklayer); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
 library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
 library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
 
 # Reused paths
 projdir = "/home/luisas/Desktop/cluster/proj/data/"
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
 assemblies <- "/home/luisas/Desktop/cluster/assemblies"
 
 # Import Utils 
@@ -64,8 +64,8 @@ First, apply the filtering to each dataset separately
 # Feelnc output files
 candidates_lncRNA <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/candidate_lncRNA.gtf"))
 lncRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
-merged_annotated <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_lncrnaAnnotation_no_l_option/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
+mRNAs_out <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+merged_annotated <- import(file.path(datadir, "02_RNA-Seq_BatchZyagen/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"))
 
 
 # -----------------
