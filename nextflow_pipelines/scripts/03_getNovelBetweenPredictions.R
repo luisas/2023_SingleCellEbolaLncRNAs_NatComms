@@ -5,9 +5,14 @@ library(dplyr)
 # Read command line
 args = commandArgs(trailingOnly=TRUE)
 ribodepl_novel_compared_to_polya <- import(args[1])
-polyA_novel <- import(args[2])
-ref_gtf <- import(args[3])
-outfile <- args[4]
+ribodepl_novel <- import(args[2])
+polyA_novel <- import(args[3])
+ref_gtf <- import(args[4])
+outfile <- args[5]
+
+#ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
+#polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_polya.gtf")
+#ribodepl_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_ribodepleted.gtf")
 
 
 # ----------------------
@@ -18,8 +23,8 @@ mask_ux <- ribodepl_novel_compared_to_polya$class_code == "u" | ribodepl_novel_c
 mask_ux[is.na(mask_ux)] <- FALSE
 # comparing the predicted one with the reference.
 novel_transcript_ids <- ribodepl_novel_compared_to_polya[mask_ux]$transcript_id
-novel_ribodepl <- ribodepl_novel_compared_to_polya[ribodepl_novel_compared_to_polya$transcript_id %in% novel_transcript_ids]
-
+novel_ribodepl <- ribodepl_novel[ribodepl_novel$transcript_id %in% novel_transcript_ids]
+length(unique(novel_ribodepl$transcript_id))
 # ---------------------------
 #   Add Names 
 # ---------------------------
@@ -39,20 +44,26 @@ add_prefix <- function(gtf, prefix){
 }
 
 
+
 gtf_polya_newids <- add_prefix(polyA_novel, "polya-")
 gtf_ribodepl_newids <- add_prefix(novel_ribodepl, "ribodepl-")
 
-# Identify ribodepleted transcripts, whose gene name was already present in the poly(A) ones.
-gtf_polya_newids_names <- add_gene_name(gtf_polya_newids)
-gtf_ribodepl_newids_names <- add_gene_name(gtf_ribodepl_newids)
 
+# Identify ribodepleted transcripts, whose gene name was already present in the poly(A) ones.
+
+#gtf_polya_newids_names <- add_gene_name(gtf_polya_newids)
+#gtf_ribodepl_newids_names <- add_gene_name(gtf_ribodepl_newids)
+
+gtf_polya_newids_names <- gtf_polya_newids
+gtf_ribodepl_newids_names <- gtf_ribodepl_newids
 unique(gtf_ribodepl_newids_names$gene_name[gtf_ribodepl_newids_names$gene_name %in% gtf_polya_newids_names$gene_name])
 
 # ---------------------------------------
 # Merge them together ( just append ) 
 # ---------------------------------------
 glst <-list(gtf_polya_newids_names, gtf_ribodepl_newids_names)
-gtf <- do.call(c, as(glst, "GRangesList"))
+gtf <- do.call(base::c, as(glst, "GRangesList"))
+
 
 # ---------------------------------------
 # Merge Novel and Ref  together ( just append ) 

@@ -62,13 +62,16 @@ printing.subscribe{ println it }
 params.data_dir = "${params.output_dir}/${params.dataset}"
 params.lnc_novel_compared_to_ref= "${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"
 params.mrnas_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"
+params.lnc_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"
 params.reference_annotated = "${params.output_dir}/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"
 
 novel_concordant_script = Channel.fromPath("${baseDir}/scripts/01_filter_novel_concordant.R").collect()
 expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
 lnc_novel_compared_to_ref = Channel.fromPath("${params.lnc_novel_compared_to_ref}").collect()
 mrnas_predicted = Channel.fromPath("${params.mrnas_predicted}").collect()
+lnc_predicted = Channel.fromPath("${params.lnc_predicted}").collect()
 gtf_ref = Channel.fromPath("${params.reference_annotated}").collect()
+ref = Channel.fromPath("${params.reference_annotated}").collect()
 
 /*
 * Extract only the novel (unkown and antisense) lncRNAs compared to the reference.
@@ -80,15 +83,17 @@ process novelANDconcordant{
 
   input:
   file novel_concordant_script
+  file lnc_predicted
   file lnc_novel_compared_to_ref
   file mrnas_predicted
+  file ref
 
   output:
   file("novel_rhemac10_concordant_${params.prefix_label}.gtf") into (novel_concordant_channel, novel_concordant_channel2)
 
   script:
   """
-  Rscript ${novel_concordant_script} ${lnc_novel_compared_to_ref} ${mrnas_predicted} novel_rhemac10_concordant_${params.prefix_label}.gtf
+  Rscript ${novel_concordant_script} ${lnc_novel_compared_to_ref} ${lnc_predicted} ${mrnas_predicted} ${ref} novel_rhemac10_concordant_${params.prefix_label}.gtf
   """
 }
 

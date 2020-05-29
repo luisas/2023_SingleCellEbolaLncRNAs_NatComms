@@ -1,46 +1,11 @@
 
+# ------------------------------------------------
+#  Utils for lncRNA annotation stats
+# ------------------------------------------------
 
-remove_unconcordant_prediction <- function(lncRNAs_out,mRNAs_out){
-  # remove genes, whose transcript are predicted as both lncrnas and mrnas
-  # no return, directly modify the inputs
-  lo <- deparse(substitute(lncRNAs_out))
-  mo <- deparse(substitute(mRNAs_out))
-  
-  df <- data.frame()
-  df <- rbind(df, data.frame(gene_id = lncRNAs_out$gene_id, transcript_id = lncRNAs_out$transcript_id, pred = "lncrna" ))
-  df <- rbind(df, data.frame(gene_id = mRNAs_out$gene_id, transcript_id = mRNAs_out$transcript_id, pred = "mrna" ))
-  
-  unconcordant_prediction <- df %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(pred)) %>%  dplyr::filter( Unique_Elements > 1)
-  
-  # Remove unconcordant predictions from sets 
-  lncRNAs_out <-lncRNAs_out[!(lncRNAs_out$gene_id %in% unconcordant_prediction$gene_id), ]
-  mRNAs_out <- mRNAs_out[!(mRNAs_out$gene_id %in% unconcordant_prediction$gene_id), ]
-  assign(lo, lncRNAs_out, envir = .GlobalEnv)
-  assign(mo, mRNAs_out, envir = .GlobalEnv)
-}
-
-
-get_only_min_transcript_old <- function(gr){
-  # given a genomic range gets only the maximum transcript of a gene
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.min(range))
-  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
-  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
-  return(gr)
-}
-
-get_only_min_transcript <- function(gr){
-  # given a genomic range gets only the maximum transcript of a gene
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
-  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.min(range))
-  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
-  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
-  return(gr)
-}
+# Given a genomic range gets only the maximum transcript of a gene
+# computed based on the sum of the lenghts of its exons.
 get_only_max_transcript <- function(gr){
-  # given a genomic range gets only the maximum transcript of a gene
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
   gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
   collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
@@ -49,18 +14,21 @@ get_only_max_transcript <- function(gr){
   return(gr)
 }
 
+# Obtain number of exons per gene
 get_nr_exons <- function(gr){
   df <- data.frame("gene_id" = gr$gene_id,"exon_number" = as.numeric(gr$exon_number))
   number_exons <- df %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))
   return(number_exons)
 }
+
+
 add_type <- function(mean_expression, ids, name){
   mask <- mean_expression$id %in% ids
   mean_expression[mask,]$type <- name
   return(mean_expression)
 }
 
-
+# Barplot of the number of exons for novel lncRNAs 
 barplot_exon_count <- function(gr, type, col){
   ## extract the number of exons
   gr <- gr[gr$type =="exon",]
@@ -91,37 +59,7 @@ barplot_exon_count <- function(gr, type, col){
 }
 
 
-transcript_length_density <- function(gr,type,color){
-  # Get only exons of the reference, retain only the max transcript in term of length
-  #gr <- gr[gr$type =="exon",]
-  gr <- get_only_max_transcript(gr)
-  gr <- gr[gr$type =="exon",]
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-  p1 <- ggplot(collapsed, aes(x=range)) +
-    geom_density(alpha=0.5, fill = color, color = "Darkgrey")+
-    labs(y = "", x = "" )+
-    theme(plot.title = element_text(hjust = 0.5))+
-    xlim(0,10000)+
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))
-  return(p1)
-}
-
-
-
-exon_length_density <- function(gr,type,color){
-  gr <- gr[gr$type =="exon",]
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number) %>% dplyr::summarize("range" = sum(range_width))
-  p1 <- ggplot(collapsed, aes(x=range)) +
-        geom_density(position="identity", alpha=0.5, fill = color,color = "Darkgrey", binwidth = 100)+
-        labs(x = "", y = "") +
-        theme(legend.title=element_blank())+
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-        theme(plot.title = element_text(hjust = 0.5))+xlim(0,2000)
-  return(p1)
-}
-
+# Obtain length of the exon 
 calc_exon_length <- function(gr, type){
   gr <- gr[gr$type =="exon",]
   gr <- get_only_max_transcript(gr)
@@ -131,7 +69,7 @@ calc_exon_length <- function(gr, type){
   return(collapsed)
 }
 
-
+# Obtain length of the transcript 
 calc_transcript_length <- function(gr, type){
   gr <- gr[gr$type =="exon",]
   gr <- get_only_max_transcript(gr)
@@ -141,22 +79,14 @@ calc_transcript_length <- function(gr, type){
   return(collapsed)
 }
 
-
-calc_transcript_length_min <- function(gr, type){
-  gr <- gr[gr$type =="exon",]
-  gr <- get_only_min_transcript(gr)
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-  collapsed["type"] <- type
-  return(collapsed)
-}
-
+# deplete all monoexonic transcripts 
 remove_one_exon <- function(gr){
   df_l <- data.frame(get_nr_exons(gr[gr$type =="exon",]))
   depleted <- gr[gr$gene_id %in% df_l[df_l$max_exon > 1,]$gene_id,]
   return(depleted)
 }
 
+# Boxplot of expression
 plot_expression <- function(max_expression, palette_expression = palette_expression, level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")){
   plot <- ggplot(max_expression, aes(x=factor(type,level = level) , y=expr, fill = factor(type,level = level), colour = factor(type,level = level) )) + 
     geom_boxplot(alpha = 0.6 )+
@@ -170,12 +100,8 @@ plot_expression <- function(max_expression, palette_expression = palette_express
   return(plot)
 }
 
-plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,df){
-  palette <-brewer.pal(5,"Paired")
-  palette <- c("#F4E3ED", "#E9A3C9", "#C51B7D", "#E6F5D0", "#A1D76A")
-  palette <- c("#E8C2D8", "#D4549C", "#900051", "#A1D76A", "#308B1E")
-  palette <- c("#E8C2D8", "#D4549C", "#900051", "#8195D7", "navy")
-  #palette <- c("#FF817C","#FF0000", "#A70000", "#AFD2FF", "#040AAF")
+plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,df, palette = c("#E8C2D8", "#D4549C", "#900051", "#8195D7", "navy")){
+
   levels <- c('Novel LncRNAs', 'Annotated LncRNAs - Macaque ', 'Annotated LncRNAs - Human',"Annotated mRNAs - Macaque", "Annotated mRNAs - Human" )
   # --------------------
   ## EXON COUNT
@@ -223,30 +149,6 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
     theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
     scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
 
-  # Just for having the palette 
-   #p <- ggplot(df, aes(x = factor(type, level = levels),  y = range, fill =factor(type, level = levels), color = factor(type, level = levels) )) +
-  #geom_density()+scale_fill_manual(values = palette)+scale_color_manual(values = palette)
-  
-  
-  # --------------------
-  ## Transcript lengths min - Boxplot
-  # --------------------
-  df <- data.frame()
-  df <- rbind(df,data.frame(calc_transcript_length_min(novel_expressed, "Novel LncRNAs")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(mrna_ref_human, "Annotated mRNAs - Human")))
-  df <- rbind(df,data.frame(calc_transcript_length_min(mRNAs_ref, "Annotated mRNAs - Macaque")))
-  
-  plotmin <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
-    labs( x = "", y = "Transcript Length" , title = "Transcript length ( min transcript length ) ")+
-    theme(axis.text.x = element_blank(), plot.title = element_text(size = 26),axis.text.y = element_text(size = 20), axis.title = element_text(size = 20))+
-    geom_boxplot(outlier.shape=NA, fill = palette,color = palette, alpha = 0.6, na.rm = TRUE) + ylim(0,10000)+
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
-    theme(plot.title = element_text(hjust = 0.5))+
-    theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
-    scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
-
   
   # --------------------
   ## Exon lengths - Boxplot
@@ -268,7 +170,7 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
     theme(panel.background = element_rect(fill = "white", colour = "grey50"))+
     scale_y_continuous(limits = quantile(df$range, c(0.1,0.9)))
 
-  return(list(a,p,p1,plotmin))
+  return(list(a,p,p1))
 }
 
 plot_stats_annotation_separated <- function (novel_expressed_poly, novel_expressed_ribo,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,df){
@@ -339,16 +241,6 @@ plot_stats_annotation_separated <- function (novel_expressed_poly, novel_express
   
   
   # --------------------
-  ## Exon lengths - Densities 
-  # --------------------
-  #p1 <-exon_length_density(novel_expressed," NOVEL",palette[1]) 
-  #p2 <-exon_length_density(lncRNAs_ref," REF MACAQUE",palette[2]) 
-  #p3 <-exon_length_density(lncRNAs_ref_human,"REF HUMAN",palette[3]) + labs( y  = "Density")
-  #p4 <-exon_length_density(mrna_ref_human," REF MACAQUE",palette[4]) 
-  #p5 <-exon_length_density(mRNAs_ref,"REF HUMAN",palette[5]) + labs( x = " Exon length")
-  #d <- ggarrange( p1,p2,p3,p4,p5,  ncol=1, nrow=5, top = "Exon Lengths",  legend="right")
-  
-  # --------------------
   ## Exon lengths - Boxplot
   # --------------------
   df <- data.frame()
@@ -372,7 +264,7 @@ plot_stats_annotation_separated <- function (novel_expressed_poly, novel_express
   return(list(a,p,p1, pal))
 }
 
-
+# Plot tissue specificity 
 barplot_tissues <- function(df, type, col){
   ## extract the number of exons
   df_l <- df[df$type == type,]

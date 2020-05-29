@@ -6,8 +6,13 @@ library(dplyr)
 args = commandArgs(trailingOnly=TRUE)
 
 lnc_novel_compared_to_ref_file <- args[1]
-mrnas_predicted_file <- args[2]
-outfile <- args[3]
+lnc_pred_file <- import(args[2])
+mrnas_predicted_file <- args[3]
+ref <- import(args[4])
+outfile <- args[5]
+
+ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
+ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
 
 # ----------------------
 #   Extract Novel 
@@ -18,7 +23,11 @@ mask_ux <- lnc_novel_compared_to_ref$class_code == "u" | lnc_novel_compared_to_r
 mask_ux[is.na(mask_ux)] <- FALSE
 # comparing the predicted one with the reference.
 novel_transcript_ids <- lnc_novel_compared_to_ref[mask_ux]$transcript_id
-novel <- lnc_novel_compared_to_ref[lnc_novel_compared_to_ref$transcript_id %in% novel_transcript_ids]
+novel <- lnc_pred_file[lnc_pred_file$transcript_id %in% novel_transcript_ids]
+
+overlap <- findOverlaps(novel, ref_mrna )
+remove <- novel[unique(queryHits(overlap))]$transcript_id
+novel <- novel[!(novel$transcript_id %in% remove)]
 
 # ---------------------------
 #   Extract non-concordant

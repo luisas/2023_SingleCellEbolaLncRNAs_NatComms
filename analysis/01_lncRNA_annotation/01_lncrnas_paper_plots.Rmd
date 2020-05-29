@@ -3,60 +3,67 @@ title: "01_lncrnas_plots_paper"
 author: "Luisa Santus"
 date: "4/23/2020"
 output: html_document
+  keep_md: true 
 ---
 
-## R Markdown
+## 01 lncRNAs annotation summary
+
+### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(rtracklayer); library(VennDiagram); library(stringr); library(ggplot2); library(grid); library(gridExtra); library(UpSetR); library(ComplexHeatmap)
-library(GenomicRanges); library(dplyr); library(zeallot); library(DESeq2); library(edgeR);  library("ggplotify"); library("grid"); library(tidyverse)
-library(tximport); library(tximportData); library(plyr); library(Gviz); library(ggpubr)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer)
+library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
 
-# Reused paths
-projdir = "/home/luisas/Desktop/cluster/proj/data/"
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
-assemblies <- "/home/luisas/Desktop/cluster/assemblies"
+# Reoccurring paths
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
 
 # Import Utils 
-scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
-source(file.path(scripts_dir,"de_utils.R")); source(file.path(scripts_dir,"lncrna_annotation_utils.R"))
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
 
-
-# Human training set
+# Human reference for comparison
 lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
 mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
-lncRNAs_ref_human_gene <- lncRNAs_ref_human[lncRNAs_ref_human$type == "gene",]
 
-# The lncRNAs and mRNAs in the reference
+# Macaque reference 
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
-mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_mrnas.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"))
+all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
 ```
-# -------------------------------------------------------------------------------
-# STATS PLOTS FOR POLY(A)-SELECTED AND RIBODEPLETED SAMPLES INDIVIDUALLY
-# -------------------------------------------------------------------------------
-```{r POLYA}
-polya_lnc <- import(file.path(datadir, "03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"))
-# Exon Length, Exon number and Transcript Lengths 
-#plot_stats_annotation(polya_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-ribodepl_lnc <- import(file.path(datadir,"03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"))
-#plot_stats_annotation(ribodepl_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+### Comparison of exon length, transcript length and number ofe exons distributions
 
-all <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+
+```{r stats}
+# Testing
+ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
+ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
+ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
+```
+
+
+```{r stats}
+all <- novel_all
+
 polya_lnc  <- all[substr(all$gene_id,1,4) == "poly",]
+length(unique(polya_lnc$gene_id))
+findOverlaps(polya_lnc, ref_mrna )
 ribo_lnc  <- all[substr(all$gene_id,1,4) == "ribo",]
+length(unique(ribo_lnc$gene_id))
+findOverlaps(ribo_lnc, ref_mrna_exons )
+
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c("poly", "ribo"),]
+length(unique(all_novel_lnc$gene_id))
 
-#plot_stats_annotation(polya_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-#plot_stats_annotation(ribo_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+# Just chek there is no overlap with protein coding genes
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+
 plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
 plot_stats_annotation_separated(polya_lnc,ribo_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
-
 ```
 
-```{r POLYA}
+```{r expression}
 
 palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
 palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
@@ -65,8 +72,7 @@ palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
 # ----------------------------------------------------------------------
 # Extract expression ALL 
 # ----------------------------------------------------------------------
-dir_counts_ref = file.path(datadir, "04_Stringtie_correct_with_names_gene_ab/")
-#dir_counts_ref = file.path(datadir, "02_RNA-Seq_BatchZyagen/06_counts_all")
+dir_counts_ref = file.path(datadir, "04_quantification/")
 abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
 # Create Map for Transcript names to Gene names 
 tmp <- read_tsv(abundance_files[1])
@@ -81,7 +87,7 @@ expression <- expression[mask,]
 # ----------------------------------------------------------------------
 # Extract expression ALL 
 # ----------------------------------------------------------------------
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
 max_expression['type'] <- "0"
 max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
@@ -92,7 +98,7 @@ plot_expression(max_expression, palette_expression)+theme(plot.title = element_t
 # ----------------------------------------------------------------------
 # Extract expression PolyA 
 # ----------------------------------------------------------------------
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
 max_expression['type'] <- "0"
 max_expression <- add_type(max_expression, polya_lnc$gene_id, "Novel lncRNAs")
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
@@ -103,7 +109,7 @@ plot_expression(max_expression, palette_expression)+theme(plot.title = element_t
 # ----------------------------------------------------------------------
 # Extract expression ribodepl
 # ----------------------------------------------------------------------
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
 max_expression['type'] <- "0"
 max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Novel lncRNAs")
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
@@ -115,7 +121,7 @@ plot_expression(max_expression, palette_expression)+theme(plot.title = element_t
 # Extract compared
 # ----------------------------------------------------------------------
 palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMax(expression)))
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
 max_expression['type'] <- "0"
 max_expression <- add_type(max_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
 max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Ribodepleted Novel lncRNAs")
@@ -132,7 +138,7 @@ plot_expression(max_expression, palette_expression, level = levels)+theme(plot.t
 # -----------------------------
 
 
-```{r results='hide', message=FALSE, warning=FALSE}
+```{r tissuespecificity}
 
 colnames(expression) <- gsub("Testes", "Testis", unlist(lapply(abundance_files, function(x) rev(strsplit(x, "/")[[1]])[5])))
 

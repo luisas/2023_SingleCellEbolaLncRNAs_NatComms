@@ -723,7 +723,7 @@ process feelnc_codpot{
 */
 process gffCompare{
 
-  storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare"
+  storeDir "${params.output_dir}/05_feelNC_prediction_a/feelnc_gencode_linc/01_gffcompare"
 
   input:
   set index, codpot from coding_potentials

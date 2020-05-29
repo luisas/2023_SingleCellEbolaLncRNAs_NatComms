@@ -12,7 +12,7 @@ source("utils/sc_utils.R")
 source("utils/de_utils.R")
 
 datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
 ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
 mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
@@ -405,15 +405,17 @@ df_mrna$type <- "mrna"
 df_complete<- rbind(df_lnc, df_mrna)
 c <- df_complete[complete.cases(df_complete),]
 c$type = ifelse(c$type == "lnc", 1, 0)
-
+rownames(c)
 ggplot(df_lnc, aes(x= n_cells))+geom_density()
 
 
-
+a <- rownames(immune.combined)
+a[grep("poly", a)]
 # match expression 
 mi_median <- matchit(type ~ medianexpr,c)
 matches_median <- get_matches(mi_median, c)
 matches_median
+mi_median$match.matrix
 
 # Calculate p-value 
 perc_cells_0 <- matches_median[matches_median$type == 0,]$perc_cells_expressing
@@ -474,7 +476,7 @@ table(benchmark_df_matched_median$seed)
 
 ggplot(benchmark_df_matched_median, aes (y = output, x = seed, fill = seed, color = seed))+geom_boxplot(alpha = 0.6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+scale_fill_manual(values = c("#E41A1C",rep("#377EB8", 10) ))+scale_color_manual(values = c("#E41A1C",rep("#377EB8", 10) ))+labs(y = "% Cells", Title = "")+theme(legend.position = "")
 
-
+c
 
 
 ```

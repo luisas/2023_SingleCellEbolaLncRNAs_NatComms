@@ -24,8 +24,8 @@ params.mrnas_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_
 params.reference_annotated = "${params.output_dir}/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"
 
 extractNovelFromPolyA_script = Channel.fromPath("${baseDir}/scripts/03_getNovelBetweenPredictions.R").collect()
-novel_polyA = Channel.fromPath("${params.output_dir}/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf").collect()
-novel_ribodepl = Channel.fromPath("${params.output_dir}/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf").collect()
+novel_ribodepl = Channel.fromPath("${params.output_dir}/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf").collect()
+novel_polyA = Channel.fromPath("${params.output_dir}/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf").collect()
 gtf_ref = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf").collect()
 
 /*
@@ -34,14 +34,14 @@ gtf_ref = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/ge
 */
 process gffCompare{
 
-  storeDir "${params.output_dir}/03_novel_lncRNAs_list/03_polyAvsribodepl/"
+  storeDir "${params.output_dir}/03_novel_lncRNAs_list/03_polyA_vs_ribodepl/"
 
   input:
   file novel_polyA
   file novel_ribodepl
 
   output:
-  file("ribodeplVSpolyA.annotated.gtf") into gffcompare
+  file("ribodeplVSpolyA.annotated.gtf") into gffcomparech
 
   script:
   """
@@ -53,20 +53,21 @@ process gffCompare{
 * Append novel concordant to the reference before quantification
 */
 process getNovel_fromPolyA {
-    storeDir "${params.output_dir}/03_polyAvsribodepl/"
+    storeDir "${params.output_dir}/03_novel_lncRNAs_list/"
 
     input:
     file gtf_ref
-    file ribodeplVSpolyA from gffcompare
+    file ribodeplVSpolyA from gffcomparech
     file extractNovelFromPolyA_script
     file novel_polyA
+    file novel_ribodepl
 
     output:
     file("rheMac10_EBOV_and_novel.gtf") into (novel_and_reference, novel_and_reference2)
 
     script:
     """
-    Rscript ${extractNovelFromPolyA_script} ${ribodeplVSpolyA} ${novel_polyA} ${gtf_ref} rheMac10_EBOV_and_novel.gtf
+    Rscript ${extractNovelFromPolyA_script} ${ribodeplVSpolyA} ${novel_ribodepl} ${novel_polyA} ${gtf_ref} rheMac10_EBOV_and_novel.gtf
     """
 }
 
