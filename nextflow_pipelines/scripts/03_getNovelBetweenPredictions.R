@@ -13,7 +13,7 @@ outfile <- args[5]
 #ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
 #polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_polya.gtf")
 #ribodepl_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_ribodepleted.gtf")
-
+#ref_gtf <-  import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
 
 # ----------------------
 #   Extract Novel 
@@ -64,15 +64,12 @@ unique(gtf_ribodepl_newids_names$gene_name[gtf_ribodepl_newids_names$gene_name %
 glst <-list(gtf_polya_newids_names, gtf_ribodepl_newids_names)
 gtf <- do.call(base::c, as(glst, "GRangesList"))
 
-
 # ---------------------------------------
 # Merge Novel and Ref  together ( just append ) 
 # ---------------------------------------
 glst_ref_and_novel <-list(ref_gtf,gtf)
 gtf_ref_and_novel <- do.call(c, as(glst_ref_and_novel, "GRangesList"))
 
-gtf_ref_and_novel[is.na(gtf_ref_and_novel$gene_name)]$gene_name <- paste(gtf_ref_and_novel[is.na(gtf_ref_and_novel$gene_name)]$gene_id, "-unkown", sep = "") 
-gtf_ref_and_novel[is.na(gtf_ref_and_novel$transcript_name)]$transcript_name <-paste(gtf_ref_and_novel[is.na(gtf_ref_and_novel$transcript_name)]$transcript_id, "-unkown", sep = "")  
-
-export(gtf_ref_and_novel, outfile)  
+gtf_ref_and_novel_sort <- sort(gtf_ref_and_novel)
+export(gtf_ref_and_novel_sort, outfile)  
 

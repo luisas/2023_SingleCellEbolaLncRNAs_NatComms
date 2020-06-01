@@ -1,0 +1,36 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# FeelNC training Benchmark
+
+## Obtain sensitivity of feelNC model trained with human data
+```{r results='hide', message=FALSE, warning=FALSE}
+library(rtracklayer);
+
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release98/rheMac10/Macaca_mulatta.Mmul_10.98.gtf"))
+predicted_lnc <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
+predicted_mrnas <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+
+ref_lnc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype %in% c("lncRNA", "antisense")]
+ref_pc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding"]
+ref_not_lnc <- ref[!is.na(ref$gene_biotype) & !(ref$gene_biotype %in% c("lncRNA", "antisense"))]
+# How many of the total amount of lncRNAs is predicted as lncRNAs
+identified_lnc <- ref_lnc[ref_lnc$gene_id %in% predicted_lnc$gene_id]
+missed_lnc <- ref_lnc[ !(ref_lnc$gene_id %in% predicted_lnc$gene_id)]
+
+TP <- length(unique(identified_lnc$transcript_id))
+FN <- length(unique(missed_lnc$transcript_id))
+Sensitivity <- (TP/(FN+TP))*100
+print(Sensitivity)
+```
+

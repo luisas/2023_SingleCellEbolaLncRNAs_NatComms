@@ -36,7 +36,7 @@ process feelnc_filter{
 }
 
 process feelnc_codpot{
-  cpus 1
+  cpus 48
   storeDir "${params.output_dir}/00_feelNC_benchmark"
 
   input:

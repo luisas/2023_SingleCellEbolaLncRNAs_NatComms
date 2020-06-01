@@ -3,12 +3,18 @@ params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
 
-//params.dirData = "/Users/luisasantus/Desktop/cluster/data"
-//params.dirProj = "/Users/luisasantus/Desktop/cluster/proj"
+
 params.output_dir_preliminary = "${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_rheMac10/"
 
 params.dataset_bam_dir = "${params.dirData}/00_RawData/seqwell/data/IRF_SerialSac/Mapping_V4/Mapping_V4"
 params.output_dir = "${params.dirData}/01_Ebola-RNASeq_all/03_scRNA-Seq_inVivo_rhemac10"
+
+
+params.primer = "AAGCAGTGGTATCAACGCAGAGTGAATGGG"
+params.strandness = "FR"
+
+Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf")
+       .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
 
 Channel.fromFilePairs("${params.dataset_bam_dir}/*/results/samples/*/trimmmed_repaired_R{1,2}.fastq.gz")
               .ifEmpty('bam files directory is empty')
@@ -38,11 +44,6 @@ gtfToGenePred_script_ch = Channel
 genePredToBed_script_ch = Channel
                       .fromPath("${params.scripts}/genePredToBed")
 
-Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf")
-       .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
-//Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/03_liftover/rheMac8_EBOV-Kikivit_and_novelcatalogue_with_names_ensembl.gtf")
-//       .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
-
 Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
         .into{ GtfNotNovel;   }
 
@@ -52,7 +53,7 @@ Channel.fromPath("${params.output_dir_preliminary}/reference_assembly/rheMac10_E
 Channel.fromPath("${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_rheMac10/reference_assembly/rheMac10_EBOV-Kikwit.dict")
        .into{ DictChannel; DictChannel2;DictChannel3; DictChannel4;  }
 
-params.strandness = "FR"
+
 
 
 
@@ -276,7 +277,7 @@ process TagReadWithGeneFunction{
   """
 
 }
-params.primer = "AAGCAGTGGTATCAACGCAGAGTGAATGGG"
+
 process DetectBeadSubstitutionError{
 
   cpus 12

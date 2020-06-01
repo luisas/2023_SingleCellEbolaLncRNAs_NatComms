@@ -17,6 +17,6 @@ module load singularity/3.2.0
 srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/04_quantification_fpkm.nf \
                   --strandness "RF" \
                   --umis "false" \
-                  --output_dir_name "02_RNA-Seq_external" \
+                  --dataset "02_RNA-Seq_external" \
                   -w /gpfs/projects/bsc83/Data/Ebola/work/ \
                   -c ../configs/nextflow.config.rnaseq

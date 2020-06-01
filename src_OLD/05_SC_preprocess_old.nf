@@ -3,8 +3,7 @@ params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
 
-//params.dirData = "/home/luisas/Desktop/cluster/data/"
-//params.dirProj = "/home/luisas/Desktop/cluster/proj/Ebola"
+
 params.output_dir_preliminary = "${params.dirData}/01_Ebola-RNASeq_all/01_PreliminaryFiles_rheMac10/"
 
 params.dataset_bam_dir = "${params.dirData}/00_RawData/scRNAseq_exvivo_alin_bams"

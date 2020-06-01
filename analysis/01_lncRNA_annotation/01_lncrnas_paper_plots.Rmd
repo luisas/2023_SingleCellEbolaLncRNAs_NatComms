@@ -12,7 +12,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
 library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
 
 # Reoccurring paths
@@ -38,12 +38,11 @@ all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.
 ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
 ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
 ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
+
 ```
 
 
 ```{r stats}
-all <- novel_all
-
 polya_lnc  <- all[substr(all$gene_id,1,4) == "poly",]
 length(unique(polya_lnc$gene_id))
 findOverlaps(polya_lnc, ref_mrna )
@@ -65,19 +64,24 @@ plot_stats_annotation_separated(polya_lnc,ribo_lnc ,lncRNAs_ref,lncRNAs_ref_huma
 
 ```{r expression}
 
-palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
+#palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
 palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
 
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+} 
 
 # ----------------------------------------------------------------------
 # Extract expression ALL 
 # ----------------------------------------------------------------------
 dir_counts_ref = file.path(datadir, "04_quantification/")
 abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
 # Create Map for Transcript names to Gene names 
 tmp <- read_tsv(abundance_files[1])
 tx2gene <- tmp[,c("t_name", "gene_id")]
-txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene, abundanceCol = tissues)
 
 # Remove non expressed genes 
 expression <- txi$abundance
@@ -93,29 +97,8 @@ max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
 max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
 max_expression <- max_expression[!max_expression$type == "0",]
-plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
 
-# ----------------------------------------------------------------------
-# Extract expression PolyA 
-# ----------------------------------------------------------------------
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
-max_expression['type'] <- "0"
-max_expression <- add_type(max_expression, polya_lnc$gene_id, "Novel lncRNAs")
-max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
-max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
-max_expression <- max_expression[!max_expression$type == "0",]
-plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 20),axis.title.y  = element_text(size = 20))
-
-# ----------------------------------------------------------------------
-# Extract expression ribodepl
-# ----------------------------------------------------------------------
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
-max_expression['type'] <- "0"
-max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Novel lncRNAs")
-max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
-max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
-max_expression <- max_expression[!max_expression$type == "0",]
-plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 22), axis.text = element_text(size = 15),axis.title.y  = element_text(size = 15))
 
 # ----------------------------------------------------------------------
 # Extract compared
@@ -139,11 +122,13 @@ plot_expression(max_expression, palette_expression, level = levels)+theme(plot.t
 
 
 ```{r tissuespecificity}
+colnames(expression) <- tissues
+tissues <- gsub("Testes", "Testis", tissues)
 
-colnames(expression) <- gsub("Testes", "Testis", unlist(lapply(abundance_files, function(x) rev(strsplit(x, "/")[[1]])[5])))
 
 # Check how many tissues express a gene
 expressed_booleans <- ifelse(log(expression) > 1,1,0)
+colnames(expressed_booleans) <- tissues
 grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
 n_tissues_expresseing_gene <- rowSums(grouped_expression)
 
