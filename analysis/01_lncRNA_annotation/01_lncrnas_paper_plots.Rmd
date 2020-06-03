@@ -29,6 +29,11 @@ mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_a
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"))
 all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
+ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf"))
+polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf"))
+levels(seqnames(all))
+seqlevelsStyle(all) <- "ucsc"
+export(all, file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_ucsc.gtf"))
 ```
 ### Comparison of exon length, transcript length and number ofe exons distributions
 

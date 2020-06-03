@@ -9,6 +9,7 @@ ribodepl_novel <- import(args[2])
 polyA_novel <- import(args[3])
 ref_gtf <- import(args[4])
 outfile <- args[5]
+outfile_name <- args[6]
 
 #ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
 #polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_polya.gtf")
@@ -44,25 +45,16 @@ add_prefix <- function(gtf, prefix){
 }
 
 
-
 gtf_polya_newids <- add_prefix(polyA_novel, "polya-")
 gtf_ribodepl_newids <- add_prefix(novel_ribodepl, "ribodepl-")
 
 
-# Identify ribodepleted transcripts, whose gene name was already present in the poly(A) ones.
-
-#gtf_polya_newids_names <- add_gene_name(gtf_polya_newids)
-#gtf_ribodepl_newids_names <- add_gene_name(gtf_ribodepl_newids)
-
-gtf_polya_newids_names <- gtf_polya_newids
-gtf_ribodepl_newids_names <- gtf_ribodepl_newids
-unique(gtf_ribodepl_newids_names$gene_name[gtf_ribodepl_newids_names$gene_name %in% gtf_polya_newids_names$gene_name])
-
 # ---------------------------------------
 # Merge them together ( just append ) 
 # ---------------------------------------
-glst <-list(gtf_polya_newids_names, gtf_ribodepl_newids_names)
+glst <-list(gtf_polya_newids, gtf_ribodepl_newids)
 gtf <- do.call(base::c, as(glst, "GRangesList"))
+ 
 
 # ---------------------------------------
 # Merge Novel and Ref  together ( just append ) 
@@ -72,4 +64,10 @@ gtf_ref_and_novel <- do.call(c, as(glst_ref_and_novel, "GRangesList"))
 
 gtf_ref_and_novel_sort <- sort(gtf_ref_and_novel)
 export(gtf_ref_and_novel_sort, outfile)  
+
+gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel_sort$gene_name)]$gene_name <- paste(gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel$gene_name)]$gene_id, "-unknown", sep = "") 
+gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel_sort$transcript_name)]$transcript_name <-paste(gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel$transcript_name)]$transcript_id, "-unknown", sep = "")  
+export(gtf_ref_and_novel_sort, outfile_name)  
+
+
 

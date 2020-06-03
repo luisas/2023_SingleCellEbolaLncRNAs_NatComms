@@ -11,6 +11,9 @@ process{
   withName:STAR{
     container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseq.simg'
   }
+  withName:STAR_unpaired{
+    container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseq.simg'
+  }
   withLabel:rnaseq{
     container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseqnew.simg'
   }

@@ -16,8 +16,6 @@ log.info "=============================================="
 params.output_dir = "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation"
 
 
-
-
 params.data_dir = "${params.output_dir}/${params.dataset}"
 params.lnc_novel_compared_to_ref= "${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf"
 params.mrnas_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"
@@ -63,11 +61,11 @@ process getNovel_fromPolyA {
     file novel_ribodepl
 
     output:
-    file("rheMac10_EBOV_and_novel.gtf") into (novel_and_reference, novel_and_reference2)
+    set file("rheMac10_EBOV_and_novel.gtf"), file("rheMac10_EBOV_and_novel_genenames.gtf") into (novel_and_reference, novel_and_reference2)
 
     script:
     """
-    Rscript ${extractNovelFromPolyA_script} ${ribodeplVSpolyA} ${novel_ribodepl} ${novel_polyA} ${gtf_ref} rheMac10_EBOV_and_novel.gtf
+    Rscript ${extractNovelFromPolyA_script} ${ribodeplVSpolyA} ${novel_ribodepl} ${novel_polyA} ${gtf_ref} rheMac10_EBOV_and_novel.gtf rheMac10_EBOV_and_novel_genenames.gtf
     """
 }
 

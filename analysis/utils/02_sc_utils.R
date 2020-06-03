@@ -108,7 +108,7 @@ plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.tab
 }
 
 
-plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4){
+plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = brewer.pal("Set1", 2)){
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
   print(n)
@@ -143,8 +143,8 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4){
           theme_classic()+
           labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+
           theme(plot.title = element_text(hjust = 0.5))+
-          scale_fill_brewer(palette = "Set1")+
-          scale_color_brewer(palette = "Set1")+
+          scale_fill_manual(values = palette)+
+          scale_color_manual(values = palette)+
           theme(legend.title = element_blank())+
           scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
                                                                                                                                                                                                                                                                                                 labels=c("1-25","25-50","50-75", "75-100"))
@@ -220,7 +220,7 @@ scatter_plot_expression <- function(df, genetype, type = "Max", col = "blue"){
   return(p1)
 }
 
-scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max"){
+scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max", palette = brewer.pal("Set1", 2)){
   df_lnc$type <- "ncRNA"
   df_mrna$type   <- "Protein coding"
   df_complete <- rbind(df_mrna, df_lnc)
@@ -238,7 +238,7 @@ scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max"){
     }
   }
 
-  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+theme(legend.position = "")+
+  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
           scale_alpha_manual(values = c(1,0.3))+ylim(0,1)
   p1 <- ggExtra::ggMarginal(p1,type = 'boxplot',margins = 'both',size = 8,colour = "darkgrey", alpha = 0.5,groupColour = TRUE, groupFill = TRUE)
   return(p1)

@@ -28,10 +28,10 @@ library(RCy3)
 source("utils/sc_utils.R")
 source("utils/de_utils.R")
 
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/04_DigitalExpressionMatrix"
 
 ```
 
@@ -46,7 +46,7 @@ I import the data and merge them into one single Seurat object to proceed with t
 Obtain 
 ```{r cars}
 # Load the PBMC dataset
-data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_scRNA-Seq_complete/04_DigitalExpressionMatrix/"
+
 files <- iterate_files(data_dir, ".dge.txt.gz")
 files_umis <- files[!str_detect(files, "reads" )]
 
