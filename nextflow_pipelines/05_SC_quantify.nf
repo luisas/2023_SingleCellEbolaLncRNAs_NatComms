@@ -28,7 +28,7 @@ bams_2.subscribe{ println "$it" }
 
 params.scripts="${baseDir}/scripts/"
 
-cell_selection_script = Channel.fromPath("${params.scripts}/cellselection.R").collect()
+cell_selection_script = Channel.fromPath("${params.scripts}/04_cellselection.R").collect()
 process TagReadWithGeneFunction{
 
   cpus 12

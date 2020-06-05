@@ -158,7 +158,7 @@ get_filename_and_dirs <- function(file){
 }
 
 
-create_dds <- function(sampleFiles,directory, names_from_dir = FALSE, tximport = FALSE, tx_obj =NA){
+create_dds <- function(sampleFiles,directory = NULL, names_from_dir = FALSE, tximport = FALSE, tx_obj =NA){
   
   if(names_from_dir){
     samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)

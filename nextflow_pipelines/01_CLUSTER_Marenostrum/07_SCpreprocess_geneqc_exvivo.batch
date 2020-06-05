@@ -10,7 +10,9 @@ module load java/8u131
 module load intel/2017.1
 module load R/3.6.1
 
+module load singularity/3.2.0
+
 CONTAINER=/gpfs/projects/bsc83/utils/containers/singularity/rdeanalysis.simg
 
 #srun Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/SeuratForCluster/geneQC.R "/gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/Analysis/results/seurat_pbmc_rhemac10_merged_aftercellqc.rds"
-srun singularity exec ${CONTAINER} Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/SeuratForCluster/geneQC.R "/gpfs/projects/bsc83/Data/Ebola/RObjects/invivo_immunecombined_cellqc.rds"
+srun singularity exec ${CONTAINER} Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/analysis/utils/geneQC.R "/gpfs/projects/bsc83/Data/Ebola/RObjects/EXVIVO_rhemac10_aftercellQC.rds"

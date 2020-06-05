@@ -366,50 +366,6 @@ run_matchit_perc<- function(c, seed){
 #ggplot(benchmark_df_matched_median, aes (y = output, x = seed, fill = seed, color = seed))+geom_boxplot(alpha = 0.6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+scale_fill_manual(values = c("#E41A1C",rep("#377EB8", 10) ))+scale_color_manual(values = c("#E41A1C",rep("#377EB8", 10) ))+labs(y = "Median", Title = "")+theme(legend.position = "")
 ```
 
-# Explore ratios to see wether its a tendency or there are subpopulations
-```{r examplecherrypicked}
-
-table(matches_median$type)
-df_lnc$type <- "lnc"
-df_mrna$type <- "mrna"
-df_complete<- rbind(df_lnc, df_mrna)
-c <- df_complete[complete.cases(df_complete),]
-c$type = ifelse(c$type == "lnc", 1, 0)
-c
-
-# match expression 
-
-mi_median <- matchit(type ~ medianexpr,c)
-
-get_ratio_line <- function(index, mi_median, matches_median){
-  id_1 <- rownames(mi_median$match.matrix)[index]
-  id_2 <- mi_median$match.matrix[index]
-  entry_1 <- matches_median[matches_median$gene_id == id_1,]
-  entry_2 <- matches_median[matches_median$gene_id == id_2,]
-  # Mrna / lncr
-  ratio <- entry_2$n_cells/entry_1$n_cells
-  lnctype <- switch(substr(entry_1$gene_id,1,1), r = "ribodepl", p = "polyA")
-  if(is.null(lnctype)){lnctype <- "Annotated"}
-  df <- data.frame(ratios_mrna_lncrna = ratio , medianexpr = entry_1$medianexpr, lnctype = lnctype, percellslnc = entry_1$perc_cells_expressing, perccellsmrna =entry_2$perc_cells_expressing, label_lnc = entry_1$gene_id )
-  return(df)
-}
-
-ratios_df <- rbindlist(lapply(1:nrow(mi_median$match.matrix), function(index) (get_ratio_line(index, mi_median, matches_median))))
-
-ggplot(ratios_df, aes(y = ratios_mrna_lncrna, x = perccellsmrna, col = lnctype ) )+geom_point()+geom_hline( yintercept = 1, color= "red", size = 1) + theme_classic()+scale_color_brewer(palette = "Set2")+ylim(0,4)
-
-ggplot(ratios_df, aes(y = ratios_mrna_lncrna, x = medianexpr, col = lnctype ) )+geom_boxplot()+ylim(0,4)
-
-below_one <- ratios_df[ratios_df$ratios_mrna_lncrna < 1,]
-
-ggplot(below_one, aes(y = perccellsmrna, x = percellslnc, col = lnctype, label= label_lnc ))+geom_point()+geom_text()+geom_abline( yintercept = 0, slope = 1, color= "red", size = 1) + theme_classic()+scale_color_brewer(palette = "Set2")+ylim(0,1)
-
-below_zero$ratios_mrna_lncrna
-
-below_one[below_one$percellslnc > 0.4,]
-
-```
-
 # ------------------------------------------------------
 # Cherry pick an example - highly expressed in low proportion of cells : TSNE
 # ------------------------------------------------------
@@ -439,6 +395,74 @@ f2 <- FeaturePlot(immune.combined,label = FALSE, features = c(genes[2]), pt.size
 f1
 f2
 CombinePlots(list(f1,f2))
+```
+
+
+# cell type specificity : Glm 
+
+```{r cellt type specificity}
+# Calculate number of genes per cell
+get_n_genes <- function(count_matrix, threshold = 0 ){
+  n_genes <- as.vector((Matrix::colSums(count_matrix>threshold)))
+  df_new <- data.frame(n_genes = n_genes)
+  df_new$cell_id <- colnames(count_matrix)
+  return(df_new)
+}
+# Per Gene Compute Linear Model and compute Adjusted P-Values
+calc_linear_model <- function(gene1, count_matrix,individual,viral_load, n_genes ){
+  gene1 <- str_replace_all(gene1, "_" , "-")
+  exp <- count_matrix[rownames(count_matrix)== gene1,]
+  model1 <- lm(exp ~ viral_load +n_genes+ individual)
+  return(model1)
+}
+
+library(lme4)
+immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
+
+# calculate count matrix
+count_matrix <- immune.combined@assays$RNA@counts
+# calculate the number of genes expressed in each cell to use as covariate 
+number_genes_per_cell <- get_n_genes(count_matrix)$n_genes
+individual <- immune.combined$individual
+celltype <- Idents(immune.combined)
+
+# Two example genes
+count_matrix_small <- count_matrix[c("CD14", "CD79B"), ]
+FeaturePlot(immune.combined, features = c("CD14", "CD79B"))
+
+gene_counts <-  as.vector(count_matrix["CD14",])
+gene_counts <- as.matrix(t(gene_counts))
+
+model <- lmer(gene_counts ~ celltype + number_genes_per_cell + (1|individual))
+library("qualityTools")
+length(colnames(gene_counts))
+colnames(gene_counts) <- as.vector(celltype)
+edgeR::glmFit(gene_counts,  ~ celltype + number_genes_per_cell + (1|individual))
+
+
+df <- data.frame (celltype = celltype)
+DGEList(gene_counts, samples = df)
+
+ncol(gene_counts)
+nrow(df)
+# Playing around
+library(MASS)
+data <-gene_counts
+n <- length(data)
+data.s <- sort(data)
+ppoints(data)
+ppoints(n)
+
+params = MASS::fitdistr(data, "Negative Binomial")
+data.q <- qnbinom(ppoints(data), size= params$estimate[1], mu =  params$estimate[2])
+plot(data.q, data.s, col = "red")
+abline(0,1)
+```
+
+```{r norm}
+fit <- fitdistr(my_data, densfun = "normal")
+hist(data.q, pch = 20 , breaks = 25, prob = TRUE, main = "")
+curve(dnorm(x, fit$estimate[1], fit$estimate[2]), col = "red", lwd = 2, add = T)
 ```
 
 

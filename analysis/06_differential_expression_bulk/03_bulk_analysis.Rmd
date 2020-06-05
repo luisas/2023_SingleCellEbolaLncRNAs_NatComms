@@ -9,11 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Differential expression Bulk 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
 library(sva); library(edgeR)
@@ -28,26 +25,39 @@ library(stringr)
 library(edgeR)
 library(zeallot)
 library(DESeq2)
+library(readr)
+library(tximport)
 
 # ----------------------------------
 #           Import Utils 
 # ----------------------------------
-scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/","code/ebola/src/scripts/Analysis/utils")
-source(file.path(scripts_dir,"de_utils.R"));
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/analysis/utils/")
+source(file.path(scripts_dir,"03_de_utils.R"));
 
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all"
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
-
-dir_counts_ref = file.path(datadir, "04_Quantification_correct_with_names/")
+dir_counts_ref = file.path(datadir, "04_quantification/")
 htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
 batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
 zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
-#htseq_files_ref <- c(batch,zyagen)
-htseq_files_ref <- batch
+htseq_files_ref <- c(batch,zyagen)
+#htseq_files_ref <- batch
 
-dds <- create_dds(htseq_files_ref,dir_counts_ref)
+
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+# Create Map for Transcript names to Gene names 
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
+colnames(txi$counts) <- abundance_files
+
+dds <- create_dds(abundance_files,names_from_dir = TRUE,  tximport = TRUE, tx_obj = txi)
+dds$tissue
+
+samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)
+
 # Retain only blood and liver
 dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
 dds <- dds[!rownames(dds) %in% ebola_ref$gene_id,]
