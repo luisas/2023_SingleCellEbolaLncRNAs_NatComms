@@ -30,7 +30,7 @@ source("../utils/02_sc_utils.R")
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects")
-data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/04_DigitalExpressionMatrix_OK"
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/04_DigitalExpressionMatrix_OK"
 ```
 
 ## Single Cell Preprocessing Ex Vivo 
@@ -56,7 +56,7 @@ pbmc.big <- merge(pbmc, y = list, add.cell.ids = list_names, project = "PBMCbig"
 unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
 table(pbmc.big$orig.ident)
 
-saveRDS(pbmc.big, file.path(result_path,"EXVIVO_rhemac10_merged.rds"))
+saveRDS(pbmc.big, file.path(result_path,"INVIVO_rhemac10_merged.rds"))
 ```
 ##---------------------------------------------------------
 ##                           Cell QC 
@@ -64,7 +64,7 @@ saveRDS(pbmc.big, file.path(result_path,"EXVIVO_rhemac10_merged.rds"))
 ##  Remove cell based on number of detected genes per cell
 ##----------------------------------------------------------
 ```{r pressure, results='hide', message=FALSE, warning=FALSE}
-pbmc.big <- readRDS(file.path(result_path,"EXVIVO_rhemac10_merged.rds"))
+pbmc.big <- readRDS(file.path(result_path,"INVIVO_rhemac10_merged.rds"))
 
 dim(pbmc.big)
 pbmc_sc <- as.SingleCellExperiment(pbmc.big)
@@ -99,7 +99,7 @@ keep_cells <-
   pbmc$total_features_by_counts > 600 & pbmc$total_features_by_counts < 2000 
 table(keep_cells)
 pbmc <- pbmc[, keep_cells]
-saveRDS(pbmc,file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
+saveRDS(pbmc,file.path(result_path,"INVIVO_rhemac10_aftercellQC.rds"))
 ```
 
 
@@ -109,14 +109,14 @@ saveRDS(pbmc,file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
 ##----------------------------  
 
 ```{r}
-pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
+pbmc <- readRDS(file.path(result_path,"INVIVO_rhemac10_aftercellQC.rds"))
 
 # === CLUSTER === 
 # Do not delete this lines. The following steps were performed on the cluster for memory issues.
 # n_cells <- rowSums(as.matrix(counts(pbmc)) > 0)
 # pbmc <- pbmc[n_cells > 10, ]
 # saveRDS(pbmc, file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc.rds")
-#pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
+#pbmc <- readRDS(file.path(result_path,"INVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
 
 ```
 
@@ -127,25 +127,25 @@ pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
 # Create Input for Scrublet 
 ```{r cars}
 library(reshape2)
-pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
+pbmc <- readRDS(file.path(result_path,"INVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
 pbmc <- as.Seurat(pbmc)
 # Extract count matrix
 m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
 sparse.gbm <- Matrix(m , sparse = T )
-writeMM(obj = sparse.gbm, file=file.path(result_path,"EXVIVO_sparse.mtx"))
+writeMM(obj = sparse.gbm, file=file.path(result_path,"INVIVO_sparse.mtx"))
 ```
 
 # === CLUSTER ===  --> Run Scrublet in Python ( see nextflow_pipelines/01_CLUSTER_MARENOSTRUM)
 
 ```{r cars}
-cell_mask_scrublet <- read.table(file.path(result_path, "EXVIVO_predicted_doublet_mask.mtx"))
-doublet_scores_scrublet <- read.table(file.path(result_path, "EXVIVO_predicted_doublet_scores.txt"))
+cell_mask_scrublet <- read.table(file.path(result_path, "INVIVO_predicted_doublet_mask.mtx"))
+doublet_scores_scrublet <- read.table(file.path(result_path, "INVIVO_predicted_doublet_scores.txt"))
 
 list <- as.list(as.character(cell_mask_scrublet$V1))
 mask <- list == "True"
 new <- pbmc[,!mask]
 
-saveRDS(new, file.path(result_path,"EXVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
+saveRDS(new, file.path(result_path,"INVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
 ```
 
 ##-------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ all_lncrnas <- c(annotated_lncrna, novel_lncrnas)
 
 
 ```{r cars}
-#immune.combined <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
+#immune.combined <- readRDS(file.path(result_path,"INVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
 # Normalize 
 immune.combined <- NormalizeData(immune.combined)
 immune.combined <- ScaleData(immune.combined)
@@ -183,12 +183,12 @@ immune.combined <- FindClusters(immune.combined, resolution = 0.5)
 DefaultAssay(immune.combined) <- "RNA"
 immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
 
-saveRDS(immune.combined, file.path(result_path, "EXVIVO_preprocessed_ready.rds"))
+saveRDS(immune.combined, file.path(result_path, "INVIVO_preprocessed_ready.rds"))
 
 # ----------------------------
 # FIND MARKERS  for every cluster compared to all remaining cells, report only the positive ones
 pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
-saveRDS(pbmc.markers, file.path(result_path,"EXVIVO_markers_rhemac10_2k.rds"))
+saveRDS(pbmc.markers, file.path(result_path,"INVIVO_markers_rhemac10_2k.rds"))
 
 ```
 

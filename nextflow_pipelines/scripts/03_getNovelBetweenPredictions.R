@@ -11,9 +11,9 @@ ref_gtf <- import(args[4])
 outfile <- args[5]
 outfile_name <- args[6]
 
-#ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
-#polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_polya.gtf")
-#ribodepl_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/02_novel_expressed/novel_expressed_ribodepleted.gtf")
+#ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
+#polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf")
+#ribodepl_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf")
 #ref_gtf <-  import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
 
 # ----------------------
@@ -54,7 +54,7 @@ gtf_ribodepl_newids <- add_prefix(novel_ribodepl, "ribodepl-")
 # ---------------------------------------
 glst <-list(gtf_polya_newids, gtf_ribodepl_newids)
 gtf <- do.call(base::c, as(glst, "GRangesList"))
- 
+table(gtf$type)
 
 # ---------------------------------------
 # Merge Novel and Ref  together ( just append ) 
@@ -62,12 +62,19 @@ gtf <- do.call(base::c, as(glst, "GRangesList"))
 glst_ref_and_novel <-list(ref_gtf,gtf)
 gtf_ref_and_novel <- do.call(c, as(glst_ref_and_novel, "GRangesList"))
 
+table(gtf_ref_and_novel$type)
+
 gtf_ref_and_novel_sort <- sort(gtf_ref_and_novel)
 export(gtf_ref_and_novel_sort, outfile)  
 
-gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel_sort$gene_name)]$gene_name <- paste(gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel$gene_name)]$gene_id, "-unknown", sep = "") 
-gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel_sort$transcript_name)]$transcript_name <-paste(gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel$transcript_name)]$transcript_id, "-unknown", sep = "")  
+
+mask <- is.na(gtf_ref_and_novel_sort$gene_name)
+gtf_ref_and_novel_sort[mask]$gene_name <- paste(gtf_ref_and_novel_sort[mask]$gene_id, "-unknown", sep = "") 
+mask_t <- is.na(gtf_ref_and_novel_sort$transcript_name)
+gtf_ref_and_novel_sort[mask_t]$transcript_name <-paste(gtf_ref_and_novel_sort[mask_t]$transcript_id, "-unknown", sep = "")  
 export(gtf_ref_and_novel_sort, outfile_name)  
 
+
+length(gtf_ref_and_novel_sort[is.na(gtf_ref_and_novel_sort$gene_name)]$gene_name)
 
 

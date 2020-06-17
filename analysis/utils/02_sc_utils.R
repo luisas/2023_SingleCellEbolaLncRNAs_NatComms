@@ -9,7 +9,10 @@ library(rtracklayer); library(org.Mmu.eg.db); library(graphics); library(RCy3); 
 #                           SC GENERAL PATTERNS
 # -------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------
-
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
 # ----------- Donut plots
 donut_plot <- function(data, palette = "PuRd"){
   # Compute percentages

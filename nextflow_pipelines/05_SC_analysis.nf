@@ -107,7 +107,7 @@ process create_star_indexes{
 
   storeDir "${params.output_dir_preliminary}/indexes/"
   //cpus 16
-  cpus 1
+  cpus 48
   label "big_mem"
 
   input:
@@ -204,8 +204,9 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
 }
 
 process sort_bam{
-  //cpus 48
-  cpus 1
+  cpus 48
+  //cpus 1
+  memory '300 GB'
   label "rnaseq"
   tag "${complete_id}"
   storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
@@ -220,7 +221,7 @@ process sort_bam{
 
   script:
   """
-  picard-tools SortSam I=${bam} TMP_DIR=$TMPDIR/${complete_id}.tmp O=${complete_id}_sorted.bam SO=queryname
+  picard-tools SortSam I=${bam} O=${complete_id}_sorted.bam SO=queryname TMP_DIR=$PWD/tmp
   """
 }
 
@@ -248,8 +249,8 @@ storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preproce
 
 
 process RevertSam{
-  //cpus 48
-  cpus 1
+  cpus 48
+  //cpus 1
   label "rnaseq"
   tag "${complete_id}"
   storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
@@ -276,8 +277,8 @@ unmapped_and_mapped_bams1.subscribe{ println "$it" }
 // // TODO: Missing orientation !
 process MergeBamAlignment{
 
-  //cpus 48
-  cpus 1
+  cpus 48
+  //cpus 1
   label "rnaseq"
   tag "${complete_id}"
   storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"

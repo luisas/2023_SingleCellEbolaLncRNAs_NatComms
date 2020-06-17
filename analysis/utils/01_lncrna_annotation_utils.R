@@ -87,12 +87,12 @@ remove_one_exon <- function(gr){
 }
 
 # Boxplot of expression
-plot_expression <- function(max_expression, palette_expression = palette_expression, level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")){
+plot_expression <- function(max_expression, palette_expression = palette_expression, title = "Maximum Expression", level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")){
   plot <- ggplot(max_expression, aes(x=factor(type,level = level) , y=expr, fill = factor(type,level = level), colour = factor(type,level = level) )) + 
     geom_boxplot(alpha = 0.6 )+
     scale_fill_manual(values =palette_expression)+
     scale_color_manual(values = palette_expression)+
-    labs(y = "logFPKM", x = "", title = "Maximum Expression" )+
+    labs(y = "logFPKM", x = "", title = title )+
     theme(legend.title=element_blank())+
     theme(plot.title = element_text(hjust = 0.5))+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+

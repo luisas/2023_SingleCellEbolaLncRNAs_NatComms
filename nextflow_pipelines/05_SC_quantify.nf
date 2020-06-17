@@ -33,7 +33,7 @@ process TagReadWithGeneFunction{
 
   cpus 12
 
-  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_1
@@ -57,7 +57,7 @@ process DetectBeadSubstitutionError{
 
   cpus 12
 
-  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_tagged
@@ -82,7 +82,7 @@ process BamTagHistogram{
 
   cpus 12
 
-  storeDir "${params.output_dir}/04_CellSelection/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/04_CellSelection_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_tagged_clean
@@ -102,7 +102,7 @@ process CellSelection{
 
   cpus 4
 
-  storeDir "${params.output_dir}/03_DropSeqPreProcessing/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
   input:
   file cell_selection_script
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam), file(cell_readcounts) from BamTagHistogramChannel
@@ -124,7 +124,7 @@ process DigitalExpressionMatrix_UMI{
 
   cpus 24
 
-  storeDir "${params.output_dir}/04_DigitalExpressionMatrix/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/04_DigitalExpressionMatrix_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam), file(barcodes) from CellSelectionChannel1

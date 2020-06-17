@@ -5,6 +5,7 @@
 #SBATCH --output=out/Nextflow-%j.out
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=48
+#SBATCH --constraint=highmem
 
 
 module load java/8u131

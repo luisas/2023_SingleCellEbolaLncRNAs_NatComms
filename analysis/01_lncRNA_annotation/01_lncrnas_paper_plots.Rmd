@@ -17,6 +17,7 @@ library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); lib
 
 # Reoccurring paths
 datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+datadir_old <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/"
 
 # Import Utils 
 source(file.path("../utils/01_lncrna_annotation_utils.R"))
@@ -28,12 +29,21 @@ mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_a
 # Macaque reference 
 lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
 mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"))
-all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
-ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf"))
-polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf"))
-levels(seqnames(all))
-seqlevelsStyle(all) <- "ucsc"
-export(all, file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_ucsc.gtf"))
+
+
+# Novel 
+#all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
+#ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf"))
+#polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf"))
+
+#Old
+all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"))
+polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"))
+
+#levels(seqnames(all))
+#seqlevelsStyle(all) <- "ucsc"
+#export(all, file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_ucsc.gtf"))
 ```
 ### Comparison of exon length, transcript length and number ofe exons distributions
 
@@ -81,8 +91,14 @@ iterate_files <- function(inpath, pattern_string){
 # Extract expression ALL 
 # ----------------------------------------------------------------------
 dir_counts_ref = file.path(datadir, "04_quantification/")
+#OLD
+dir_counts_ref =file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/04_Stringtie_correct_with_names_gene_ab/")
 abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+# new
 tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
+#old
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[5]))
+
 # Create Map for Transcript names to Gene names 
 tmp <- read_tsv(abundance_files[1])
 tx2gene <- tmp[,c("t_name", "gene_id")]
@@ -92,6 +108,7 @@ txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene, abundanc
 expression <- txi$abundance
 mask<- rowSums(as.data.frame(log(expression)) > 0) > 2
 expression <- expression[mask,]
+
 
 # ----------------------------------------------------------------------
 # Extract expression ALL 
@@ -103,6 +120,18 @@ max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRN
 max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
 max_expression <- max_expression[!max_expression$type == "0",]
 plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
+# ----------------------------------------------------------------------
+# Same for the median 
+# ----------------------------------------------------------------------
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
 
 
 # ----------------------------------------------------------------------
@@ -119,6 +148,22 @@ max_expression <- max_expression[!max_expression$type == "0",]
 
 levels <-  c("Poly(A) Novel lncRNAs", "Ribodepleted Novel lncRNAs","Annotated lncRNAs", "mRNAs")
 plot_expression(max_expression, palette_expression, level = levels)+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))
+
+
+
+
+
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
+median_expression <- add_type(median_expression, ribo_lnc$gene_id, "Ribodepleted Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+
+levels <-  c("Poly(A) Novel lncRNAs", "Ribodepleted Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))
 ```
 
 # -----------------------------
@@ -129,6 +174,7 @@ plot_expression(max_expression, palette_expression, level = levels)+theme(plot.t
 ```{r tissuespecificity}
 colnames(expression) <- tissues
 tissues <- gsub("Testes", "Testis", tissues)
+tissues <- gsub("Wholeblood", "Blood", tissues)
 
 
 # Check how many tissues express a gene
@@ -168,3 +214,78 @@ b
 
 ```
 
+
+# Check which ones are ribodepleted
+
+```{r ribodepl-enrichment}
+
+dir_counts_ref =file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/04_Stringtie_correct_with_names_gene_ab/")
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+#old
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[5]))
+tissues <- gsub("Testes", "Testis", tissues)
+tissues <- gsub("Wholeblood", "Blood", tissues)
+
+# Identify library prep
+libraryprep <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[6]))
+libraryprep <-gsub("Batch01", "Ribodepleted", libraryprep) 
+libraryprep <-gsub("Zyagen", "Ribodepleted", libraryprep) 
+libraryprep <-gsub("RhesusmacaqueChinese", "Polya", libraryprep) 
+libraryprep <-gsub("SRP016501-rhesus", "Polya", libraryprep)
+table(libraryprep)
+
+# Select only tissues present in both 
+df <- data.frame(t = (tissues), lib = libraryprep)
+summary_proprieties_samples <- df %>% dplyr::group_by(t) %>% dplyr::summarise(num = n_distinct(lib))
+tissues_available_both <- summary_proprieties_samples[summary_proprieties_samples$num > 1,]$t
+
+# Create Map for Transcript names to Gene names 
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene, abundanceCol = libraryprep)
+
+# Remove non expressed genes 
+expression <- txi$abundance
+colnames(expression) <- libraryprep
+
+# Ecpressed in Brain 
+tissue <- "Brain"
+
+find_enrichment_libraryprep <- function(expression , tissue){
+ expression <- expression[ ,tissues == tissue]
+  # every gene to be consifered is required to be expressed in at least one sample abofe log(FPKM) of 1
+  mask<- rowSums(as.data.frame(log(expression)) > 1) > 0
+  expression <- expression[mask,]
+  # Calculate mean expression per libraries
+  expression_libraries <- as.data.frame(do.call(cbind, by(t(expression),INDICES=colnames(expression),FUN=colMeans)))
+  
+  # Calculate enrichment Ribodepleted/Polya
+  expression_libraries$enrichmentPolyAnegative <- expression_libraries$Ribodepleted/expression_libraries$Polya
+  
+  # I use 5 fold expression 
+  enriched <- expression_libraries[expression_libraries$enrichmentPolyAnegative > 5,] 
+  enriched$tissue <- tissue
+  return(enriched)
+}
+
+
+
+# Check that i get NO poly a selected ones enriched 
+all_enriched <- do.call(rbind, (lapply(tissues_available_both, function(tissue) find_enrichment_libraryprep(expression, tissue))))
+
+
+# Ribodepleted which may lack a poly A tail 
+ribo_unique_ids_enriched <- unique(rownames(all_enriched))[grep("ribo", unique(rownames(all_enriched)))]
+
+length(unique(ribo_unique_ids_enriched))
+# Out of all the DE Ones 
+list_de <- gsub("_unkown", "", gsub("-", "_", unique(unlist(de_lists_lnc))))
+ribodepl_list_de <- list_de[grepl("ribo*", list_de)]
+
+# Enichment of differentially expressed genes identified by ribodepletion 
+enriched_polyneg_de <- all_enriched[rownames(all_enriched) %in% ribodepl_list_de, ]
+length(unique(list_de[list_de %in% ribo_unique_ids_enriched]))
+
+df <- data.frame( foldEnrichment= enriched_polyneg_de$enrichmentPolyAnegative)
+ggplot(df, aes(x = foldEnrichment))+geom_histogram(fill = "grey", color = "grey")+xlim(0,50)+ theme_classic()
+```

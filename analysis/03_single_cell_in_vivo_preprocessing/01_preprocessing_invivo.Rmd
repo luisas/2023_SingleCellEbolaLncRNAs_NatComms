@@ -25,12 +25,12 @@ library(org.Mmu.eg.db)
 library(graphics)
 library(RCy3)
 
-source("utils/sc_utils.R")
-source("utils/de_utils.R")
+source("../utils/02_sc_utils.R")
 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
-result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
+result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/")
 robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
 ```
 
@@ -39,7 +39,7 @@ robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
 # Import and create unique seurat object 
 ```{r cars}
 # Load the PBMC dataset
-data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_scRNA-Seq_inVivo_rhemac10/04_DigitalExpressionMatrix/"
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/04_DigitalExpressionMatrix_OK/"
 files <- iterate_files(data_dir, ".dge.txt.gz")
 files_umis <- files[!str_detect(files, "reads" )]
 
@@ -66,7 +66,7 @@ pbmc.big <- merge(pbmc, y = list_detected_only, add.cell.ids = list_names, proje
 unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
 table(pbmc.big$orig.ident)
 dim(pbmc.big)
-saveRDS(pbmc.big, file.path(robjectsdir,"invivo_immune.combined_merged.rds"))
+saveRDS(pbmc.big, file.path(robjectsdir,"INVIVO_immune.combined_merged.rds"))
 ```
 ##---------------------------------------------------------
 ##                           Cell QC 
@@ -74,7 +74,8 @@ saveRDS(pbmc.big, file.path(robjectsdir,"invivo_immune.combined_merged.rds"))
 ##  Remove cell based on number of detected genes per cell
 ##----------------------------------------------------------
 ```{r pressure, results='hide', message=FALSE, warning=FALSE}
-pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
+#pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
+
 pbmc_sc <- as.SingleCellExperiment(pbmc.big)
 pbmc_sc <- calculateQCMetrics(pbmc_sc)
 
@@ -99,7 +100,7 @@ ndectplot
 ```{r}
 pbmc <- pbmc_sc
 keep_cells <-
-  pbmc$total_counts > 1000 & pbmc$total_counts < 10000 &
+  pbmc$total_counts > 500 & pbmc$total_counts < 10000 &
   pbmc$total_features_by_counts > 600 & pbmc$total_features_by_counts < 2000 
 table(keep_cells)
 pbmc <- pbmc[, keep_cells]
@@ -135,15 +136,15 @@ pbmc <- as.Seurat(pbmc)
 # Extract count matrix
 m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
 sparse.gbm <- Matrix(m , sparse = T )
-writeMM(obj = sparse.gbm, file=file.path(robjectsdir,"sparse_invivo.mtx"))
+writeMM(obj = sparse.gbm, file=file.path(robjectsdir,"INVIVO_sparse.mtx"))
 ```
 
 # External Script Warning!! 
 # --> Run Scrublet in Python
 
 ```{r cars}
-cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/predicted_doublet_mask_invivo.txt")
-doublet_scores_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/predicted_doublet_scores_invivo.txt")
+cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/INVIVO_predicted_doublet_mask.mtx")
+doublet_scores_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/INVIVO_predicted_doublet_scores.txt")
 
 list <- as.list(as.character(cell_mask_scrublet$V1))
 mask <- list == "True"
@@ -176,8 +177,7 @@ immune.combined <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_a
 # Check the ones without integration for the moment 
 #immune.combined <- readRDS(file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_after-integration.rds"))
 # Import the newly computed cellswith 5k features and 
-immune.combined <- readRDS(file.path(result_path, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
-
+immune.combined <- readRDS(file.path(robjectsdir, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
 # add some labeling 
 immune.combined$orig.ident <- gsub("D_", "D-", gsub("-", "_",immune.combined$orig.ident))
 immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "_")[[1]][1]))))
@@ -265,6 +265,8 @@ dc <- c("IRF8")
 neutrophil <- c("CD177", "SOD2")
 platelet <- c("PPBP", "PF4")
 mdk <- c("COL5A2", "EMP1")
+
+
 
 marker.genes <- c(monocytes, b,t)
 plot_genes(immune.combined,monocytes,threshold= 2, title = "Monocytes marker expression", col = "purple")

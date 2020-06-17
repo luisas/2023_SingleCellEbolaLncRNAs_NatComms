@@ -1,0 +1,552 @@
+Jun-14 10:00:17.533 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/05_SC_analysis.nf --strandness FR --output_dir_name 01_scRNA-Seq_inVivo_rhemac10 --dataset_bam_dir /gpfs/projects/bsc83/Data/Ebola/00_RawData/seqwell/data/IRF_SerialSac/Mapping_V4/Mapping_V4 -w /gpfs/projects/bsc83/Data/Ebola/work/ -c ../configs/nextflow.config.sc
+Jun-14 10:00:17.888 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 19.03.0-edge
+Jun-14 10:00:17.918 [main] INFO  nextflow.cli.CmdRun - Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/05_SC_analysis.nf` [amazing_goldberg] - revision: 1ff57dea83
+Jun-14 10:00:17.939 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/01_CLUSTER_Marenostrum/../configs/nextflow.config.sc
+Jun-14 10:00:17.940 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/configs/nextflow.config.sc
+Jun-14 10:00:17.968 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun-14 10:00:18.503 [main] DEBUG nextflow.Session - Session uuid: d7b7f70e-3155-47a5-9665-2d59f3c73e67
+Jun-14 10:00:18.504 [main] DEBUG nextflow.Session - Run name: amazing_goldberg
+Jun-14 10:00:18.504 [main] DEBUG nextflow.Session - Executor pool size: 48
+Jun-14 10:00:18.529 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 19.03.0-edge build 5061
+  Modified: 14-03-2019 17:26 UTC (18:26 CEST)
+  System: Linux 4.4.59-92.20-default
+  Runtime: Groovy 2.5.6 on Java HotSpot(TM) 64-Bit Server VM 1.8.0_131-b11
+  Encoding: UTF-8 (UTF-8)
+  Process: 46514@s03r1b23 [10.2.2.23]
+  CPUs: 48 - Mem: 377.6 GB (371.8 GB) - Swap: 3.7 GB (3.6 GB)
+Jun-14 10:00:18.569 [main] DEBUG nextflow.Session - Work-dir: /gpfs/projects/bsc83/Data/Ebola/work [gpfs]
+Jun-14 10:00:18.570 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/bin
+Jun-14 10:00:18.876 [main] DEBUG nextflow.Session - Session start invoked
+Jun-14 10:00:18.880 [main] DEBUG nextflow.processor.TaskDispatcher - Dispatcher > start
+Jun-14 10:00:18.888 [main] DEBUG nextflow.script.ScriptRunner - > Script parsing
+Jun-14 10:00:19.333 [main] WARN  nextflow.Session - There's no process matching config selector: BamToFastq
+Jun-14 10:00:19.334 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jun-14 10:00:19.443 [PathVisitor-1] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /gpfs/projects/bsc83/Data/Ebola/00_RawData/seqwell/data/IRF_SerialSac/Mapping_V4/Mapping_V4/; pattern: */results/samples/*/trimmmed_repaired_R{1,2}.fastq.gz; options: [:]
+Jun-14 10:00:19.458 [main] WARN  nextflow.extension.IntoOp - The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { fastqs }`
+Jun-14 10:00:19.460 [PathVisitor-2] DEBUG nextflow.file.PathVisitor - files for syntax: glob; folder: /gpfs/projects/bsc83/Data/Ebola/00_RawData/seqwell/data/IRF_SerialSac/Mapping_V4/Mapping_V4/; pattern: */results/samples/*/final.bam; options: [:]
+Jun-14 10:00:19.474 [main] WARN  nextflow.extension.IntoOp - The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { GtfNotNovel }`
+Jun-14 10:00:19.487 [main] INFO  nextflow.Nextflow - ==============================================
+Jun-14 10:00:19.487 [main] INFO  nextflow.Nextflow -  Metadata Generation  
+Jun-14 10:00:19.487 [main] INFO  nextflow.Nextflow - ==============================================
+Jun-14 10:00:19.550 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.550 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.556 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.559 [main] INFO  nextflow.executor.Executor - [warm up] executor > local
+Jun-14 10:00:19.563 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=48; memory=377.6 GB; capacity=48; pollInterval=100ms; dumpInterval=5m
+Jun-14 10:00:19.567 [main] DEBUG nextflow.processor.TaskDispatcher - Starting monitor: LocalPollingMonitor
+Jun-14 10:00:19.567 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Jun-14 10:00:19.569 [main] DEBUG nextflow.executor.Executor - Invoke register for executor: local
+Jun-14 10:00:19.598 [main] DEBUG nextflow.Session - >>> barrier register (process: convert_gtf_to_bed12)
+Jun-14 10:00:19.600 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > convert_gtf_to_bed12 -- maxForks: 48
+Jun-14 10:00:19.623 [main] DEBUG nextflow.util.CacheHelper - Config settings `withName:create_star_indexes` matches process create_star_indexes
+Jun-14 10:00:19.624 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.624 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.624 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.625 [main] DEBUG nextflow.Session - >>> barrier register (process: create_star_indexes)
+Jun-14 10:00:19.625 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > create_star_indexes -- maxForks: 48
+Jun-14 10:00:19.627 [main] INFO  nextflow.Nextflow - ==============================================
+Jun-14 10:00:19.627 [main] INFO  nextflow.Nextflow -  DropSeq Analysis Pipeline  
+Jun-14 10:00:19.627 [main] INFO  nextflow.Nextflow - ==============================================
+Jun-14 10:00:19.638 [main] DEBUG nextflow.util.CacheHelper - Config settings `withName:STAR` matches process STAR
+Jun-14 10:00:19.639 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.639 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.639 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.640 [main] DEBUG nextflow.Session - >>> barrier register (process: STAR)
+Jun-14 10:00:19.640 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > STAR -- maxForks: 48
+Jun-14 10:00:19.648 [main] DEBUG nextflow.util.CacheHelper - Config settings `withLabel:rnaseq` matches label `rnaseq` for process with name sort_bam
+Jun-14 10:00:19.648 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.648 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.649 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.650 [main] DEBUG nextflow.Session - >>> barrier register (process: sort_bam)
+Jun-14 10:00:19.650 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > sort_bam -- maxForks: 48
+Jun-14 10:00:19.656 [main] DEBUG nextflow.util.CacheHelper - Config settings `withName:runRSeQC` matches process runRSeQC
+Jun-14 10:00:19.656 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.656 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.656 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.663 [main] DEBUG nextflow.Session - >>> barrier register (process: runRSeQC)
+Jun-14 10:00:19.663 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > runRSeQC -- maxForks: 48
+Jun-14 10:00:19.669 [main] DEBUG nextflow.util.CacheHelper - Config settings `withLabel:rnaseq` matches label `rnaseq` for process with name RevertSam
+Jun-14 10:00:19.669 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.670 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.670 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.671 [main] DEBUG nextflow.Session - >>> barrier register (process: RevertSam)
+Jun-14 10:00:19.671 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > RevertSam -- maxForks: 48
+Jun-14 10:00:19.673 [Actor Thread 4] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > create_star_indexes (1)
+Jun-14 10:00:19.674 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > convert_gtf_to_bed12 (1)
+Jun-14 10:00:19.677 [Actor Thread 5] DEBUG nextflow.Session - <<< barrier arrive (process: create_star_indexes)
+Jun-14 10:00:19.677 [Actor Thread 12] DEBUG nextflow.Session - <<< barrier arrive (process: convert_gtf_to_bed12)
+Jun-14 10:00:19.684 [main] DEBUG nextflow.util.CacheHelper - Config settings `withLabel:rnaseq` matches label `rnaseq` for process with name MergeBamAlignment
+Jun-14 10:00:19.685 [main] DEBUG nextflow.processor.ProcessFactory - << taskConfig executor: null
+Jun-14 10:00:19.685 [main] DEBUG nextflow.processor.ProcessFactory - >> processorType: 'local'
+Jun-14 10:00:19.685 [main] DEBUG nextflow.executor.Executor - Initializing executor: local
+Jun-14 10:00:19.685 [main] DEBUG nextflow.Session - >>> barrier register (process: MergeBamAlignment)
+Jun-14 10:00:19.686 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > MergeBamAlignment -- maxForks: 48
+Jun-14 10:00:19.687 [Actor Thread 10] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0449_D000_FRZ_a2_DASH1)
+Jun-14 10:00:19.687 [Actor Thread 7] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0452_D005_FRZ_a3_std)
+Jun-14 10:00:19.687 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0452_D005_FRZ-MDCK_a4_std)
+Jun-14 10:00:19.687 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1779_D008_fresh_a1_DASH2x3)
+Jun-14 10:00:19.688 [main] DEBUG nextflow.script.ScriptRunner - > Await termination 
+Jun-14 10:00:19.688 [main] DEBUG nextflow.Session - Session await
+Jun-14 10:00:19.688 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D000_FRZ_a2_DASH1)
+Jun-14 10:00:19.688 [Actor Thread 4] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ-MDCK_a4_std)
+Jun-14 10:00:19.688 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1779_D008_fresh_a1_DASH2x3)
+Jun-14 10:00:19.688 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ_a3_std)
+Jun-14 10:00:19.696 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1779_D008_fresh_a1_DASH2x3)
+Jun-14 10:00:19.696 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0449_D000_FRZ_a2_DASH1)
+Jun-14 10:00:19.697 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0452_D005_FRZ_a3_std)
+Jun-14 10:00:19.697 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0452_D005_FRZ-MDCK_a4_std)
+Jun-14 10:00:19.712 [Actor Thread 7] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0452_D005_FRZ_a3_std)
+Jun-14 10:00:19.712 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1779_D008_fresh_a1_DASH2x3)
+Jun-14 10:00:19.713 [Actor Thread 2] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (1)
+Jun-14 10:00:19.713 [Actor Thread 10] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0452_D005_FRZ-MDCK_a4_std)
+Jun-14 10:00:19.713 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0449_D000_FRZ_a2_DASH1)
+Jun-14 10:00:19.716 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (4)
+Jun-14 10:00:19.716 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (3)
+Jun-14 10:00:19.717 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (2)
+Jun-14 10:00:19.717 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1803_D006_fresh_a2_std-std-std)
+Jun-14 10:00:19.719 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_fresh_a2_std-std-std)
+Jun-14 10:00:19.723 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1803_D006_fresh_a2_std-std-std)
+Jun-14 10:00:19.727 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1803_D006_fresh_a2_std-std-std)
+Jun-14 10:00:19.730 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (5)
+Jun-14 10:00:19.765 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1074_D006_FRZ-MDCK_a3_std)
+Jun-14 10:00:19.766 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a3_std)
+Jun-14 10:00:19.770 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1074_D006_FRZ-MDCK_a3_std)
+Jun-14 10:00:19.774 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1074_D006_FRZ-MDCK_a3_std)
+Jun-14 10:00:19.777 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (6)
+Jun-14 10:00:19.811 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1423_D008_fresh_a1_DASH1)
+Jun-14 10:00:19.813 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1423_D008_fresh_a1_DASH1)
+Jun-14 10:00:19.817 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1423_D008_fresh_a1_DASH1)
+Jun-14 10:00:19.821 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1423_D008_fresh_a1_DASH1)
+Jun-14 10:00:19.825 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (7)
+Jun-14 10:00:19.862 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1790_D007_fresh_a1_DASH-std)
+Jun-14 10:00:19.863 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1790_D007_fresh_a1_DASH-std)
+Jun-14 10:00:19.866 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1790_D007_fresh_a1_DASH-std)
+Jun-14 10:00:19.871 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1790_D007_fresh_a1_DASH-std)
+Jun-14 10:00:19.872 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (8)
+Jun-14 10:00:19.912 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0223_D000_fresh_a1_DASH1-std)
+Jun-14 10:00:19.914 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D000_fresh_a1_DASH1-std)
+Jun-14 10:00:19.917 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0223_D000_fresh_a1_DASH1-std)
+Jun-14 10:00:19.920 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0223_D000_fresh_a1_DASH1-std)
+Jun-14 10:00:19.924 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (9)
+Jun-14 10:00:19.962 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0917_D006_fresh_a1_DASH3x4)
+Jun-14 10:00:19.963 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0917_D006_fresh_a1_DASH3x4)
+Jun-14 10:00:19.966 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0917_D006_fresh_a1_DASH3x4)
+Jun-14 10:00:19.971 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0917_D006_fresh_a1_DASH3x4)
+Jun-14 10:00:19.975 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (10)
+Jun-14 10:00:20.009 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0449_D003_FRZ_a3_std)
+Jun-14 10:00:20.010 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ_a3_std)
+Jun-14 10:00:20.013 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0449_D003_FRZ_a3_std)
+Jun-14 10:00:20.016 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0449_D003_FRZ_a3_std)
+Jun-14 10:00:20.019 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (11)
+Jun-14 10:00:20.059 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1082_D-30_fresh_a1_std)
+Jun-14 10:00:20.061 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1082_D-30_fresh_a1_std)
+Jun-14 10:00:20.063 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1082_D-30_fresh_a1_std)
+Jun-14 10:00:20.066 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1082_D-30_fresh_a1_std)
+Jun-14 10:00:20.070 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (12)
+Jun-14 10:00:20.106 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0449_D003_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.106 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.109 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0449_D003_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.112 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0449_D003_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.115 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (13)
+Jun-14 10:00:20.152 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0452_D000_FRZ_a2_DASH1)
+Jun-14 10:00:20.154 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D000_FRZ_a2_DASH1)
+Jun-14 10:00:20.156 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0452_D000_FRZ_a2_DASH1)
+Jun-14 10:00:20.159 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0452_D000_FRZ_a2_DASH1)
+Jun-14 10:00:20.163 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (14)
+Jun-14 10:00:20.201 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0717_D004_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.202 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.204 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0717_D004_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.207 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0717_D004_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.216 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (15)
+Jun-14 10:00:20.263 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0223_D003_fresh_a1_DASH-std)
+Jun-14 10:00:20.264 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_fresh_a1_DASH-std)
+Jun-14 10:00:20.267 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0223_D003_fresh_a1_DASH-std)
+Jun-14 10:00:20.271 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0223_D003_fresh_a1_DASH-std)
+Jun-14 10:00:20.276 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (16)
+Jun-14 10:00:20.320 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1818_D006_fresh_a1_DASH2x3)
+Jun-14 10:00:20.321 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1818_D006_fresh_a1_DASH2x3)
+Jun-14 10:00:20.324 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1818_D006_fresh_a1_DASH2x3)
+Jun-14 10:00:20.328 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1818_D006_fresh_a1_DASH2x3)
+Jun-14 10:00:20.331 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (17)
+Jun-14 10:00:20.376 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0452_D000_fresh_a1_std)
+Jun-14 10:00:20.377 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D000_fresh_a1_std)
+Jun-14 10:00:20.379 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0452_D000_fresh_a1_std)
+Jun-14 10:00:20.382 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0452_D000_fresh_a1_std)
+Jun-14 10:00:20.385 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (18)
+Jun-14 10:00:20.419 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1325_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.421 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.423 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1325_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.426 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1325_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:20.429 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (19)
+Jun-14 10:00:20.467 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0717_D004_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.467 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.469 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0717_D004_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.472 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0717_D004_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.475 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (20)
+Jun-14 10:00:20.509 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1790_D-04_fresh_a1_DASH)
+Jun-14 10:00:20.510 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1790_D-04_fresh_a1_DASH)
+Jun-14 10:00:20.512 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1790_D-04_fresh_a1_DASH)
+Jun-14 10:00:20.515 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1790_D-04_fresh_a1_DASH)
+Jun-14 10:00:20.518 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (21)
+Jun-14 10:00:20.561 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1834_D003_fresh_a1_DASH-DASH2)
+Jun-14 10:00:20.561 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D003_fresh_a1_DASH-DASH2)
+Jun-14 10:00:20.563 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1834_D003_fresh_a1_DASH-DASH2)
+Jun-14 10:00:20.566 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1834_D003_fresh_a1_DASH-DASH2)
+Jun-14 10:00:20.570 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (22)
+Jun-14 10:00:20.612 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0449_D000_FRZ-MDCK_a1_DASH-std)
+Jun-14 10:00:20.615 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D000_FRZ-MDCK_a1_DASH-std)
+Jun-14 10:00:20.617 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0449_D000_FRZ-MDCK_a1_DASH-std)
+Jun-14 10:00:20.619 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0449_D000_FRZ-MDCK_a1_DASH-std)
+Jun-14 10:00:20.623 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (23)
+Jun-14 10:00:20.666 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0223_D003_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.668 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.670 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0223_D003_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.672 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0223_D003_FRZ-MDCK_a5_std)
+Jun-14 10:00:20.675 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (24)
+Jun-14 10:00:20.721 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0717_D004_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.722 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.724 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0717_D004_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.727 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0717_D004_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.730 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (25)
+Jun-14 10:00:20.771 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1325_D006_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.772 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.774 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1325_D006_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.777 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1325_D006_FRZ-MDCK_a1_std)
+Jun-14 10:00:20.780 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (26)
+Jun-14 10:00:20.824 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1803_D006_fresh_a1_std-std-std)
+Jun-14 10:00:20.826 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_fresh_a1_std-std-std)
+Jun-14 10:00:20.827 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1803_D006_fresh_a1_std-std-std)
+Jun-14 10:00:20.830 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1803_D006_fresh_a1_std-std-std)
+Jun-14 10:00:20.833 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (27)
+Jun-14 10:00:20.871 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1074_D006_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.872 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.874 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1074_D006_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.877 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1074_D006_FRZ-MDCK_a2_std)
+Jun-14 10:00:20.880 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (28)
+Jun-14 10:00:20.925 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0223_D003_FRZ_a3_std)
+Jun-14 10:00:20.926 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ_a3_std)
+Jun-14 10:00:20.928 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0223_D003_FRZ_a3_std)
+Jun-14 10:00:20.931 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0223_D003_FRZ_a3_std)
+Jun-14 10:00:20.933 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (29)
+Jun-14 10:00:20.977 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1818_D006_fresh_a1_std)
+Jun-14 10:00:20.978 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1818_D006_fresh_a1_std)
+Jun-14 10:00:20.980 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1818_D006_fresh_a1_std)
+Jun-14 10:00:20.983 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1818_D006_fresh_a1_std)
+Jun-14 10:00:20.986 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (30)
+Jun-14 10:00:21.034 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0522_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.037 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0522_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.039 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0522_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.041 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0522_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.044 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (31)
+Jun-14 10:00:21.087 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1325_D006_fresh_a2_DASH-DASH2-std)
+Jun-14 10:00:21.088 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_fresh_a2_DASH-DASH2-std)
+Jun-14 10:00:21.090 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1325_D006_fresh_a2_DASH-DASH2-std)
+Jun-14 10:00:21.092 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1325_D006_fresh_a2_DASH-DASH2-std)
+Jun-14 10:00:21.096 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (32)
+Jun-14 10:00:21.137 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0223_D003_FRZ_a1_std)
+Jun-14 10:00:21.137 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ_a1_std)
+Jun-14 10:00:21.139 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0223_D003_FRZ_a1_std)
+Jun-14 10:00:21.141 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0223_D003_FRZ_a1_std)
+Jun-14 10:00:21.145 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (33)
+Jun-14 10:00:21.190 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0717_D004_fresh_a2_std)
+Jun-14 10:00:21.191 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_fresh_a2_std)
+Jun-14 10:00:21.193 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0717_D004_fresh_a2_std)
+Jun-14 10:00:21.195 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0717_D004_fresh_a2_std)
+Jun-14 10:00:21.198 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (34)
+Jun-14 10:00:21.240 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0452_D005_FRZ_a2_std)
+Jun-14 10:00:21.242 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ_a2_std)
+Jun-14 10:00:21.244 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0452_D005_FRZ_a2_std)
+Jun-14 10:00:21.246 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0452_D005_FRZ_a2_std)
+Jun-14 10:00:21.251 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (35)
+Jun-14 10:00:21.287 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA1834_D003_FRZ-MDCK_a3_std)
+Jun-14 10:00:21.289 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D003_FRZ-MDCK_a3_std)
+Jun-14 10:00:21.290 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA1834_D003_FRZ-MDCK_a3_std)
+Jun-14 10:00:21.293 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA1834_D003_FRZ-MDCK_a3_std)
+Jun-14 10:00:21.296 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (36)
+Jun-14 10:00:21.335 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0850_D-30_fresh_a1_DASH)
+Jun-14 10:00:21.337 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0850_D-30_fresh_a1_DASH)
+Jun-14 10:00:21.339 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > sort_bam (RA0850_D-30_fresh_a1_DASH)
+Jun-14 10:00:21.342 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > MergeBamAlignment (RA0850_D-30_fresh_a1_DASH)
+Jun-14 10:00:21.344 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > runRSeQC (37)
+Jun-14 10:00:21.386 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > RevertSam (RA0449_D003_fresh_a1_DASH-DASH2-std)
+Jun-14 10:00:21.386 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_fresh_a1_DASH-DASH2-std)
+Jun-14 10:00:21.387 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/fresh/a1/DASH-DASH2-std/RA0449_D003_fresh_a1_DASH-DASH2-std_sorted.bam` (pattern: `RA0449_D003_fresh_a1_DASH-DASH2-std_sorted.bam`)
+Jun-14 10:00:21.431 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D006_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/fresh/a1/std/RA1325_D006_fresh_a1_std_reverted.bam` (pattern: `RA1325_D006_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:21.432 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_fresh_a1_std)
+Jun-14 10:00:21.433 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D006_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/fresh/a1/std/RA1325_D006_fresh_a1_std_sorted.bam` (pattern: `RA1325_D006_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:21.460 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-14 10:00:21.464 [Task submitter] INFO  nextflow.Session - [2b/d0aeba] Submitted process > sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std)
+Jun-14 10:00:21.484 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0223_D003_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ/a2/std/RA0223_D003_FRZ_a2_std_reverted.bam` (pattern: `RA0223_D003_FRZ_a2_std_reverted.bam`)
+Jun-14 10:00:21.486 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ_a2_std)
+Jun-14 10:00:21.488 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0223_D003_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ/a2/std/RA0223_D003_FRZ_a2_std_sorted.bam` (pattern: `RA0223_D003_FRZ_a2_std_sorted.bam`)
+Jun-14 10:00:21.541 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0717_D004_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a6/std/RA0717_D004_FRZ-MDCK_a6_std_reverted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a6_std_reverted.bam`)
+Jun-14 10:00:21.541 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a6_std)
+Jun-14 10:00:21.543 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0717_D004_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a6/std/RA0717_D004_FRZ-MDCK_a6_std_sorted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a6_std_sorted.bam`)
+Jun-14 10:00:21.587 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a2/std/RA1803_D006_FRZ_a2_std_reverted.bam` (pattern: `RA1803_D006_FRZ_a2_std_reverted.bam`)
+Jun-14 10:00:21.588 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ_a2_std)
+Jun-14 10:00:21.590 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a2/std/RA1803_D006_FRZ_a2_std_sorted.bam` (pattern: `RA1803_D006_FRZ_a2_std_sorted.bam`)
+Jun-14 10:00:21.632 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0452_D005_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ-MDCK/a6/std/RA0452_D005_FRZ-MDCK_a6_std_reverted.bam` (pattern: `RA0452_D005_FRZ-MDCK_a6_std_reverted.bam`)
+Jun-14 10:00:21.633 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ-MDCK_a6_std)
+Jun-14 10:00:21.635 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0452_D005_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ-MDCK/a6/std/RA0452_D005_FRZ-MDCK_a6_std_sorted.bam` (pattern: `RA0452_D005_FRZ-MDCK_a6_std_sorted.bam`)
+Jun-14 10:00:21.682 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0452_D005_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/fresh/a1/DASH-std/RA0452_D005_fresh_a1_DASH-std_reverted.bam` (pattern: `RA0452_D005_fresh_a1_DASH-std_reverted.bam`)
+Jun-14 10:00:21.683 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.684 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0452_D005_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/fresh/a1/DASH-std/RA0452_D005_fresh_a1_DASH-std_sorted.bam` (pattern: `RA0452_D005_fresh_a1_DASH-std_sorted.bam`)
+Jun-14 10:00:21.726 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a4/std/RA1325_D006_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:21.727 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a4_std)
+Jun-14 10:00:21.729 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a4/std/RA1325_D006_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:21.775 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1834_D003_FRZ-MDCK_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a2/std/RA1834_D003_FRZ-MDCK_a2_std_reverted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a2_std_reverted.bam`)
+Jun-14 10:00:21.776 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D003_FRZ-MDCK_a2_std)
+Jun-14 10:00:21.777 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1834_D003_FRZ-MDCK_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a2/std/RA1834_D003_FRZ-MDCK_a2_std_sorted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a2_std_sorted.bam`)
+Jun-14 10:00:21.819 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D000/fresh/a1/std/RA0449_D000_fresh_a1_std_reverted.bam` (pattern: `RA0449_D000_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:21.820 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D000_fresh_a1_std)
+Jun-14 10:00:21.822 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D000/fresh/a1/std/RA0449_D000_fresh_a1_std_sorted.bam` (pattern: `RA0449_D000_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:21.866 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0717_D004_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/fresh/a1/std/RA0717_D004_fresh_a1_std_reverted.bam` (pattern: `RA0717_D004_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:21.867 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_fresh_a1_std)
+Jun-14 10:00:21.868 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0717_D004_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/fresh/a1/std/RA0717_D004_fresh_a1_std_sorted.bam` (pattern: `RA0717_D004_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:21.911 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a1/std/RA1803_D006_FRZ_a1_std_reverted.bam` (pattern: `RA1803_D006_FRZ_a1_std_reverted.bam`)
+Jun-14 10:00:21.912 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ_a1_std)
+Jun-14 10:00:21.914 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a1/std/RA1803_D006_FRZ_a1_std_sorted.bam` (pattern: `RA1803_D006_FRZ_a1_std_sorted.bam`)
+Jun-14 10:00:21.962 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1639_D005_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1639/D005/fresh/a1/DASH-std/RA1639_D005_fresh_a1_DASH-std_reverted.bam` (pattern: `RA1639_D005_fresh_a1_DASH-std_reverted.bam`)
+Jun-14 10:00:21.962 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1639_D005_fresh_a1_DASH-std)
+Jun-14 10:00:21.963 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1639_D005_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1639/D005/fresh/a1/DASH-std/RA1639_D005_fresh_a1_DASH-std_sorted.bam` (pattern: `RA1639_D005_fresh_a1_DASH-std_sorted.bam`)
+Jun-14 10:00:22.006 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1818_D-04_fresh_a1_DASH-DASH2)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1818/D-04/fresh/a1/DASH-DASH2/RA1818_D-04_fresh_a1_DASH-DASH2_reverted.bam` (pattern: `RA1818_D-04_fresh_a1_DASH-DASH2_reverted.bam`)
+Jun-14 10:00:22.007 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1818_D-04_fresh_a1_DASH-DASH2)
+Jun-14 10:00:22.009 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1818_D-04_fresh_a1_DASH-DASH2)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1818/D-04/fresh/a1/DASH-DASH2/RA1818_D-04_fresh_a1_DASH-DASH2_sorted.bam` (pattern: `RA1818_D-04_fresh_a1_DASH-DASH2_sorted.bam`)
+Jun-14 10:00:22.051 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1834_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D000/fresh/a1/std/RA1834_D000_fresh_a1_std_reverted.bam` (pattern: `RA1834_D000_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:22.052 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D000_fresh_a1_std)
+Jun-14 10:00:22.053 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1834_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D000/fresh/a1/std/RA1834_D000_fresh_a1_std_sorted.bam` (pattern: `RA1834_D000_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:22.096 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_fresh_a2_std-std-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/fresh/a2/std-std-std/RA1074_D006_fresh_a2_std-std-std_reverted.bam` (pattern: `RA1074_D006_fresh_a2_std-std-std_reverted.bam`)
+Jun-14 10:00:22.097 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_fresh_a2_std-std-std)
+Jun-14 10:00:22.098 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_fresh_a2_std-std-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/fresh/a2/std-std-std/RA1074_D006_fresh_a2_std-std-std_sorted.bam` (pattern: `RA1074_D006_fresh_a2_std-std-std_sorted.bam`)
+Jun-14 10:00:22.142 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0223_D003_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ-MDCK/a6/std/RA0223_D003_FRZ-MDCK_a6_std_reverted.bam` (pattern: `RA0223_D003_FRZ-MDCK_a6_std_reverted.bam`)
+Jun-14 10:00:22.143 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ-MDCK_a6_std)
+Jun-14 10:00:22.145 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0223_D003_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ-MDCK/a6/std/RA0223_D003_FRZ-MDCK_a6_std_sorted.bam` (pattern: `RA0223_D003_FRZ-MDCK_a6_std_sorted.bam`)
+Jun-14 10:00:22.188 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a4/std/RA1074_D006_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:22.189 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a4_std)
+Jun-14 10:00:22.190 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a4/std/RA1074_D006_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:22.234 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0917_D006_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0917/D006/fresh/a1/DASH-std/RA0917_D006_fresh_a1_DASH-std_reverted.bam` (pattern: `RA0917_D006_fresh_a1_DASH-std_reverted.bam`)
+Jun-14 10:00:22.235 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0917_D006_fresh_a1_DASH-std)
+Jun-14 10:00:22.236 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0917_D006_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0917/D006/fresh/a1/DASH-std/RA0917_D006_fresh_a1_DASH-std_sorted.bam` (pattern: `RA0917_D006_fresh_a1_DASH-std_sorted.bam`)
+Jun-14 10:00:22.276 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D003_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ/a2/std/RA0449_D003_FRZ_a2_std_reverted.bam` (pattern: `RA0449_D003_FRZ_a2_std_reverted.bam`)
+Jun-14 10:00:22.278 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ_a2_std)
+Jun-14 10:00:22.279 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D003_FRZ_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ/a2/std/RA0449_D003_FRZ_a2_std_sorted.bam` (pattern: `RA0449_D003_FRZ_a2_std_sorted.bam`)
+Jun-14 10:00:22.325 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1779_D-04_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1779/D-04/fresh/a1/DASH/RA1779_D-04_fresh_a1_DASH_reverted.bam` (pattern: `RA1779_D-04_fresh_a1_DASH_reverted.bam`)
+Jun-14 10:00:22.326 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1779_D-04_fresh_a1_DASH)
+Jun-14 10:00:22.327 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1779_D-04_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1779/D-04/fresh/a1/DASH/RA1779_D-04_fresh_a1_DASH_sorted.bam` (pattern: `RA1779_D-04_fresh_a1_DASH_sorted.bam`)
+Jun-14 10:00:22.372 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1779_D008_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1779/D008/fresh/a1/std/RA1779_D008_fresh_a1_std_reverted.bam` (pattern: `RA1779_D008_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:22.373 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1779_D008_fresh_a1_std)
+Jun-14 10:00:22.375 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1779_D008_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1779/D008/fresh/a1/std/RA1779_D008_fresh_a1_std_sorted.bam` (pattern: `RA1779_D008_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:22.417 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D006_FRZ-MDCK_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a3/std/RA1325_D006_FRZ-MDCK_a3_std_reverted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a3_std_reverted.bam`)
+Jun-14 10:00:22.418 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a3_std)
+Jun-14 10:00:22.420 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D006_FRZ-MDCK_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a3/std/RA1325_D006_FRZ-MDCK_a3_std_sorted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a3_std_sorted.bam`)
+Jun-14 10:00:22.470 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1082_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1082/D000/fresh/a1/std/RA1082_D000_fresh_a1_std_reverted.bam` (pattern: `RA1082_D000_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:22.472 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1082_D000_fresh_a1_std)
+Jun-14 10:00:22.474 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1082_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1082/D000/fresh/a1/std/RA1082_D000_fresh_a1_std_sorted.bam` (pattern: `RA1082_D000_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:22.513 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a5/std/RA1074_D006_FRZ-MDCK_a5_std_reverted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a5_std_reverted.bam`)
+Jun-14 10:00:22.514 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a5_std)
+Jun-14 10:00:22.515 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a5/std/RA1074_D006_FRZ-MDCK_a5_std_sorted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a5_std_sorted.bam`)
+Jun-14 10:00:22.559 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a6/std/RA1803_D006_FRZ-MDCK_a6_std_reverted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a6_std_reverted.bam`)
+Jun-14 10:00:22.561 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:22.562 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a6/std/RA1803_D006_FRZ-MDCK_a6_std_sorted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a6_std_sorted.bam`)
+Jun-14 10:00:22.605 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a5/std/RA1803_D006_FRZ-MDCK_a5_std_reverted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a5_std_reverted.bam`)
+Jun-14 10:00:22.606 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ-MDCK_a5_std)
+Jun-14 10:00:22.607 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a5/std/RA1803_D006_FRZ-MDCK_a5_std_sorted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a5_std_sorted.bam`)
+Jun-14 10:00:22.652 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0717_D004_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a4/std/RA0717_D004_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:22.653 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a4_std)
+Jun-14 10:00:22.654 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0717_D004_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a4/std/RA0717_D004_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:22.700 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_FRZ-MDCK_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a1/std/RA1074_D006_FRZ-MDCK_a1_std_reverted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a1_std_reverted.bam`)
+Jun-14 10:00:22.703 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a1_std)
+Jun-14 10:00:22.704 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_FRZ-MDCK_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a1/std/RA1074_D006_FRZ-MDCK_a1_std_sorted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a1_std_sorted.bam`)
+Jun-14 10:00:22.752 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0717_D004_FRZ-MDCK_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a3/std/RA0717_D004_FRZ-MDCK_a3_std_reverted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a3_std_reverted.bam`)
+Jun-14 10:00:22.753 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0717_D004_FRZ-MDCK_a3_std)
+Jun-14 10:00:22.754 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0717_D004_FRZ-MDCK_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0717/D004/FRZ-MDCK/a3/std/RA0717_D004_FRZ-MDCK_a3_std_sorted.bam` (pattern: `RA0717_D004_FRZ-MDCK_a3_std_sorted.bam`)
+Jun-14 10:00:22.802 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1834_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a4/std/RA1834_D003_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:22.803 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D003_FRZ-MDCK_a4_std)
+Jun-14 10:00:22.805 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1834_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a4/std/RA1834_D003_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:22.863 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0452_D005_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ/a1/std/RA0452_D005_FRZ_a1_std_reverted.bam` (pattern: `RA0452_D005_FRZ_a1_std_reverted.bam`)
+Jun-14 10:00:22.863 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ_a1_std)
+Jun-14 10:00:22.865 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0452_D005_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ/a1/std/RA0452_D005_FRZ_a1_std_sorted.bam` (pattern: `RA0452_D005_FRZ_a1_std_sorted.bam`)
+Jun-14 10:00:22.911 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D006_FRZ-MDCK_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a2/std/RA1325_D006_FRZ-MDCK_a2_std_reverted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a2_std_reverted.bam`)
+Jun-14 10:00:22.912 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a2_std)
+Jun-14 10:00:22.913 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D006_FRZ-MDCK_a2_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a2/std/RA1325_D006_FRZ-MDCK_a2_std_sorted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a2_std_sorted.bam`)
+Jun-14 10:00:22.963 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D003_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ-MDCK/a5/std/RA0449_D003_FRZ-MDCK_a5_std_reverted.bam` (pattern: `RA0449_D003_FRZ-MDCK_a5_std_reverted.bam`)
+Jun-14 10:00:22.964 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ-MDCK_a5_std)
+Jun-14 10:00:22.965 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D003_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ-MDCK/a5/std/RA0449_D003_FRZ-MDCK_a5_std_sorted.bam` (pattern: `RA0449_D003_FRZ-MDCK_a5_std_sorted.bam`)
+Jun-14 10:00:23.014 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0917_D-04_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0917/D-04/fresh/a1/DASH/RA0917_D-04_fresh_a1_DASH_reverted.bam` (pattern: `RA0917_D-04_fresh_a1_DASH_reverted.bam`)
+Jun-14 10:00:23.015 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0917_D-04_fresh_a1_DASH)
+Jun-14 10:00:23.016 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0917_D-04_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0917/D-04/fresh/a1/DASH/RA0917_D-04_fresh_a1_DASH_sorted.bam` (pattern: `RA0917_D-04_fresh_a1_DASH_sorted.bam`)
+Jun-14 10:00:23.065 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a3/std/RA1803_D006_FRZ_a3_std_reverted.bam` (pattern: `RA1803_D006_FRZ_a3_std_reverted.bam`)
+Jun-14 10:00:23.066 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ_a3_std)
+Jun-14 10:00:23.067 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ_a3_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ/a3/std/RA1803_D006_FRZ_a3_std_sorted.bam` (pattern: `RA1803_D006_FRZ_a3_std_sorted.bam`)
+Jun-14 10:00:23.114 [Actor Thread 9] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1639_D000_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1639/D000/fresh/a1/DASH-std/RA1639_D000_fresh_a1_DASH-std_reverted.bam` (pattern: `RA1639_D000_fresh_a1_DASH-std_reverted.bam`)
+Jun-14 10:00:23.115 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1639_D000_fresh_a1_DASH-std)
+Jun-14 10:00:23.116 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1639_D000_fresh_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1639/D000/fresh/a1/DASH-std/RA1639_D000_fresh_a1_DASH-std_sorted.bam` (pattern: `RA1639_D000_fresh_a1_DASH-std_sorted.bam`)
+Jun-14 10:00:23.163 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D000_FRZ_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D000/FRZ/a1/DASH-std/RA0449_D000_FRZ_a1_DASH-std_reverted.bam` (pattern: `RA0449_D000_FRZ_a1_DASH-std_reverted.bam`)
+Jun-14 10:00:23.164 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D000_FRZ_a1_DASH-std)
+Jun-14 10:00:23.165 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D000_FRZ_a1_DASH-std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D000/FRZ/a1/DASH-std/RA0449_D000_FRZ_a1_DASH-std_sorted.bam` (pattern: `RA0449_D000_FRZ_a1_DASH-std_sorted.bam`)
+Jun-14 10:00:23.212 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D-30_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D-30/fresh/a1/DASH/RA1325_D-30_fresh_a1_DASH_reverted.bam` (pattern: `RA1325_D-30_fresh_a1_DASH_reverted.bam`)
+Jun-14 10:00:23.214 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D-30_fresh_a1_DASH)
+Jun-14 10:00:23.215 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D-30_fresh_a1_DASH)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D-30/fresh/a1/DASH/RA1325_D-30_fresh_a1_DASH_sorted.bam` (pattern: `RA1325_D-30_fresh_a1_DASH_sorted.bam`)
+Jun-14 10:00:23.263 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1803_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a4/std/RA1803_D006_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:23.264 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1803_D006_FRZ-MDCK_a4_std)
+Jun-14 10:00:23.315 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0223_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ-MDCK/a4/std/RA0223_D003_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA0223_D003_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:23.315 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0223_D003_FRZ-MDCK_a4_std)
+Jun-14 10:00:23.324 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1803_D006_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1803/D006/FRZ-MDCK/a4/std/RA1803_D006_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA1803_D006_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:23.324 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0223_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0223/D003/FRZ-MDCK/a4/std/RA0223_D003_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA0223_D003_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:23.365 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D003_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ/a1/std/RA0449_D003_FRZ_a1_std_reverted.bam` (pattern: `RA0449_D003_FRZ_a1_std_reverted.bam`)
+Jun-14 10:00:23.366 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ_a1_std)
+Jun-14 10:00:23.367 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D003_FRZ_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ/a1/std/RA0449_D003_FRZ_a1_std_sorted.bam` (pattern: `RA0449_D003_FRZ_a1_std_sorted.bam`)
+Jun-14 10:00:23.416 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0700_D007_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0700/D007/fresh/a1/std/RA0700_D007_fresh_a1_std_reverted.bam` (pattern: `RA0700_D007_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:23.417 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0700_D007_fresh_a1_std)
+Jun-14 10:00:23.418 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0700_D007_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0700/D007/fresh/a1/std/RA0700_D007_fresh_a1_std_sorted.bam` (pattern: `RA0700_D007_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:23.463 [Actor Thread 15] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a6/std/RA1074_D006_FRZ-MDCK_a6_std_reverted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a6_std_reverted.bam`)
+Jun-14 10:00:23.464 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_FRZ-MDCK_a6_std)
+Jun-14 10:00:23.465 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_FRZ-MDCK_a6_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/FRZ-MDCK/a6/std/RA1074_D006_FRZ-MDCK_a6_std_sorted.bam` (pattern: `RA1074_D006_FRZ-MDCK_a6_std_sorted.bam`)
+Jun-14 10:00:23.516 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0522_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0522/D000/fresh/a1/std/RA0522_D000_fresh_a1_std_reverted.bam` (pattern: `RA0522_D000_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:23.516 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0522_D000_fresh_a1_std)
+Jun-14 10:00:23.517 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0522_D000_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0522/D000/fresh/a1/std/RA0522_D000_fresh_a1_std_sorted.bam` (pattern: `RA0522_D000_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:23.564 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1834_D003_FRZ-MDCK_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a1/std/RA1834_D003_FRZ-MDCK_a1_std_reverted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a1_std_reverted.bam`)
+Jun-14 10:00:23.565 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1834_D003_FRZ-MDCK_a1_std)
+Jun-14 10:00:23.566 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1834_D003_FRZ-MDCK_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1834/D003/FRZ-MDCK/a1/std/RA1834_D003_FRZ-MDCK_a1_std_sorted.bam` (pattern: `RA1834_D003_FRZ-MDCK_a1_std_sorted.bam`)
+Jun-14 10:00:23.614 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1074_D006_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/fresh/a1/std/RA1074_D006_fresh_a1_std_reverted.bam` (pattern: `RA1074_D006_fresh_a1_std_reverted.bam`)
+Jun-14 10:00:23.615 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1074_D006_fresh_a1_std)
+Jun-14 10:00:23.616 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1074_D006_fresh_a1_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1074/D006/fresh/a1/std/RA1074_D006_fresh_a1_std_sorted.bam` (pattern: `RA1074_D006_fresh_a1_std_sorted.bam`)
+Jun-14 10:00:23.664 [Actor Thread 8] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA1325_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a5/std/RA1325_D006_FRZ-MDCK_a5_std_reverted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a5_std_reverted.bam`)
+Jun-14 10:00:23.665 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA1325_D006_FRZ-MDCK_a5_std)
+Jun-14 10:00:23.667 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA1325_D006_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA1325/D006/FRZ-MDCK/a5/std/RA1325_D006_FRZ-MDCK_a5_std_sorted.bam` (pattern: `RA1325_D006_FRZ-MDCK_a5_std_sorted.bam`)
+Jun-14 10:00:23.715 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0449_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ-MDCK/a4/std/RA0449_D003_FRZ-MDCK_a4_std_reverted.bam` (pattern: `RA0449_D003_FRZ-MDCK_a4_std_reverted.bam`)
+Jun-14 10:00:23.716 [Actor Thread 1] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0449_D003_FRZ-MDCK_a4_std)
+Jun-14 10:00:23.717 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0449_D003_FRZ-MDCK_a4_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0449/D003/FRZ-MDCK/a4/std/RA0449_D003_FRZ-MDCK_a4_std_sorted.bam` (pattern: `RA0449_D003_FRZ-MDCK_a4_std_sorted.bam`)
+Jun-14 10:00:23.765 [Actor Thread 1] DEBUG nextflow.processor.TaskProcessor - Process `RevertSam (RA0452_D005_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ-MDCK/a5/std/RA0452_D005_FRZ-MDCK_a5_std_reverted.bam` (pattern: `RA0452_D005_FRZ-MDCK_a5_std_reverted.bam`)
+Jun-14 10:00:23.766 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [skipping] Stored process > STAR (RA0452_D005_FRZ-MDCK_a5_std)
+Jun-14 10:00:23.767 [Actor Thread 11] DEBUG nextflow.processor.TaskProcessor - Process `sort_bam (RA0452_D005_FRZ-MDCK_a5_std)` is unable to find [UnixPath]: `/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/02_star/RA0452/D005/FRZ-MDCK/a5/std/RA0452_D005_FRZ-MDCK_a5_std_sorted.bam` (pattern: `RA0452_D005_FRZ-MDCK_a5_std_sorted.bam`)
+Jun-14 10:00:23.790 [Actor Thread 12] DEBUG nextflow.Session - <<< barrier arrive (process: STAR)
+Jun-14 10:05:19.701 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:10:19.720 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:15:19.799 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:20:19.876 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:25:19.967 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:30:20.051 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:35:20.128 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:40:20.201 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:45:20.273 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:50:20.333 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor local > tasks to be completed: 1 -- pending tasks are shown below
+~> TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: RUNNING; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:54:16.218 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 190; name: sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std); status: COMPLETED; exit: 1; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d]
+Jun-14 10:54:16.225 [Task submitter] DEBUG nextflow.executor.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Jun-14 10:54:16.226 [Task submitter] INFO  nextflow.Session - [49/48628d] Submitted process > RevertSam (RA1325_D006_fresh_a1_std)
+Jun-14 10:54:16.229 [Task submitter] DEBUG n.processor.TaskPollingMonitor - %% executor local > tasks in the submission queue: 97 -- tasks to be submitted are shown below
+~> TaskHandler[id: 193; name: sort_bam (RA1325_D006_fresh_a1_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/a6/8cf75ccc54e327642d3cfdbeb0262a]
+~> TaskHandler[id: 194; name: RevertSam (RA0223_D003_FRZ_a2_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/6c/0904d57fe2f12534428e1f37c58ca7]
+~> TaskHandler[id: 196; name: sort_bam (RA0223_D003_FRZ_a2_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/ee/2c359089734bc5c7e58f91b0f0e482]
+~> TaskHandler[id: 197; name: RevertSam (RA0717_D004_FRZ-MDCK_a6_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/ac/35b7bd8848439157499a560d57f4fd]
+~> TaskHandler[id: 199; name: sort_bam (RA0717_D004_FRZ-MDCK_a6_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/75/a777198b779dd4328e3e87003eed6b]
+~> TaskHandler[id: 200; name: RevertSam (RA1803_D006_FRZ_a2_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/a6/494bb5d05aa596de15e2bf0b2b0f7a]
+~> TaskHandler[id: 202; name: sort_bam (RA1803_D006_FRZ_a2_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/7c/4cfbc0a9813d8f9dbebeaabd25c33d]
+~> TaskHandler[id: 203; name: RevertSam (RA0452_D005_FRZ-MDCK_a6_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/ac/26eaeeee167a6ac502f45ba728a091]
+~> TaskHandler[id: 205; name: sort_bam (RA0452_D005_FRZ-MDCK_a6_std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/c1/e0c991fa4dc663d75a6ab4f473732c]
+~> TaskHandler[id: 206; name: RevertSam (RA0452_D005_fresh_a1_DASH-std); status: NEW; exit: -; error: -; workDir: /gpfs/projects/bsc83/Data/Ebola/work/05/1c987787a736462e7cdd4254ab2f2f]
+.. remaining tasks omitted.
+Jun-14 10:54:16.243 [Task monitor] ERROR nextflow.processor.TaskProcessor - Error executing process > 'sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std)'
+
+Caused by:
+  Process `sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std)` terminated with an error exit status (1)
+
+Command executed:
+
+  picard-tools SortSam I=RA0449_D003_fresh_a1_DASH-DASH2-std.Aligned.out.bam O=RA0449_D003_fresh_a1_DASH-DASH2-std_sorted.bam SO=queryname
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  INFO	2020-06-14 08:36:56	SortSam	Read   600,000,000 records.  Elapsed time: 00:36:27s.  Time for last 10,000,000:   36s.  Last read position: 14:113,186,390
+  INFO	2020-06-14 08:37:36	SortSam	Read   610,000,000 records.  Elapsed time: 00:37:07s.  Time for last 10,000,000:   40s.  Last read position: 11:65,891,202
+  INFO	2020-06-14 08:38:16	SortSam	Read   620,000,000 records.  Elapsed time: 00:37:46s.  Time for last 10,000,000:   39s.  Last read position: 11:17,433,204
+  INFO	2020-06-14 08:38:51	SortSam	Read   630,000,000 records.  Elapsed time: 00:38:22s.  Time for last 10,000,000:   35s.  Last read position: 15:88,576,146
+  INFO	2020-06-14 08:39:29	SortSam	Read   640,000,000 records.  Elapsed time: 00:39:00s.  Time for last 10,000,000:   37s.  Last read position: 16:12,176,015
+  INFO	2020-06-14 08:40:11	SortSam	Read   650,000,000 records.  Elapsed time: 00:39:41s.  Time for last 10,000,000:   41s.  Last read position: QNVO02003105.1:3,272
+  INFO	2020-06-14 08:40:48	SortSam	Read   660,000,000 records.  Elapsed time: 00:40:19s.  Time for last 10,000,000:   37s.  Last read position: 16:71,360,021
+  INFO	2020-06-14 08:41:27	SortSam	Read   670,000,000 records.  Elapsed time: 00:40:58s.  Time for last 10,000,000:   39s.  Last read position: 17:17,283,012
+  INFO	2020-06-14 08:42:05	SortSam	Read   680,000,000 records.  Elapsed time: 00:41:35s.  Time for last 10,000,000:   37s.  Last read position: QNVO02000906.1:16,775
+  INFO	2020-06-14 08:42:44	SortSam	Read   690,000,000 records.  Elapsed time: 00:42:14s.  Time for last 10,000,000:   39s.  Last read position: 18:42,552,543
+  INFO	2020-06-14 08:43:24	SortSam	Read   700,000,000 records.  Elapsed time: 00:42:54s.  Time for last 10,000,000:   39s.  Last read position: 15:57,443,230
+  INFO	2020-06-14 08:43:56	SortSam	Read   710,000,000 records.  Elapsed time: 00:43:27s.  Time for last 10,000,000:   32s.  Last read position: 8:50,066,478
+  INFO	2020-06-14 08:44:30	SortSam	Read   720,000,000 records.  Elapsed time: 00:44:00s.  Time for last 10,000,000:   33s.  Last read position: 16:78,941,530
+  INFO	2020-06-14 08:45:09	SortSam	Read   730,000,000 records.  Elapsed time: 00:44:39s.  Time for last 10,000,000:   38s.  Last read position: 19:48,964,285
+  INFO	2020-06-14 08:45:48	SortSam	Read   740,000,000 records.  Elapsed time: 00:45:19s.  Time for last 10,000,000:   39s.  Last read position: 1:49,309,183
+  INFO	2020-06-14 08:46:28	SortSam	Read   750,000,000 records.  Elapsed time: 00:45:59s.  Time for last 10,000,000:   39s.  Last read position: 20:65,725,441
+  INFO	2020-06-14 08:47:05	SortSam	Read   760,000,000 records.  Elapsed time: 00:46:35s.  Time for last 10,000,000:   36s.  Last read position: 20:1,988,898
+  INFO	2020-06-14 08:47:43	SortSam	Read   770,000,000 records.  Elapsed time: 00:47:14s.  Time for last 10,000,000:   38s.  Last read position: 4:99,421,336
+  INFO	2020-06-14 08:48:20	SortSam	Read   780,000,000 records.  Elapsed time: 00:47:51s.  Time for last 10,000,000:   37s.  Last read position: X:112,095,692
+  INFO	2020-06-14 08:48:54	SortSam	Read   790,000,000 records.  Elapsed time: 00:48:25s.  Time for last 10,000,000:   33s.  Last read position: 1:22,026,351
+  INFO	2020-06-14 08:49:25	SortSam	Read   800,000,000 records.  Elapsed time: 00:48:56s.  Time for last 10,000,000:   31s.  Last read position: 14:39,888,579
+  INFO	2020-06-14 08:49:51	SortSam	Read   810,000,000 records.  Elapsed time: 00:49:21s.  Time for last 10,000,000:   25s.  Last read position: 13:27,185,506
+  INFO	2020-06-14 08:50:17	SortSam	Read   820,000,000 records.  Elapsed time: 00:49:47s.  Time for last 10,000,000:   25s.  Last read position: 8:88,222,257
+  INFO	2020-06-14 08:50:43	SortSam	Read   830,000,000 records.  Elapsed time: 00:50:14s.  Time for last 10,000,000:   26s.  Last read position: 11:82,625,758
+  INFO	2020-06-14 08:51:09	SortSam	Read   840,000,000 records.  Elapsed time: 00:50:40s.  Time for last 10,000,000:   25s.  Last read position: 8:44,407,450
+  INFO	2020-06-14 08:51:35	SortSam	Read   850,000,000 records.  Elapsed time: 00:51:06s.  Time for last 10,000,000:   26s.  Last read position: 16:30,493,196
+  INFO	2020-06-14 08:52:03	SortSam	Read   860,000,000 records.  Elapsed time: 00:51:34s.  Time for last 10,000,000:   27s.  Last read position: 3:16,068,358
+  INFO	2020-06-14 08:52:29	SortSam	Read   870,000,000 records.  Elapsed time: 00:52:00s.  Time for last 10,000,000:   26s.  Last read position: 8:88,221,953
+  INFO	2020-06-14 08:52:54	SortSam	Read   880,000,000 records.  Elapsed time: 00:52:25s.  Time for last 10,000,000:   24s.  Last read position: 8:49,546,016
+  INFO	2020-06-14 08:53:20	SortSam	Read   890,000,000 records.  Elapsed time: 00:52:50s.  Time for last 10,000,000:   25s.  Last read position: 14:39,888,247
+  INFO	2020-06-14 08:53:45	SortSam	Read   900,000,000 records.  Elapsed time: 00:53:16s.  Time for last 10,000,000:   25s.  Last read position: 6:20,785,999
+  [Sun Jun 14 08:54:00 UTC 2020] net.sf.picard.sam.SortSam done. Elapsed time: 53.52 minutes.
+  Runtime.totalMemory()=11641290752
+  To get help, see http://picard.sourceforge.net/index.shtml#GettingHelp
+  Exception in thread "main" net.sf.samtools.util.RuntimeIOException: java.io.IOException: No space left on device
+  	at net.sf.samtools.util.SortingCollection.spillToDisk(SortingCollection.java:232)
+  	at net.sf.samtools.util.SortingCollection.add(SortingCollection.java:152)
+  	at net.sf.samtools.SAMFileWriterImpl.addAlignment(SAMFileWriterImpl.java:179)
+  	at net.sf.picard.sam.SortSam.doWork(SortSam.java:71)
+  	at net.sf.picard.cmdline.CommandLineProgram.instanceMain(CommandLineProgram.java:179)
+  	at net.sf.picard.cmdline.CommandLineProgram.instanceMainWithExit(CommandLineProgram.java:120)
+  	at net.sf.picard.sam.SortSam.main(SortSam.java:57)
+  Caused by: java.io.IOException: No space left on device
+  	at java.io.FileOutputStream.writeBytes(Native Method)
+  	at java.io.FileOutputStream.write(FileOutputStream.java:326)
+  	at java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:82)
+  	at java.io.BufferedOutputStream.flush(BufferedOutputStream.java:140)
+  	at java.io.FilterOutputStream.close(FilterOutputStream.java:158)
+  	at net.sf.samtools.util.SortingCollection.spillToDisk(SortingCollection.java:223)
+  	... 6 more
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/2b/d0aebaafcb75a6aa85d3112e14527d
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Jun-14 10:54:16.249 [Task monitor] DEBUG nextflow.Session - Session aborted -- Cause: Process `sort_bam (RA0449_D003_fresh_a1_DASH-DASH2-std)` terminated with an error exit status (1)
+Jun-14 10:54:16.265 [Task monitor] DEBUG nextflow.Session - The following nodes are still active:
+[process] runRSeQC
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: -
+  port 2: (cntrl) -     ; channel: $
+
+[process] MergeBamAlignment
+  status=ACTIVE
+  port 0: (value) bound ; channel: assembly
+  port 1: (value) bound ; channel: dict
+  port 2: (queue) OPEN  ; channel: -
+  port 3: (cntrl) -     ; channel: $
+
+Jun-14 10:54:16.269 [main] DEBUG nextflow.Session - Session await > all process finished
+Jun-14 10:54:16.269 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Jun-14 10:54:16.270 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local)
+Jun-14 10:54:16.275 [main] WARN  n.processor.TaskPollingMonitor - Killing pending tasks (1)
+Jun-14 10:54:16.347 [main] DEBUG nextflow.trace.StatsObserver - Workflow completed > WorkflowStats[succeedCount=0; failedCount=2; ignoredCount=0; cachedCount=0; succeedDuration=0ms; failedDuration=1d 19h 7m 47s; cachedDuration=0ms]
+Jun-14 10:54:16.413 [main] DEBUG nextflow.CacheDB - Closing CacheDB done
+Jun-14 10:54:16.469 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

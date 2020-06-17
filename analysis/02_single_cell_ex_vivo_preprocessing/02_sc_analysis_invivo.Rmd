@@ -30,7 +30,7 @@ source("../utils/02_sc_utils.R")
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects")
-data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/04_DigitalExpressionMatrix_OK"
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/04_DigitalExpressionMatrix"
 ```
 
 ## Single Cell Preprocessing Ex Vivo 

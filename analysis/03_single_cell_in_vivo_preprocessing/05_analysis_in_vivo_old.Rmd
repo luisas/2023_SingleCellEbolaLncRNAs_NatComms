@@ -24,295 +24,21 @@ library(rtracklayer)
 library(org.Mmu.eg.db)
 library(graphics)
 library(RCy3)
+library(ComplexHeatmap)
+library(org.Hs.eg.db)
 
-source("utils/sc_utils.R")
-source("utils/de_utils.R")
+source("../utils/02_sc_utils.R")
+source("../utils/03_de_utils.R")
 
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
-robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects_old/"
+
+## Here add path 
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/RObjects_old/invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet_integrated.rds")
 ```
 
-## Single Cell Analysis
-
-------------------------
-  Create Seurat Objects
-------------------------
-
-I import the data and merge them into one single Seurat object to proceed with the analysis.
-
-Obtain 
-```{r cars}
-# Load the PBMC dataset
-data_dir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_scRNA-Seq_inVivo_rhemac10/04_DigitalExpressionMatrix/"
-files <- iterate_files(data_dir, ".dge.txt.gz")
-files_umis <- files[!str_detect(files, "reads" )]
-
-# Umis 
-# all matrices files from single cell, still separated per lane
-list <- map(files_umis[2:length(files_umis)], get_Seurat_object)
-pbmc <- get_Seurat_object(files_umis[1])
-list_names <- lapply(files_umis, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
-
-length(list)
-length(list_names)
-unique(unlist(list_names))
-# -------------
-#   Merge
-# -------------
-# Merge all seurats object in one 
-
-# Eemove objects where nocells were identified 
-list_detected_only <- list[unlist(lapply(list, function(x) dim(x)[1] != 0 ))]
-list_names <- list_names[unlist(lapply(list, function(x) dim(x)[1] != 0 ))]
-
-pbmc.big <- merge(pbmc, y = list_detected_only, add.cell.ids = list_names, project = "PBMCbiginvivo")
-# Check if all ids available
-unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
-table(pbmc.big$orig.ident)
-dim(pbmc.big)
-saveRDS(pbmc.big, file.path(robjectsdir,"immune.combined_invivo_1.rds"))
-```
-##---------------------------------------------------------
-##                           Cell QC 
-##  Remove cells with too little or too high UMIS count 
-##  Remove cell based on number of detected genes per cell
-##----------------------------------------------------------
-```{r pressure, results='hide', message=FALSE, warning=FALSE}
-pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
-pbmc
-pbmc_sc <- as.SingleCellExperiment(pbmc.big)
-pbmc_sc <- calculateQCMetrics(pbmc_sc)
-
-# Library size
-lib_size_hist <- plot_histogram( sce = pbmc_sc, qc_metric = "total_counts", title = "Library Size (total UMI)", log_scale = FALSE)
-
-# Number of detected genes
-n_detec_hist <- plot_histogram(sce = pbmc_sc,  qc_metric = "total_features_by_counts",title = "Number of detected genes", log_scale = FALSE)
-
-lsizeplot <- lib_size_hist +
-  geom_vline(xintercept = c(500, 10000), linetype = "dashed", color = "red") + xlim(0,2000)
-
-ndectplot <- n_detec_hist +
-  geom_vline(xintercept = c(600, 2000), linetype = "dashed", color = "red")
-
-lsizeplot
-ndectplot
-```
-# Filtering 
-
-```{r}
-pbmc <- pbmc_sc
-keep_cells <-
-  pbmc$total_counts > 1000 & pbmc$total_counts < 10000 &
-  pbmc$total_features_by_counts > 600 & pbmc$total_features_by_counts < 2000 
-table(keep_cells)
-pbmc <- pbmc[, keep_cells]
-saveRDS(pbmc,file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
-```
-
-
-##----------------------------
-##           Gene QC 
-##  Exclude genes not showing up in a least 10 cells
-##----------------------------  
-Let us compute the number of cells that each gene has at least 1 UMI.
-We see two peaks, the firt one of which corresponds to lowly expressed genes. As explained in [Luecken MD et al.](https://www.embopress.org/doi/pdf/10.15252/msb.20188746): "a guideline to setting this threshold is to use the minimum cell cluster size that is of interest and leaving some leeway for dropout effects". As we will not rely on clusters that have fewer than 15 cells, we will use it as a filter:
-
-```{r}
-
-# CLUSTER !!! 
-# Do not delete this lines. The following steps were performed on the cluster for memory issues.
-n_cells <- rowSums(as.matrix(counts(pbmc)) > 0)
-#pbmc <- pbmc[n_cells > 10, ]
-#saveRDS(pbmc, file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc.rds")
-pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc.rds"))
-
-```
-
-##-------------------------------------------------------------------------------
-##    Doublet Detection: Scrublet 
-##-------------------------------------------------------------------------------
-
-
-```{r cars}
-library(reshape2)
-pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc.rds"))
-pbmc <- as.Seurat(pbmc)
-# Extract count matrix
-m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
-sparse.gbm <- Matrix(m , sparse = T )
-writeMM(obj = sparse.gbm, file=file.path(robjectsdir,"sparse_invivo.mtx"))
-```
-
-# External Script Warning!! 
-# --> Run Scrublet in Python
-
-```{r cars}
-cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/predicted_doublet_mask_invivo.txt")
-doublet_scores_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/predicted_doublet_scores_invivo.txt")
-
-list <- as.list(as.character(cell_mask_scrublet$V1))
-mask <- list == "True"
-new <- pbmc[,!mask]
-
-dim(new)
-table(mask)
-pbmc<- seurat_preprocess_standard(new)
-
-# Now check which cells have less than X genes expressed --> cannot see anything special :/
-cells <-  colnames(pbmc[,pbmc$total_features_by_counts > 1000])
-table(pbmc$total_counts < 2000)
-cells <- colnames(pbmc[,pbmc$total_counts > 5000])
-plot_cells(pbmc, cells)
-
-saveRDS(new, file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
-immune.combined <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
-```
-
-##-------------------------------------------------------------------------------
-##                         Stimulated data analysis 
-##-------------------------------------------------------------------------------
-
-
-
-# ---- Integration
-# Running integration on the cluster 
-
-# -------------------------------------
-#     After integration in cluster 
-# -------------------------------------
-
-```{r cars}
-# Check the ones without integration for the moment 
-#immune.combined <- readRDS(file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_after-integration.rds"))
-# Import the newly computed cellswith 5k features and 
-immune.combined <- readRDS(file.path(result_path, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
-
-# add some labeling 
-immune.combined$orig.ident <- gsub("D_", "D-", gsub("-", "_",immune.combined$orig.ident))
-immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "_")[[1]][1]))))
-immune.combined$dpi <- immune.combined$cond <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][2])))
-immune.combined$batch <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][3])))
-immune.combined$analysis <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][4])))
-immune.combined$sample <- paste0(immune.combined$individual," ", immune.combined$dpi)
-
-
-# Identify and remove MDCKs 
-immune.combined <- NormalizeData(immune.combined)
-immune.combined <- FindVariableFeatures(immune.combined)
-immune.combined <- ScaleData(immune.combined)
-immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
-immune.combined <- FindClusters(immune.combined, resolution = 0.5)
-
-# Visualize clustering
-DimPlot(immune.combined, reduction = "umap", group.by = "batch")
-DimPlot(immune.combined, reduction = "umap", label = TRUE)
-# Identify MCDK - remove
-mcdk <- c("COL5A2", "EMP1")
-plot_genes(immune.combined, mcdk, threshold = 2 , title = "MCDK-Cell markers expression", col = "#CA4866")
-# Remove MCDK 
-idents_to_keep <- setdiff(unique(Idents(immune.combined)), c(9,11))
-immune.combined <- subset(immune.combined, idents = idents_to_keep)
-DimPlot(immune.combined, reduction = "umap", group.by = "batch")
-```
-
-
-
-```{r cars}
-#------------------
-# Integration 
-# -----------------
-immune.combined.list <- SplitObject(immune.combined, split.by = "batch")
-
-immune.combined.list <- lapply(X = immune.combined.list, FUN = function(x) {
-    x <- NormalizeData(x)
-    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-})
-immune.anchors <- FindIntegrationAnchors(object.list = immune.combined.list, dims = 1:20)
-saveRDS(immune.anchors, file.path(robjectsdir, "immune_anchors_invivo.rds"))
-immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
-immune.combined <- FindVariableFeatures(immune.combined)
-immune.combined <- ScaleData(immune.combined)
-immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
-DefaultAssay(immune.combined) <- "integrated"
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
-immune.combined <- FindClusters(immune.combined, resolution = 0.5)
-saveRDS(immune.combined, file.path(robjectsdir, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet_integrated.rds"))
-
-# ----------------------------
-# Visualize the clusters
-immune.combined$group_dpi <- gsub("D", "DPI", immune.combined$dpi)
-p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "group_dpi", pt.size = 0.1, cols = brewer.pal(10, "Paired"))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-p1
-p2 <- DimPlot(immune.combined, reduction = "umap", group.by = "individual")+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-p3 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)
-immune.combined$batch <- gsub("FRZ", "frozen", immune.combined$batch)
-p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "batch", pt.size = 0.2)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-p5 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample", pt.size = 0.00001)
-p4 +theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-
-p1; p2; p3; p4; p5
-```
-
-
-```{r cars}
-# ----------------------------
-# FIND MARKERS  for every cluster compared to all remaining cells, report only the positive ones
-pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
-saveRDS(pbmc.markers, file.path(robjectsdir,"markers_invivo_normal.rds"))
-pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
-
-b <- c("CD79B", "MS4A1", "CD19")
-monocytes <- c("CD14", "LYZ", "CTSB", "PSAP")
-t <- c("IL7R", "CD28", "TRIB2", "SPOCK2")
-nk <- c( "KLRB1")
-dc <- c("IRF8")
-neutrophil <- c("CD177", "SOD2")
-platelet <- c("PPBP", "PF4")
-mdk <- c("COL5A2", "EMP1")
-
-marker.genes <- c(monocytes, b,t)
-plot_genes(immune.combined,monocytes,threshold= 2, title = "Monocytes marker expression", col = "purple")
-plot_genes(immune.combined, nk, threshold = 2 , title = "NK markers expression", col = "purple")
-plot_genes(immune.combined, b, threshold = 2 , title = "B markers expression", col = "purple")
-plot_genes(immune.combined, t, threshold = 2 , title = "T-Cell markers expression", col = "purple")
-plot_genes(immune.combined, neutrophil, threshold = 4 , title = "Neutrophil-Cell markers expression", col = "purple")
-
-
-# No integration 
-#immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T", `2` = "T", 
-#    `3` = "T", `4` = "Myeloid", `5` = "B", `6` = "Myeloid", `7` = "Myeloid", `8` = "T", `9` = "MDCK", 
-#    `10` = "Myeloid", `11` = "MDCK", `12` = "Myeloid", `13` = "Myeloid",`14` = "Myeloid", `15` = "Myeloid", #`16` = "T")
-# Integrated w/mcdk
-#immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T", `2` = "T", 
-#    `3` = "T", `4` = "Myeloid", `5` = "Myeloid", `6` = "Myeloid", `7` = "MCDK", `8` = "Myeloid", `9` = "MDCK",
-#    `10` = "Myeloid", `11` = "Myeloid", `12` = "Myeloid", `13` = "Myeloid")
-
-immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "B", `2` = "T", 
-   `3` = "T", `4` = "B", `5` = "Myeloid", `6` = "Myeloid", `7` = "Myeloid", `8` = "Myeloid", `9` = "Myeloid",
-    `10` = "Myeloid", `11` = "Myeloid", `12` = "Myeloid", `13` = "Myeloid")
-# Visualize Markers
-DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())
-DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(3, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-
-write.csv(as.data.frame(table(immune.combined$orig.ident)), file.path("/home/luisas/Desktop/scsummary.txt"))
-```
-```{r cars}
-# --------------------
-#     EbolaGenes
-#--------------------
-
-ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unkown", sep ="-")]
-ebola_genes
-FeaturePlot(immune.combined, features  = ebola_genes)
-plot_genes(immune.combined, ebola_genes,1, col = "#DA0202", "Cells expressing Ebola RNA")
-```
 
 # ------------------------------------
 # Differential expression analysis
@@ -337,7 +63,7 @@ immune.combined$group <- gsub("D008" , "late",immune.combined$group)
 table(immune.combined$group)
 DimPlot(immune.combined, group.by = "group", reduction = "umap")
 
-saveRDS(immune.combined, file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
+#saveRDS(immune.combined, file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
 ```
 # -----------------------------------
 # Specificity Matrix
@@ -345,7 +71,7 @@ saveRDS(immune.combined, file.path(robjectsdir, "immune.combined_invivo_aftercom
 ```{r cars}
 library(dplyr)
 library(ComplexHeatmap)
-immune.combined <- readRDS(file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
+#immune.combined <- readRDS(file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
 pc <- subset(immune.combined, features = annotated_mrnas)
 lnc <- subset(immune.combined, features = all_lncrnas)
 
@@ -421,15 +147,10 @@ immune.combined$group
 # -----------------------------------
 
 ```{r cars}
-source("utils/sc_utils.R")
-source("utils/de_utils.R")
 
-datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
-ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
-immune.combined <- readRDS( file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
+#immune.combined <- readRDS( file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
 annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% str_replace_all(mrna_ref_id, "_" , "-")]
 
 # ------------------------------------
@@ -550,6 +271,8 @@ mast_T_late <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", cellt
 mast_T_middle <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","middle",".rds")))
 mast_T_early <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","early",".rds")))
 
+
+# Missing Global one 
 ```
 
 ```{r heatmap}
@@ -656,10 +379,10 @@ get_de_names <- function(df_filtered, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2)
   return(df_filtered$primerid)
 }
 
-gall_lncrnas
+
 # Select genes to plot
 lnc_myeloid_late <- get_de_names(mast_myeloid_late, subset = all_lncrnas)
-intersect(bulk_de_genes_all, gsub("-", "_",gsub("-unkown", "", lnc_myeloid_late)))
+#intersect(bulk_de_genes_all, gsub("-", "_",gsub("-unkown", "", lnc_myeloid_late)))
 
 lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas)
 lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas)
@@ -719,110 +442,9 @@ heatmap_mrna
 do_go(unlist(de_lists_mrna))
 ```
 
-# ------------------------------------
-#    One heatmap
-# ------------------------------------
-
-```{r a}
-# Complete list of differentially expressed lncRNAs
-
-de_all <- unique(unlist(de_lists_lnc))
-m <- mbackup
-# Create Matrix 
-m_significance <- msig_backup 
-m <- m[rownames(m) %in% de_all,, drop = FALSE]
-m_significance<- m_significance[rownames(m_significance) %in% de_all,, drop = FALSE]
-rownames(m) <- gsub("-unkown","",rownames(m))
-column_ha <- HeatmapAnnotation(celltype = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])), comparison = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])),
-show_annotation_name = FALSE,
-col = list(celltype = c("T" = brewer.pal(3, "Set2")[1],
-                                   "B" = brewer.pal(3, "Set2")[2],
-                                   "myeloid" = brewer.pal(3, "Set2")[3]),
-           comparison =c("early" = brewer.pal(6, "Set2")[4],
-                                   "middle" = brewer.pal(6, "Set2")[5],
-                                   "late" = brewer.pal(6, "Set2")[6]) ))
-dim(m)
-dim(m_significance)
-
-rowlabels <- replace(substring(rownames(m), 1,4),substring(rownames(m), 1,4) %in% substr(ebola_ref$gene_id, 1,4), NA)
-row_ha_type <- rowAnnotation(annot =rowlabels,
-                        show_annotation_name = FALSE, 
-                        col = list(annot = c("ENSM" = brewer.pal(3, "Paired")[1],
-                                   "poly" = brewer.pal(3, "Paired")[2],
-                                   "ribo" = brewer.pal(3, "Paired")[3])))
-
-labels_bulk <- ifelse(gsub("-", "_",gsub("-unkown", "", rownames(m))) %in% bulk_de_genes_all, "Also DE in Bulk", "na")
-row_ha <- rowAnnotation( genetype =labels_bulk,
-                        show_annotation_name = FALSE,
-                        col = list(genetype = c("na" = "white", "Also DE in Bulk" = "orange")))
-Heatmap(m, show_row_dend = FALSE,
-          show_column_dend = FALSE,
-          cluster_columns = FALSE,
-        cluster_rows = TRUE,
-          show_column_names = FALSE,
-          show_row_names = FALSE, 
-          row_title_rot = 0, 
-          top_annotation = column_ha, 
-          right_annotation = row_ha, 
-        left_annotation = row_ha_type,
-          column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])),
-          cell_fun = function(j, i, x, y, width, height, fill) {
-            if(m_significance[i, j] < 0.1 & abs(m[i,j]) > log(1.2) )
-            grid.text(sprintf("*"), x, y, gp = gpar(fontsize = 10))
-            },
-          heatmap_legend_param = list(title = "logFC")
-          )
-```
-
-
-# ------------------------------------
-#     Only focus on Myeloid 
-# ------------------------------------
-```{r a}
-
-# Only focus on Myeloid in lnc 
-lnc_myeloid_late <- get_de_names(mast_myeloid_late, subset = all_lncrnas, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2))
-lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2))
-lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2))
-
-de_lists_lnc_my <- list(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early )
-de_lists_lnc_my <- list(lnc_myeloid_late)
-names(de_lists_lnc_my) <- c("lnc_myeloid_late")
-names(de_lists_lnc_my) <- c("lnc_myeloid_late", "lnc_myeloid_middle", "lnc_myeloid_early")
-
-# ------------------------------------
-#          Z Score Heatmap 
-# ------------------------------------
-immune.combined@active.assay
-
-seurat_object_myeloid_late <- subset(immune.combined, features= unique(unlist(de_lists_lnc_my)))
-
-
-de_lists_lnc_my <- de_lists_lnc_my[unlist(lapply(1:length(de_lists_lnc_my), function(index) length(de_lists_lnc_my[[index]]) != 0))]
-
-# Heamap with all celltypes 
-h1_lnc_my <- hm(m= m,row_title = names(de_lists_lnc_my)[1], features  = de_lists_lnc_my[1][[1]], first = TRUE, row_names = TRUE)
-hms_lnc_my <- lapply(2:length(de_lists_lnc_my), function(index) hm(m,row_title = names(de_lists_lnc_my)[index], features  = de_lists_lnc_my[index][[1]], row_names = TRUE))
-
-# Heamap with Myeloid only 
-m_myeloid <- m[,c("myeloid_early", "myeloid_middle","myeloid_late")]
-h1_lnc_my <- hm(m= m_myeloid,row_title = names(de_lists_lnc_my)[1], features  = de_lists_lnc_my[1][[1]], first = TRUE, row_names = TRUE)
-hms_lnc_my <- lapply(2:length(de_lists_lnc_my), function(index) hm(m = m_myeloid,row_title = names(de_lists_lnc_my)[index], features  = de_lists_lnc_my[index][[1]], row_names = TRUE))
-
-h1_lnc_my %v% hms_lnc_my[[1]]
-
-# -------------------------------------------
-# Visualize in expression heatmap 
-# -------------------------------------------
-# Late Only 
-de_lnc_myelid_late_ordered <- de_lists_lnc_my$lnc_myeloid_late[order(m_myeloid[de_lists_lnc_my$lnc_myeloid_late,"myeloid_late" ])]
-baseline_late <- subset(myeloids, idents = c("baseline", "late"))
-DoHeatmap(myeloids, features = de_lnc_myelid_late_ordered, group.bar = TRUE)
-DoHeatmap(baseline_late, features = de_lnc_myelid_late_ordered, group.bar = TRUE) 
-#+     scale_fill_gradientn(colors = rev(RColorBrewer::brewer.pal(n = 5, name = "RdBu")))
-DoHeatmap(myeloids, features = de_lists_lnc_my$lnc_myeloid_early, group.bar = TRUE)
-```
-
+# ------------------------------
+#       Different heatmaps 
+# ------------------------------
 
 ```{r a}
 FDRTHRESHOLD <- 0.1
@@ -1001,6 +623,8 @@ z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
 
 
 ```
+
+# Save the heatmaps 
 ```{r colocation}
 png(filename = "/home/luisas/Desktop/cluster/data/mnew.png", width = 1300, height = 1100)
 z_score_heatmap(Myeloids, "myeloid", de_lists_lnc_my, "Myeloid",brewer.pal(3, "Set2")[3] )
@@ -1019,6 +643,8 @@ z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
 dev.off()
 ```
 
+
+# Venn Diagram 
 ```{r colocation}
 library(VennDiagram)
 
@@ -1081,6 +707,12 @@ venn.diagram(
         )
 
 ```
+
+
+# -----------------------------------
+#      Colocation Analysis
+# ----------------------------------
+
 
 ```{r colocation}
 # 1) For each gene lncrna find neighbour protein coding genes. ( either overlapping or in close region) --> putative pairs
@@ -1149,10 +781,61 @@ dotplot(ego)+theme(axis.text.y = element_text(size = 17))
 all_lnc_1mb_max10 <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
 do_go(unlist(all_lnc_1mb_max10))
 
-library(org.Hs.eg.db)
 ```
 
+# Correlation 
+
+# Calculate correlation measure 
+
 ```{r colocation}
+counts <- matrix(rpois(20*50, 100), 20, 50)
+group <- sample(c("A", "B"), size = 20, replace = TRUE)
+devtools::install_github("tpq/propr")
+library(propr)
+
+# Calculate counts matrix
+count_matrix <- immune.combined@assays$RNA@counts
+
+
+
+index <- 14
+
+calc_corr <- function(index){
+    gene_name <- str_replace( lnc_ranges_complete_de[index]$gene_name, "_", "-")
+    gene_counts <- as.vector(count_matrix[gene_name,])
+    FeaturePlot(immune.combined, features = c(gene_name), order = TRUE, pt.size  = 1.5)
+    
+    close_genes <- str_replace(unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = Inf, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name,"_", "-")
+    
+    expression_close_genes <- as.matrix(count_matrix[rownames(count_matrix) %in% close_genes,, drop = FALSE])
+    dim(expression_close_genes)
+    print(index)
+    if(nrow(expression_close_genes) > 0){
+
+          rhos <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$estimate))
+    pvals <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$p.value))
+    print("hey")
+    df <- data.frame(lnc = gene_name , genename = rownames(expression_close_genes)[1:nrow(expression_close_genes)], rho = rhos , pvals = pvals)
+    }else{
+      df <- NULL
+    }
+    print("aa")
+    return(df)
+}
+
+cor_table <- rbindlist((lapply(1:(length(lnc_ranges_complete_de$gene_id)), function(x) calc_corr(x))))
+sig_cor_table <- cor_table[[1]][ cor_table[[1]]$pvals < 0.05, ]
+sig_cor_table
+do_go(sig_cor_table$genename)
+```
+
+
+
+
+
+
+```{r example}
+library(scales)
 # Overlap is quite low, maybe we can mention if we select a specific lncRNA
 bulk_de_genes_all <-  readRDS(file.path(robjectsdir, "bulkDEgenes.rds"))
 de_sc <- gsub("-", "_",gsub("-unkown", "", c(unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
@@ -1258,8 +941,8 @@ return(ranges_5_cl_genes)
 
 
 # prepare ranges
-mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id  ]
-lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas))]
+mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id]
+lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas)),]
 # add gene entries for novel lncrna, which only present transcripts and exons
 genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
 missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
@@ -1353,7 +1036,7 @@ lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% g
 # ----------------------
 # Find pairs allowing 10K gap on both sides
 
-pairs <- findOverlapPairs(lnc_ranges_complete_de, get_gene_only(mrnas_ranges), maxgap=10000L, ignore.strand = TRUE)
+pairs <- findOverlapPairs(lnc_ranges_complete_de, get_gene_only(mrnas_ranges), maxgap=1000000L, ignore.strand = TRUE)
 # Get a list of ranges objects in pairs
 pairs_list <- zipup(pairs)
 length(pairs_list)
