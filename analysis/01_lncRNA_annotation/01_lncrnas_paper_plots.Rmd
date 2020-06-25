@@ -60,10 +60,8 @@ ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
 ```{r stats}
 polya_lnc  <- all[substr(all$gene_id,1,4) == "poly",]
 length(unique(polya_lnc$gene_id))
-findOverlaps(polya_lnc, ref_mrna )
 ribo_lnc  <- all[substr(all$gene_id,1,4) == "ribo",]
 length(unique(ribo_lnc$gene_id))
-findOverlaps(ribo_lnc, ref_mrna_exons )
 
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c("poly", "ribo"),]
 length(unique(all_novel_lnc$gene_id))
@@ -132,7 +130,16 @@ median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
 median_expression <- median_expression[!median_expression$type == "0",]
 plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
 
+median_expression_novel <- median_expression[median_expression$type == "Novel lncRNAs",]$expr
+median_expression_annot <- median_expression[median_expression$type == "Annotated lncRNAs",]$expr
+median_expression_pc <- median_expression[median_expression$type == "mRNAs",]$expr
+wilcox.test(median_expression_novel, median_expression_pc)
+wilcox.test(median_expression_novel, median_expression_annot)
+wilcox.test(median_expression_pc, median_expression_annot)
 
+#level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+#ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
+#                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
 
 # ----------------------------------------------------------------------
 # Extract compared
@@ -284,7 +291,19 @@ ribodepl_list_de <- list_de[grepl("ribo*", list_de)]
 
 # Enichment of differentially expressed genes identified by ribodepletion 
 enriched_polyneg_de <- all_enriched[rownames(all_enriched) %in% ribodepl_list_de, ]
-length(unique(list_de[list_de %in% ribo_unique_ids_enriched]))
+enriched_polyneg_de <- all_enriched[rownames(all_enriched) %in% list_de, ]
+length(unique(rownames(enriched_polyneg_de)))
+
+df <- data.frame( foldEnrichment= enriched_polyneg_de$enrichmentPolyAnegative)
+ggplot(df, aes(x = foldEnrichment))+geom_histogram(fill = "grey", color = "grey")+xlim(0,50)+ theme_classic()
+
+
+# Check the same for protein coding genes 
+list_de_mrna <- gsub("_unkown", "", gsub("-", "_", unique(unlist(de_lists_mrna))))
+
+# Enichment of differentially expressed genes identified by ribodepletion 
+enriched_polyneg_de <- all_enriched[rownames(all_enriched) %in% list_de_mrna, ]
+length(unique(rownames(enriched_polyneg_de)))
 
 df <- data.frame( foldEnrichment= enriched_polyneg_de$enrichmentPolyAnegative)
 ggplot(df, aes(x = foldEnrichment))+geom_histogram(fill = "grey", color = "grey")+xlim(0,50)+ theme_classic()

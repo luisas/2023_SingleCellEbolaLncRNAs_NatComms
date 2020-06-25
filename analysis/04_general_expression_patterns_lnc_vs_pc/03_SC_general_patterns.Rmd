@@ -46,6 +46,12 @@ print("done")
 #     mRNAs present in object 
 # -------------------------------------
 annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% unique(ref$gene_name[ref$gene_biotype == "protein_coding"])]
+
+annotated_pseudogenes <- rownames(immune.combined)[rownames(immune.combined) %in% unique(ref$gene_name[ref$gene_biotype %in% c("pseudogene", "processed_pseudogene")])]
+length(unique(annotated_pseudogenes))
+
+
+
 length(unique(annotated_mrnas))
 # ------------------------------------
 #     LncRNAs present in object 
@@ -257,6 +263,18 @@ df_lnc <- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c()
 invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = all_lncrnas), "",df_lnc, 1))
 df_mrna<- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(),tot_cells = c())
 invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = annotated_mrnas), "",df_mrna, 1))
+
+df_pseudogenes<- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(),tot_cells = c())
+invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = annotated_pseudogenes), "",df_pseudogenes, 1))
+
+
+saveRDS(df_lnc, "/home/luisas/Desktop/cluster/data/RObjects_old/df_lnc.rds")
+saveRDS(df_mrna, "/home/luisas/Desktop/cluster/data/RObjects_old/df_mrna.rds")
+saveRDS(df_pseudogenes, "/home/luisas/Desktop/cluster/data/RObjects_old/df_pseudogenes.rds")
+
+df_lnc <- readRDS( "/home/luisas/Desktop/cluster/data/RObjects_old/df_lnc.rds")
+df_mrna <- readRDS("/home/luisas/Desktop/cluster/data/RObjects_old/df_mrna.rds")
+
 ```
 
 ```{r celltype}
@@ -273,6 +291,9 @@ invisible(lapply(as.vector(unique(Idents(subset))), function(x) calc_mean_and_pe
 
 saveRDS(df_lnc_celltype, "/home/luisas/Desktop/cluster/data/RObjects_old/df_celltype_lnc.rds")
 saveRDS(df_mrna_celltype, "/home/luisas/Desktop/cluster/data/RObjects_old/df_mrna_celltype.rds")
+
+df_lnc_celltype <- readRDS("/home/luisas/Desktop/cluster/data/RObjects_old/df_celltype_lnc.rds")
+df_mrna_celltype <- readRDS("/home/luisas/Desktop/cluster/data/RObjects_old/df_mrna_celltype.rds")
 
 df_mrna_celltype$type <- NA
 df_lnc_celltype$type <-  NA
@@ -319,8 +340,55 @@ ggboxplot(df_complete, y="perc_cells_expressing", x = "type", fill = "type", col
 scatter_plot_both(df_lnc,df_mrna, y = "Cell Percentage", type = "Max", palette = palette_plot_percentage)
 scatter_plot_both(df_lnc,df_mrna, y = "Cell Percentage", type = "Median",palette = palette_plot_percentage)
 
+
+df_lnc$ident <- "lncRNA"
+df_mrna$ident <- "mRNA"
+df_pseudogenes$ident <- "pseudogene"
+df_compl <- rbind(df_lnc, df_mrna, df_pseudogenes)
+
+ggplot(df_compl, aes(x = perc_cells_expressing, col = ident, fill= ident))+
+  geom_density(alpha = 0.5)+
+  theme_classic()+
+  xlim(0,0.5)+
+  labs(x = "% of cells expressing the gene")+
+  scale_fill_manual(values= c(palette_plot_percentage, "darkgreen"))+
+  scale_color_manual(values= c(palette_plot_percentage, "darkgreen"))+
+  theme(legend.title = element_blank() ) 
+
+
+ggboxplot(df_compl, y="perc_cells_expressing", x = "ident", fill = "ident", color = "ident", alpha = 0.5)+
+                scale_fill_manual(values = c(palette_plot_percentage, "darkgreen"))+
+                scale_color_manual(values = c(palette_plot_percentage, "darkgreen"))+
+                stat_compare_means(comparisons = list(c("lncRNA", "mRNA"), c("pseudogene", "mRNA"),  c("pseudogene", "lncRNA")))+
+                labs(x = "", y = "% Cells")+
+                theme(legend.title = element_blank(), legend.position = "none")
 ```
 
+# ------------------------------
+# Linear model instead of matching
+# ------------------------------
+
+```{r linearModelInsetadoofMatching}
+df_lnc$ident <- "lncRNA"
+df_mrna$ident <- "protein_coding"
+df_complete <- rbind(df_lnc, df_mrna)
+
+genetype <- as.factor(ifelse(df_complete$ident == "lncRNA", 0, 1))
+medianexpression <- df_complete$medianexpr
+perc_cells_expressing <- df_complete$perc_cells_expressing
+
+model2 <- lm(medianexpression ~  perc_cells_expressing + genetype )
+
+summary(model2)
+
+library(car)
+library(gvlma)
+
+car::vif(model2)
+model <- glm(genetype ~ perc_cells_expressing+ medianexpression , family = binomial(link = "logit") )
+summary(model)
+
+```
 
 # ------------------------------
 #     Match median expression 
@@ -421,6 +489,7 @@ df_complete <- df_complete[df_complete$n_cells >= 50, ]
 c <- df_complete[complete.cases(df_complete),]
 c$type = ifelse(c$type == "lnc", 1, 0)
 
+length(unique(unlist(de_lists_mrna)))
 # -------------------------------
 #   Select Only one celltype 
 # -------------------------------
@@ -441,9 +510,9 @@ match_in_one_celltype_median <- function(c, celltype_test){
   n_matches <- length(unique(matches_median[matches_median$type == "lnc",]$gene_id))
   matches_median$type <- as.factor(matches_median$type)
   
-  title = paste0(celltype_test, "  pval: ", pval)
-  scatter_plot_matching <- ggplot(matches_median, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( title=title, subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+theme(legend.position = "none")+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+labs(x = "Median Expression", y = "% Cells expressing")+theme(legend.title = element_blank(), legend.position = "")+theme(legend.title = element_blank(), legend.position = "")+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))
+  title = paste0(celltype_test)
+  scatter_plot_matching <- ggplot(matches_median, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( title=title, subtitle = paste0("# Matches ", n_matches, "\n", "p-val for distributions of % of cells expressing: ", pval))+ theme(legend.title = element_blank())+scale_fill_manual(values = palette_plot_percentage)+
+            scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"), legend.position = "none")+labs(x = "Median Expression", y = "% Cells expressing")+theme(legend.title = element_blank())+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))
   
   
   scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)
@@ -467,9 +536,9 @@ match_in_one_celltype_perccells <- function(c, celltype_test){
   pval <- test$p.value
 
   
-  title = paste0(celltype_test, "  pval: ", pval)
-  scatter_plot_matching <- ggplot(matches_perc, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( title=title, subtitle = paste0("# Matches ", n_matches))+ theme(legend.title = element_blank())+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+theme(legend.position = "none")+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+labs(x = "Median Expression", y = "% Cells expressing")+theme(legend.title = element_blank(), legend.position = "")+theme(legend.title = element_blank(), legend.position = "")+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))
+  title = paste0(celltype_test)
+  scatter_plot_matching <- ggplot(matches_perc, aes(x=medianexpr, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( title=title, subtitle = paste0("# Matches ", n_matches, "\n", "p-val for distributions median expression: ", pval))+ theme(legend.title = element_blank())+scale_fill_manual(values = palette_plot_percentage)+
+            scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"), legend.position = "none")+labs(x = "Median Expression", y = "% Cells expressing")+theme(legend.title = element_blank())+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))
   
   
   scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3, ,groupColour = TRUE, groupFill = TRUE)

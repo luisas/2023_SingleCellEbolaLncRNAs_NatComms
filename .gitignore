@@ -12,6 +12,7 @@ work/*
 */out
 */err
 test.nf
+nextflow_pipelines/01_CLUSTER_Marenostrum/tmp
 nextflow_pipelines/01_CLUSTER_Marenostrum/err
 nextflow_pipelines/01_CLUSTER_Marenostrum/out
 nextflow_pipelines/00_CLUSTER_Nord3/out

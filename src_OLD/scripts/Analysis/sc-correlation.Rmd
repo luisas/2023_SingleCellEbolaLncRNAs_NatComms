@@ -81,13 +81,6 @@ do_go <- function(list, mmu = FALSE){
 # linear model 
 ```{r correlation analysis}
 
-
-
-
-
-
-
-
 calc_models <- function(all_genes, infected, viral_load){
   subset <- subset(infected, features = all_genes)
   count_matrix <- subset@assays$RNA@data
@@ -242,7 +235,7 @@ viral_load_percentage <- calc_viral_load(ebola_genes, infected)
 
 # Select cells in which gene can be detected 
 all_genes <- rownames(infected_immune.combined_no_ebola)
-correlations<- lapply(all_lncrnas, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage))
+correlations<- lapply(all_genes, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage))
 correlations_mrnas<- lapply(annotated_mrnas, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage))
 
 plot_correlation_coefficients(all_lncrnas,correlations )
@@ -302,7 +295,7 @@ ggplot(df_complete, aes(x = viral_load_percentage, y = expression_gene, col =  g
 
 ```{r Function Inference LncRNAs}
 # Go enrichment 
-p1 <- go_highest_lowest(all_genes, correlations, subset = "highest")
+p1 <- go_highest_lowest(all_genes, unlist(correlations), subset = "highest")
 p1 +theme(axis.text.y=element_text(hjust=1, size = 7))
 p2 <- go_highest_lowest(all_genes, correlations, subset = "lowest")
 p2 +theme(axis.text.y=element_text(hjust=1, size = 8))

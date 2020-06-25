@@ -400,10 +400,10 @@ get_gene_range <-function(missing_gene_line, lnc_ranges){
   new_entry$transcript_id <- NA; new_entry$exon_id <- NA; new_entry$transcript_name <-NA
   return(new_entry)
 }
-do_go <- function(list){
+do_go <- function(list, n = 10){
   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(ref$gene_name))
-  barplot(ego, showCategory=10)
-  clusterProfiler::dotplot(ego)
+  clusterProfiler::dotplot(ego, showCategory=n)
+  barplot(ego, showCategory=n)
 }
 # ----------------------
 # Obtain Seurat Objects 

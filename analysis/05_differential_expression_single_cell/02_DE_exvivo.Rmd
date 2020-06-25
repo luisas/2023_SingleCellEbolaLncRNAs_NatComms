@@ -157,17 +157,22 @@ get_infected_cells <- function(immune.combined,ebola_genes, ident = "Myeloid", s
   infected <- subset(myeloids_live_24, ident = "infected")
   return(infected)
 }
+cells <- immune.combined
 calc_viral_load <- function(ebola_genes, cells){
   # Calculate the viral load per cell 
   ebola_genome <- subset(cells, features = ebola_genes)
   count_matrix_ebola <- ebola_genome@assays$RNA@counts
   count_matrix <- cells@assays$RNA@counts
   viral_counts_per_cell <- colSums(count_matrix_ebola)
+  
   #viral_counts_per_cell <- count_matrix[rownames(count_matrix)== "NP-unkown",]
   total_counts_per_cell <- colSums(count_matrix)
   viral_load_percentage <- (viral_counts_per_cell/total_counts_per_cell)*100
+  df <- data.frame(EBOV = viral_load_percentage, nebov = viral_counts_per_cell, ntot = total_counts_per_cell)
   df <- data.frame(EBOV = viral_load_percentage)
-  ggplot(df, aes(x = EBOV))+geom_histogram()
+  ggplot(df[df$EBOV>0.9,], aes(x = EBOV))+geom_histogram()
+  ggplot(df, aes(x = total_counts_per_cell))+geom_histogram()
+  df[df$EBOV > 20,, drop = FALSE]
   return(viral_load_percentage)
 }
 
@@ -186,14 +191,28 @@ calc_correlation_with_viralload <- function(gene_id, infected_immune.combined_no
   return(cor)
 }
 
-calc_correlation_with_viralload <- function(gene_id, infected_immune.combined_no_ebola, viral_load_percentage){
+gene_id <- all_lncrnas[2]
+calc_correlation_with_viralload <- function(gene_id, infected_immune.combined_no_ebola, viral_load_percentage, onlyexpressed = FALSE){
   count_matrix <- infected_immune.combined_no_ebola@assays$RNA@data
   number_genes_per_cell <- get_n_genes(count_matrix)
   expression_gene1 <- count_matrix[rownames(count_matrix)== gene_id,]
+  print(gene_id)
+  # Only calc correlation when 
+  if(onlyexpressed == TRUE){
+    # Only calculate it with the cells in which it expresses 
+    mask <- expression_gene1>0
+    table(mask)
+    expression_gene1  <- expression_gene1[mask]
+    viral_load_percentage <- viral_load_percentage[mask]
+  }
+  if(length(expression_gene1)>10){
   #cor <- cor(as.numeric(expression_gene1), viral_load_percentage, method=c("spearman"))
   rhos <- cor.test(as.numeric(expression_gene1),viral_load_percentage , method = "spearman")$estimate
   pvals <- cor.test(as.numeric(expression_gene1),viral_load_percentage , method = "spearman")$p.value
   df <- data.frame( genename = gene_id, rho = rhos , pvals = pvals)
+  }else{
+    df <- data.frame()
+  }
   return(df)
 }
 
@@ -247,7 +266,7 @@ viral_load_percentage <- calc_viral_load(ebola_genes, infected)
 
 # Select cells in which gene can be detected 
 all_genes <- rownames(infected_immune.combined_no_ebola)
-correlations<-  rbindlist(lapply(all_lncrnas, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage)))
+correlations<-  rbindlist(lapply(all_lncrnas, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage, onlyexpressed = FALSE)))
 correlations_mrnas<- rbindlist(lapply(annotated_mrnas, function(gene_id) calc_correlation_with_viralload(gene_id, infected_immune.combined_no_ebola, viral_load_percentage)))
 print("done")
 
@@ -255,8 +274,46 @@ print("done")
 saveRDS(correlations, file.path(robjectsdir, "EXVIVO_lnc_cor.rds"))
 saveRDS(correlations_mrnas, file.path(robjectsdir, "EXVIVO_mrna_cor.rds"))
 
-significant_correlations_lnc <- correlations[!is.na(correlations$pvals) & correlations$pvals < 0.1,]
-significant_correlations_mrna <- correlations_mrnas[!is.na(correlations_mrnas$pvals) & correlations_mrnas$pvals < 0.1,]
+correlations <- readRDS(file.path(robjectsdir, "EXVIVO_lnc_cor.rds"))
+correlations_mrnas <- readRDS(file.path(robjectsdir, "EXVIVO_mrna_cor.rds"))
+correlations$type <- "lncRNA"
+correlations_mrnas$type <- "mRNA"
+correlations_complete <- rbind(correlations, correlations_mrnas)
+
+# Calculate q Value 
+library(qvalue)
+correlations_complete$qval <- qvalue(correlations_complete$pvals)$qvalues
+
+
+# Check which are the significant ones
+significant_correlations <- correlations_complete[!is.na(correlations_complete$qval) & correlations_complete$qval < 0.1,]
+
+# how many are down and how many are up 
+significant_up <- significant_correlations[significant_correlations$rho>0,]
+table(significant_up$type)
+significant_up_lnc <- significant_up[significant_up$type == "lncRNA",]
+significant_up_mrna <- significant_up[significant_up$type == "mRNA",]
+do_go(unique(significant_up_mrna$genename))
+
+significant_down <- significant_correlations[significant_correlations$rho<0,]
+table(significant_down$type)
+significant_down_lnc <- significant_down[significant_down$type == "lncRNA",]
+significant_down_mrna <- significant_down[significant_down$type == "mRNA",]
+do_go(unique(significant_down_mrna$genename))
+
+
+significant_mrna <- rbind(significant_down_mrna, significant_up_mrna)
+do_go(unique(significant_mrna$genename))
+
+table(significant_correlations_$type)
+p1 <- go_highest_lowest(significant_correlations_mrna$genename, unlist(significant_correlations_mrna$rho), subset = "highest")
+
+p2 <- go_highest_lowest(significant_correlations_mrna$genename, unlist(significant_correlations_mrna$rho), subset = "lowest")
+
+p2 <- go_highest_lowest(significant_correlations_mrna$genename, unlist(significant_correlations_mrna$qval), subset = "lowest")
+
+
+p2
 
 ```
 
@@ -272,18 +329,12 @@ palette_plot_percentage <- c(col_lnc, col_mrna)
 # Compare correlation coefficients of lncrnas and protein coding genes 
 # --------------------------------------------------------------------------------------
 
-df<- data.frame(cor = unlist(significant_correlations_lnc$rho), type = "lncRNAs", pval = significant_correlations_lnc$pvals)
-df2 <- data.frame(cor = unlist(significant_correlations_mrna$rho), type = "mRNAs", pval = significant_correlations_mrna$pvals)
-df <- rbind(df,df2 )
-ggplot(df, aes(x = abs(cor), col = type)) + stat_ecdf(alpha = 0.5, size = 0.8)+ theme_classic()+labs( x= "|Correlation Coefficient|", title = " Correlation coefficients for viral load and normalized gene expression (lncRNAs) ", y = "")+xlim(0,0.3)
-
-
-ggboxplot(df, x = "type", y = "abs(cor)",
-                color = "type", fill = "type", alpha = 0.5)+stat_compare_means(comparisons = list(c("lncRNAs", "mRNAs")))+labs(x = "", y = "|Correlation coefficient|")+scale_fill_manual(values = palette_plot_percentage)+
+ggboxplot(correlations_complete, x = "type", y = "abs(rho)",
+                color = "type", fill = "type", alpha = 0.5)+stat_compare_means(comparisons = list(c("lncRNA", "mRNA")))+labs(x = "", y = "|Correlation coefficient|")+scale_fill_manual(values = palette_plot_percentage)+
                 scale_color_manual(values = palette_plot_percentage)
 
-ggboxplot(df, x = "type", y = "pval",
-                color = "type", fill = "type", alpha = 0.5)+stat_compare_means(comparisons = list(c("lncRNAs", "mRNAs")))+labs(x = "", y = "P value")+scale_fill_manual(values = palette_plot_percentage)+
+ggboxplot(correlations_complete, x = "type", y = "qval",
+                color = "type", fill = "type", alpha = 0.5)+stat_compare_means(comparisons = list(c("lncRNA", "mRNA")))+labs(x = "", y = "Q value")+scale_fill_manual(values = palette_plot_percentage)+
                 scale_color_manual(values = palette_plot_percentage)
 
 ```
@@ -360,12 +411,105 @@ mast_T_middle <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", cel
 mast_T_early <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","early",".rds")))
 
 
+# ------- Myeloid
+celltype <- "myeloid"
+mast_myeloid_late$comparison <- paste0(celltype,"_late")
+mast_myeloid_middle$comparison <- paste0(celltype,"_middle")
+mast_myeloid_early$comparison <- paste0(celltype,"_early")
+myeloids_de <- rbind(mast_myeloid_late, mast_myeloid_middle, mast_myeloid_early)
+
+# ------- T
+celltype <- "T"
+mast_T_late$comparison <- paste0(celltype,"_late")
+mast_T_middle$comparison <- paste0(celltype,"_middle")
+mast_T_early$comparison <- paste0(celltype,"_early")
+t_de <- rbind(mast_T_late, mast_T_middle, mast_T_early)
 
 
+# ------- B
+celltype <- "B"
+mast_B_late$comparison <- paste0(celltype,"_late")
+mast_B_middle$comparison <- paste0(celltype,"_middle")
+mast_B_early$comparison <- paste0(celltype,"_early")
+b_de <- rbind(mast_B_late, mast_B_middle, mast_B_early)
 
-lnc_myeloid_late
+stats_complete <- rbind( myeloids_de, t_de, b_de)
+
+# Convert into matrix
+m <-xtabs(coef~primerid+comparison, stats_complete)
+attr(m, "class") <- NULL
+colnames(m)
+m <- m[,c("myeloid_early" ,"myeloid_middle","myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+
+m_significance<-xtabs(fdr~primerid+comparison, stats_complete)
+attr(m_significance, "class") <- NULL
+m_significance <- m_significance[,c("myeloid_early" ,"myeloid_middle","myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+
+# -------------------------------------------------------------------------
+# Select genes
+# -------------------------------------------------------------------------
+
+FDRTHRESHOLD <- 0.1
+
+get_de_names <- function(df_filtered, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2), subset = all_lncrnas){
+  # Only select lncrnas 
+  df_filtered <- df_filtered[df_filtered$primerid %in% subset,]
+  # Only select significant ones
+  df_filtered <- df_filtered[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
+  return(df_filtered$primerid)
+}
 
 
+# Select genes to plot
+lnc_myeloid_late <- get_de_names(mast_myeloid_late, subset = all_lncrnas)
+#intersect(bulk_de_genes_all, gsub("-", "_",gsub("-unkown", "", lnc_myeloid_late)))
+
+lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas)
+lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas)
+
+lnc_T_late <- get_de_names(mast_T_late, subset = all_lncrnas)
+lnc_T_middle <- get_de_names(mast_T_middle, subset = all_lncrnas)
+lnc_T_early <- get_de_names(mast_T_early, subset = all_lncrnas)
+
+lnc_B_late <- get_de_names(mast_B_late, subset = all_lncrnas)
+lnc_B_middle <- get_de_names(mast_B_middle, subset = all_lncrnas)
+lnc_B_early <- get_de_names(mast_B_early, subset = all_lncrnas)
+
+## mrnas
+mrna_myeloid_late <- get_de_names(mast_myeloid_late, subset = annotated_mrnas)
+mrna_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = annotated_mrnas)
+mrna_myeloid_early <- get_de_names(mast_myeloid_early, subset = annotated_mrnas)
+
+mrna_T_late <- get_de_names(mast_T_late, subset = annotated_mrnas)
+mrna_T_middle <- get_de_names(mast_T_middle, subset = annotated_mrnas)
+mrna_T_early <- get_de_names(mast_T_early, subset = annotated_mrnas)
+
+mrna_B_late <- get_de_names(mast_B_late, subset = annotated_mrnas)
+mrna_B_middle <- get_de_names(mast_B_middle, subset = annotated_mrnas)
+mrna_B_early <- get_de_names(mast_B_early, subset = annotated_mrnas)
+# ----------------------------
+
+
+de_lists_lnc <- list(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early,lnc_T_late, lnc_T_middle, lnc_T_early, lnc_B_late, lnc_B_middle, lnc_B_early )
+names(de_lists_lnc) <- c("lnc_myeloid_late", "lnc_myeloid_middle", "lnc_myeloid_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
+
+
+de_lists_mrna <- list(mrna_myeloid_late, mrna_myeloid_middle, mrna_myeloid_early,mrna_T_late, mrna_T_middle, mrna_T_early, mrna_B_late, mrna_B_middle, mrna_B_early )
+names(de_lists_mrna) <- c("mrna_myeloid_late", "mrna_myeloid_middle", "mrna_myeloid_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
+
+all_de_mrna_myeloid <- unique(c(mrna_myeloid_early, mrna_myeloid_late, mrna_myeloid_middle))
+
+# Overlap DE and significantly correlated mrna with viral load
+
+intersect <- intersect(significant_correlations_mrna$genename, all_de_mrna_myeloid)
+length(unique(intersect))
+length(unique(significant_correlations_mrna$genename))
+length(all_de_mrna_myeloid)
+
+intersect <- intersect(significant_correlations$genename, all_de_lnc_myeloid)
+length(intersect)
+table(significant_correlations$type)
+length(all_de_lnc_myeloid)
 ```
 
 
@@ -373,30 +517,68 @@ lnc_myeloid_late
 
 # Lnc Myeloid Late
 
-visualize_cor <- function(gene_list, correlations = correlations){
+visualize_cor <- function(gene_list, correlations = correlations, threshold = 0.1){
   myeloid_late_cor <- rbindlist(lapply(gene_list ,function(gene_id) correlations[correlations$genename == gene_id, ]))
-  myeloid_late_cor$sig <- ifelse(myeloid_late_cor$pvals<0.1, TRUE, FALSE)
+  myeloid_late_cor$sig <- ifelse(myeloid_late_cor$qval<threshold, TRUE, FALSE)
   
   # Plot only the significant ones 
-  gene_ids <- myeloid_late_cor[myeloid_late_cor$pvals<0.1, ]$genename
-  df_complete <- rbindlist(lapply(gene_ids, function(gene_id) data.frame( viral_load_percentage = viral_load_percentage, expression_gene = as.vector(as.matrix(subset(infected_immune.combined_no_ebola, features = gene_id)@assays$RNA@data)), gene_id = paste0(gene_id, "  ", format(round(correlations[correlations$genename == gene_id, ]$rho, 2), nsmall = 2), "   pval: ",correlations[correlations$genename == gene_id, ]$pvals))))
+  gene_ids <- myeloid_late_cor[myeloid_late_cor$qval<threshold, ]$genename
+  df_complete <- rbindlist(lapply(gene_ids, function(gene_id) data.frame( viral_load_percentage = viral_load_percentage, expression_gene = as.vector(as.matrix(subset(infected_immune.combined_no_ebola, features = gene_id)@assays$RNA@data)), gene_id = paste0(gene_id, "  ", format(round(correlations[correlations$genename == gene_id, ]$rho, 2), nsmall = 2), "   qval: ",correlations[correlations$genename == gene_id, ]$qval))))
   
   p <- ggplot(df_complete, aes(x = viral_load_percentage, y = expression_gene, col =  gene_id))+theme_classic()+labs(y = "Normalized Gene Expression", x = "%Viral Load", title = "Ex Vivo:  Inverse Correlation with Viral Load")+geom_line(stat = "summary_bin", binwidth = 5)+scale_color_brewer(palette = "Dark2")+theme(legend.title = element_blank())
   return(p)
 }
 
-visualize_cor(lnc_myeloid_late)
-visualize_cor(lnc_myeloid_middle)
-visualize_cor(lnc_myeloid_early)
+
+gene_list <- all_de_lnc_myeloid
+all_de_lnc_myeloid <- c(lnc_myeloid_late, lnc_myeloid_middle,lnc_myeloid_early )
+visualize_cor(unique(all_de_lnc_myeloid), correlations_complete)
+visualize_cor(lnc_myeloid_late, correlations_complete)
+visualize_cor(lnc_myeloid_middle, correlations_complete)
+visualize_cor(lnc_myeloid_early, correlations_complete)
+
+
+# Overlap 
+intersect(significant_correlations_lnc$genename , all_de_lnc_myeloid)
+
+visualize_cor <- function(gene_list,title = "Ex vivo",  correlations = correlations, threshold = 0.1){
+  myeloid_late_cor <- rbindlist(lapply(gene_list ,function(gene_id) correlations[correlations$genename == gene_id, ]))
+  myeloid_late_cor$sig <- ifelse(myeloid_late_cor$qval<threshold, TRUE, FALSE)
+  
+  # Plot only the significant ones 
+  gene_ids <- myeloid_late_cor[myeloid_late_cor$qval<threshold, ]$genename
+  df_complete <- rbindlist(lapply(gene_ids, function(gene_id) data.frame( viral_load_percentage = viral_load_percentage, expression_gene = as.vector(as.matrix(subset(infected_immune.combined_no_ebola, features = gene_id)@assays$RNA@data)), gene_id = gene_id)))
+  
+  df_complete <- df_complete[df_complete$expression_gene > 0, ]
+  
+  p <- ggplot(df_complete, aes(x = viral_load_percentage, y = expression_gene, col =  gene_id))+theme_classic()+labs(y = "Normalized Gene Expression", x = "%Viral Load", title = title)+theme(legend.title = element_blank())+
+    geom_point()+geom_smooth(se = FALSE)
+  p
+  return(p)
+}
+
+correlations <- correlations_complete
+gene_ids <- unique(all_de_lnc_myeloid)
+a <- visualize_cor(unique(all_de_lnc_myeloid), title = "EX vivo ", correlations_complete, threshold = 1)
+a + xlim(0,20)
+a <- visualize_cor(lnc_myeloid_late, title = "late",correlations =  correlations_complete, threshold  = 1)
+a
+
+visualize_cor(lnc_myeloid_middle, correlations_complete, threshold = 1, title = "middle")
+visualize_cor(lnc_myeloid_early, correlations_complete, threshold = 1, title = "early")
+dim(immune.combined)
 
 
 pair <- c("THY", "ENSMMUG00000061948-unkown")
-
 annotated_mrnas[annotated_mrnas]
 all_lncrnas[grepl("ENSMMUG00000061948-unkown", all_lncrnas)]
 rbind(correlations_mrnas[correlations_mrnas$genename == "THY",], )
 
 visualize_cor(pair, correlations = )
+
+
+
+
 ```
 
 

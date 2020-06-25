@@ -439,7 +439,7 @@ length(de_lists_mrna)
 heatmap_mrna <- h1 %v% hms_mrna[[1]]%v%hms_mrna[[2]]%v%hms_mrna[[3]]%v%hms_mrna[[4]]%v%hms_mrna[[5]]%v%hms_mrna[[6]]%v%hms_mrna[[7]]%v%hms_mrna[[8]]
 heatmap_mrna
 
-do_go(unlist(de_lists_mrna))
+do_go(unlist(de_lists_mrna), n = 5)
 ```
 
 # ------------------------------
@@ -455,7 +455,8 @@ lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas, FD
 lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas, FDRTHRESHOLD = FDRTHRESHOLD, FCTHRESHOLD = FCTHRESHOLD)
 de_lists_lnc_my <- list(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early )
 names(de_lists_lnc_my) <- c("lnc_myeloid_late", "lnc_myeloid_middle", "lnc_myeloid_early")
-
+de_lists_mrna_my <- list(mrna_myeloid_late, mrna_myeloid_middle, mrna_myeloid_early )
+names(de_lists_mrna_my) <- c("mrna_myeloid_late", "mrna_myeloid_middle", "mrna_myeloid_early")
 
 
 lnc_T_late <- get_de_names(mast_T_late, subset = all_lncrnas, FDRTHRESHOLD = FDRTHRESHOLD, FCTHRESHOLD = FCTHRESHOLD)
@@ -464,6 +465,9 @@ lnc_T_early <- get_de_names(mast_T_early, subset = all_lncrnas, FDRTHRESHOLD = F
 de_lists_lnc_T <- list(lnc_T_late, lnc_T_middle, lnc_T_early )
 names(de_lists_lnc_T) <- c("lnc_T_late", "lnc_T_middle", "lnc_T_early")
 de_lists_lnc_T <- de_lists_lnc_T[unlist(lapply(1:length(de_lists_lnc_T), function(index) length(de_lists_lnc_T[[index]]) != 0))]
+de_lists_mrna_T <- list(mrna_T_late, mrna_T_middle, mrna_T_early )
+names(de_lists_mrna_T) <- c("mrna_T_late", "mrna_T_middle", "mrna_T_early")
+
 
 lnc_B_late <- get_de_names(mast_B_late, subset = all_lncrnas, FDRTHRESHOLD = FDRTHRESHOLD, FCTHRESHOLD = FCTHRESHOLD)
 lnc_B_middle <- get_de_names(mast_B_middle, subset = all_lncrnas, FDRTHRESHOLD = FDRTHRESHOLD, FCTHRESHOLD = FCTHRESHOLD)
@@ -472,6 +476,9 @@ de_lists_lnc_B <- list(lnc_B_late, lnc_B_middle, lnc_B_early )
 
 names(de_lists_lnc_B) <- c("lnc_B_late", "lnc_B_middle", "lnc_B_early")
 de_lists_lnc_B <- de_lists_lnc_B[unlist(lapply(1:length(de_lists_lnc_B), function(index) length(de_lists_lnc_B[[index]]) != 0))]
+
+de_lists_mrna_B <- list(mrna_B_late, mrna_B_middle, mrna_B_early )
+names(de_lists_mrna_B) <- c("mrna_B_late", "mrna_B_middle", "mrna_B_early")
 
 de_lnc_all <- c(de_lists_lnc_my, de_lists_lnc_T, de_lists_lnc_B)
 
@@ -621,7 +628,7 @@ z_score_heatmap(T, "T", de_lists_lnc_T, "T",  brewer.pal(3, "Set2")[1])
 z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
 
 
-
+print("s")
 ```
 
 # Save the heatmaps 
@@ -641,6 +648,92 @@ dev.off()
 png(filename = "/home/luisas/Desktop/cluster/data/bnew.png", width = 1300, height = 1100)
 z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
 dev.off()
+```
+
+# -------------------------------------
+#        Match DE lnc and DE mrnas 
+# -------------------------------------
+```{r MatchLncPC}
+
+df_lnc_de <- df_lnc[df_lnc$gene_id %in% unlist(de_lists_lnc),]
+df_mrna_de <- df_mrna[df_mrna$gene_id %in% unlist(de_lists_mrna),]
+
+set.seed(123)
+df_lnc_de$type <- "lnc"
+df_mrna_de$type <- "mrna"
+df_complete<- rbind(df_lnc_de, df_mrna_de)
+c <- df_complete[complete.cases(df_complete),]
+c$type = ifelse(c$type == "lnc", 1, 0)
+
+# Match Expression 
+mi_median <- matchit(type ~ medianexpr,c)
+matches_median <- get_matches(mi_median, c)
+
+
+length(unique(matches_median$gene_id))
+length(unique(early_de_pc))
+# Stage Specific
+early_de_pc <- c(de_lists_mrna_T$mrna_T_early, de_lists_mrna_B$mrna_B_early, de_lists_mrna_my$mrna_myeloid_early)
+early_de_pc <- (intersect(early_de_pc, matches_median$gene_id))
+middle_de_pc <- c(de_lists_mrna_T$mrna_T_middle, de_lists_mrna_B$mrna_B_middle, de_lists_mrna_my$mrna_myeloid_middle)
+middle_de_pc <- (intersect(middle_de_pc, matches_median$gene_id))
+late_de_pc <- c(de_lists_mrna_T$mrna_T_late, de_lists_mrna_B$mrna_B_late, de_lists_mrna_my$mrna_myeloid_late)
+late_de_pc <- (intersect(late_de_pc, matches_median$gene_id))
+
+library(VennDiagram)
+venn.diagram(
+  x = list( unlist(unique(early_de_pc)), unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))),
+  category.names = c( "Early DE mRNAs" , "Middle DE mRNAs ","Late DE mRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagram_stagessignature_de_mrna_matched',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 680 , 
+          width = 680 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(8, "Pastel2")[6:8],
+          
+          cex = 0.8,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-20, 20, -180),
+          cat.dist = c(0.050, 0.050, 0.050),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
+
+
+
+de_lists_mrna_T_matched <- intersect(unlist(unique(de_lists_mrna_T)), matches_median$gene_id) 
+de_lists_mrna_B_matched <- intersect(unlist(unique(de_lists_mrna_B)), matches_median$gene_id) 
+de_lists_mrna_my_matched <- intersect(unlist(unique(de_lists_mrna_my)), matches_median$gene_id) 
+
+venn.diagram(
+  x = list( de_lists_mrna_T_matched, de_lists_mrna_B_matched,de_lists_mrna_my_matched),
+  category.names = c( "T DE mRNAs " , "B DE mRNAs ","Myeloid DE mRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagramm_celltype_mrna_matched_new',
+ output = TRUE ,
+          imagetype="png" ,
+          height = 580 , 
+          width = 580 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(3, "Set2"),
+          fill = c(alpha(brewer.pal(3, "Set2")[1],0.1), alpha(brewer.pal(3, "Set2")[2],0.1), alpha(brewer.pal(3, "Set2")[3],0.1)),
+          cex = 0.8,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-165, 165, -0),
+          cat.dist = c(0.085, 0.085, 0.085),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
 ```
 
 
@@ -676,6 +769,34 @@ venn.diagram(
         )
 
 # -------------------------------------------
+# Overlap of Differentially expressed PROTEIN CODING 
+# -------------------------------------------
+venn.diagram(
+  x = list( unlist(unique(de_lists_mrna_T)), unlist(unique(de_lists_mrna_B)),unlist(unique(de_lists_mrna_my))),
+  category.names = c( "T DE mRNAs " , "B DE mRNAs ","Myeloid DE mRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagramm_celltype_mrna',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 580 , 
+          width = 580 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(3, "Set2"),
+          fill = c(alpha(brewer.pal(3, "Set2")[1],0.1), alpha(brewer.pal(3, "Set2")[2],0.1), alpha(brewer.pal(3, "Set2")[3],0.1)),
+          cex = 0.6,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-25, 25, -180),
+          cat.dist = c(0.085, 0.085, 0.085),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
+
+
+# -------------------------------------------
 # overlap stage specific genes
 # -------------------------------------------
 early_de <- c(de_lists_lnc_T$lnc_T_early, de_lists_lnc_B$lnc_B_early, de_lists_lnc_my$lnc_myeloid_early)
@@ -686,6 +807,39 @@ venn.diagram(
   x = list( unlist(unique(early_de)), unlist(unique(middle_de)),unlist(unique(late_de))),
   category.names = c( "Early DE lncRNAs" , "Middle DE lncRNAs ","Late DE lncRNAs" ),
   filename = '/home/luisas/Desktop/cluster/data/venn_diagram_stagessignature_de',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 680 , 
+          width = 680 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(8, "Pastel2")[6:8],
+          
+          cex = 0.8,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-20, 20, -180),
+          cat.dist = c(0.050, 0.050, 0.050),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
+
+
+
+# -------------------------------------------
+# overlap stage specific protein coding 
+# -------------------------------------------
+early_de_pc <- c(de_lists_mrna_T$mrna_T_early, de_lists_mrna_B$mrna_B_early, de_lists_mrna_my$mrna_myeloid_early)
+middle_de_pc <- c(de_lists_mrna_T$mrna_T_middle, de_lists_mrna_B$mrna_B_middle, de_lists_mrna_my$mrna_myeloid_middle)
+late_de_pc <- c(de_lists_mrna_T$mrna_T_late, de_lists_mrna_B$mrna_B_late, de_lists_mrna_my$mrna_myeloid_late)
+
+venn.diagram(
+  x = list( unlist(unique(early_de_pc)), unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))),
+  category.names = c( "Early DE mRNAs" , "Middle DE mRNAs ","Late DE mRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagram_stagessignature_de_mrna',
   output = TRUE ,
           imagetype="png" ,
           height = 680 , 
@@ -827,6 +981,7 @@ cor_table <- rbindlist((lapply(1:(length(lnc_ranges_complete_de$gene_id)), funct
 sig_cor_table <- cor_table[[1]][ cor_table[[1]]$pvals < 0.05, ]
 sig_cor_table
 do_go(sig_cor_table$genename)
+print("a")
 ```
 
 
@@ -899,7 +1054,58 @@ log(1.2)
 df <- data.frame(a = c(1,2), c = c("THY1", "ENSMMUG00000061948"))
 ggplot(df, aes(x = a, fill = c ))+geom_bar()+scale_fill_manual(values  = c("navy", "#870052"))
 ```
+# -------------------------------------------
+#            Visualize Example
+# -------------------------------------------
 
+
+```{r example visualization}
+library(Gviz)
+library(GenomicRanges)
+
+ref_14 <- ref[seqnames(ref) == 14,]
+seqnames(ref_14)
+atrack <- AnnotationTrack(ref_14, name = "ref")
+gene_id <- "ENSMMUG00000061948"
+ref[ref$gene_id == gene_id, ]
+
+
+from  <- (112674831-224000)
+to <- (112681345+150000)
+ref_14_small<- ref[start(ref) > from  & end(ref) < to   ,]
+# Change reference levels to UCSC
+seqlevelsStyle(ref_14_small) <- "UCSC"
+
+geneModels_14 <- as.data.frame(ref_14_small)
+geneModels_14 <- geneModels_14[as.character(geneModels_14$seqnames) == "chr14", ]
+geneModels_14$gene <- geneModels_14$gene
+geneModels_14 <- geneModels_14[geneModels_14$type =="exon",]
+geneModels_14$symbol <- gsub("_unkown", "", geneModels_14$gene_name)
+geneModels_14$exon <- geneModels_14$exon_id
+geneModels_14$transcript <- geneModels_14$transcript_id
+geneModels_14$gene <- geneModels_14$gene_id
+
+direction <- ifelse(geneModels_14$strand == "+", ">", "<")
+geneModels_14$symbol <- paste(geneModels_14$symbol, direction)
+geneModels_14 <- geneModels_14[geneModels_14$gene_biotype %in% c("protein_coding", "lncRNA"),]
+#geneModels_14 <- geneModels_14[geneModels_14$symbol %in%  c("ENSMMUG00000061948_unkown", "THY1"),]
+gtrack1 <- GeneRegionTrack(geneModels_14, genome  = "rheMac10", chr = "chr14", name = "Macaque rheMac10")
+atrack <- GeneRegionTrack(geneModels_14, genome  = "rheMac10", chr = "chr14", name = "Macaque rheMac10", cex.axis = 15)
+gtrack <- GenomeAxisTrack()
+itrack <- IdeogramTrack(genome = "rheMac10", chromosome = "chr14")
+
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+feature(atrack) <- geneModels_14$gene_biotype
+plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
+           background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2], cex.id = 2, sizes = c(2, 0.3,0.3,1))
+
+
+
+```
 
 
 # -------------------------------------------
@@ -1072,9 +1278,9 @@ significant_pairs <- pairs_list[pvals < 0.1 & rhos !=1]
 significant_correlations
 
 # Extract mrnas from significant correlations 
-do_go <- function(list, keytype = "SYMBOL"){
+do_go <- function(list, keytype = "SYMBOL", n = 10){
   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =unique(ref$gene_name))
-  barplot(ego, showCategory=10)
+  barplot(ego, showCategory=n)
   clusterProfiler::dotplot(ego)
 }
 correlated_mrnas <-unlist(significant_pairs)[c(rep(FALSE,1), TRUE)]$gene_id
@@ -1083,3 +1289,30 @@ do_go(correlated_mrnas, keytype = "ENSEMBL")
 keytypes(org.Mmu.eg.db)
 
 ```
+
+# Orthologs with Biomart 
+
+```{r orthologs}
+library("biomaRt")
+listMarts()
+ensembl <- useMart("ensembl")
+ensembl<- useDataset("hsapiens_gene_ensembl", ensembl)
+ensembl <- useMart(ensembl)
+
+# Load orthologs from ensembl 
+orthologs_biomart <- read.delim("/home/luisas/Desktop/cluster/data/mart_export.txt", sep = "\t")
+
+# What i find here as orthologs
+de_lnc_clean <- as.vector(gsub("-unkown", "", unlist(de_lists_lnc)))
+de_lnc_clean[grepl("ENS*", de_lnc_clean)]
+de_lnc_clean[grepl("ENSMMUG00000061948", de_lnc_clean)]
+
+de_mrna_clean <- as.vector(gsub("-unkown", "", unlist(de_lists_mrna)))
+intersect(de_lnc_clean, orthologs_biomart$Gene.stable.ID.1)
+intersect(de_mrna_clean, orthologs_biomart$Gene.stable.ID.1)
+intersect(de_mrna_clean, orthologs_biomart$Gene.name)
+
+
+
+```
+
