@@ -63,6 +63,10 @@ immune.combined$group <- gsub("D008" , "late",immune.combined$group)
 table(immune.combined$group)
 DimPlot(immune.combined, group.by = "group", reduction = "umap")
 
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "B", `2` = "T", 
+   `3` = "T", `4` = "B", `5` = "Myeloid", `6` = "Myeloid", `7` = "Myeloid", `8` = "Myeloid", `9` = "Myeloid",
+    `10` = "Myeloid", `11` = "Myeloid", `12` = "Myeloid", `13` = "Myeloid")
+
 #saveRDS(immune.combined, file.path(robjectsdir, "immune.combined_invivo_aftercomplete_preprocessing.rds"))
 ```
 # -----------------------------------
@@ -547,6 +551,9 @@ calc_z <- function(matrix){
   return(z_scores)
 }
 
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "B", `2` = "T", 
+   `3` = "T", `4` = "B", `5` = "Myeloid", `6` = "Myeloid", `7` = "Myeloid", `8` = "Myeloid", `9` = "Myeloid",
+    `10` = "Myeloid", `11` = "Myeloid", `12` = "Myeloid", `13` = "Myeloid")
 
 B <- subset(immune.combined, idents = "B")
 T <- subset(immune.combined, idents = "T")
@@ -654,9 +661,18 @@ dev.off()
 #        Match DE lnc and DE mrnas 
 # -------------------------------------
 ```{r MatchLncPC}
+library(MatchIt)
+dim(immune.combined)
+Idents(immune.combined)
+df_lnc <- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(), tot_cells = c())
+invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = all_lncrnas), "",df_lnc, 1))
+df_mrna<- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(),tot_cells = c())
+invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = annotated_mrnas), "",df_mrna, 1))
 
 df_lnc_de <- df_lnc[df_lnc$gene_id %in% unlist(de_lists_lnc),]
 df_mrna_de <- df_mrna[df_mrna$gene_id %in% unlist(de_lists_mrna),]
+
+
 
 set.seed(123)
 df_lnc_de$type <- "lnc"
@@ -666,12 +682,11 @@ c <- df_complete[complete.cases(df_complete),]
 c$type = ifelse(c$type == "lnc", 1, 0)
 
 # Match Expression 
-mi_median <- matchit(type ~ medianexpr,c)
+mi_median <- matchit(type ~ perc_cells_expressing,c)
 matches_median <- get_matches(mi_median, c)
 
 
 length(unique(matches_median$gene_id))
-length(unique(early_de_pc))
 # Stage Specific
 early_de_pc <- c(de_lists_mrna_T$mrna_T_early, de_lists_mrna_B$mrna_B_early, de_lists_mrna_my$mrna_myeloid_early)
 early_de_pc <- (intersect(early_de_pc, matches_median$gene_id))
@@ -684,7 +699,7 @@ library(VennDiagram)
 venn.diagram(
   x = list( unlist(unique(early_de_pc)), unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))),
   category.names = c( "Early DE mRNAs" , "Middle DE mRNAs ","Late DE mRNAs" ),
-  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagram_stagessignature_de_mrna_matched',
+  filename = '/home/luisas/Desktop/cluster/data/FINAL_mrna_venn_diagram_stagessignature_de_mrna_matched',
   output = TRUE ,
           imagetype="png" ,
           height = 680 , 
@@ -711,10 +726,11 @@ de_lists_mrna_T_matched <- intersect(unlist(unique(de_lists_mrna_T)), matches_me
 de_lists_mrna_B_matched <- intersect(unlist(unique(de_lists_mrna_B)), matches_median$gene_id) 
 de_lists_mrna_my_matched <- intersect(unlist(unique(de_lists_mrna_my)), matches_median$gene_id) 
 
+
 venn.diagram(
   x = list( de_lists_mrna_T_matched, de_lists_mrna_B_matched,de_lists_mrna_my_matched),
   category.names = c( "T DE mRNAs " , "B DE mRNAs ","Myeloid DE mRNAs" ),
-  filename = '/home/luisas/Desktop/cluster/data/mrna_venn_diagramm_celltype_mrna_matched_new',
+  filename = '/home/luisas/Desktop/cluster/data/FINAL_mrna_venn_diagramm_celltype_mrna_matched_new',
  output = TRUE ,
           imagetype="png" ,
           height = 580 , 
@@ -728,12 +744,15 @@ venn.diagram(
           fontfamily = "times",
           cat.cex = 0.7,
           cat.default.pos = "outer",
-          cat.pos = c(-165, 165, -0),
+          cat.pos =c(-25, 25, -180),
           cat.dist = c(0.085, 0.085, 0.085),
           cat.fontfamily = "times",
           cat.col = "black",
           rotation = 1
         )
+
+ref[ref$gene_id == "ENSMMUG00000061948",]
+
 ```
 
 
@@ -744,6 +763,53 @@ library(VennDiagram)
 # -------------------------------------------
 # Overlap of Differentially expressed genes 
 # -------------------------------------------
+
+# Cell type specific DE genes : LNC
+length(unique(c(unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
+
+tspec_lnc <- (unique(setdiff(unlist(unique(de_lists_lnc_T)), c(unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my))))))
+bspec_lnc <- (unique(setdiff(unlist(unique(de_lists_lnc_B)), c(unlist(unique(de_lists_lnc_T)),unlist(unique(de_lists_lnc_my))))))
+myspec_lnc <- (unique(setdiff(unlist(unique(de_lists_lnc_my)), c(unlist(unique(de_lists_lnc_T)),unlist(unique(de_lists_lnc_B))))))
+length(tspec_lnc); length(bspec_lnc); length(myspec_lnc)
+celltype_spec_lnc <- c(tspec_lnc, bspec_lnc, myspec_lnc)
+length(unique(celltype_spec_lnc))
+
+# Stage specific DE genes 
+earlyspec_lnc <- (unique(setdiff(unlist(unique(early_de)),c(unlist(unique(middle_de)),unlist(unique(late_de))))))
+middlespec_lnc <- (unique(setdiff(unlist(unique(middle_de)),c(unlist(unique(early_de)),unlist(unique(late_de))))))
+latespec_lnc <- (unique(setdiff(unlist(unique(late_de)),c(unlist(unique(early_de)),unlist(unique(middle_de))))))
+length(earlyspec_lnc); length(middlespec_lnc); length(latespec_lnc)
+stage_spec_lnc <- c(earlyspec_lnc, middlespec_lnc, latespec_lnc)
+length(unique(stage_spec_lnc))
+
+overlap_cell_stage_specific_lnc <- intersect(stage_spec_lnc, celltype_spec_lnc)
+onlycelltypespec <- length(unique(setdiff(celltype_spec_lnc, overlap_cell_stage_specific_lnc)))
+length(unique(overlap_cell_stage_specific_lnc))
+onlystagetypespec <- length(unique(setdiff(stage_spec_lnc, overlap_cell_stage_specific_lnc)))
+
+# ----------------------------------------------------
+# Cell type specific DE genes : mrna
+length(unique(c(unlist(unique(de_lists_mrna_T)), unlist(unique(de_lists_mrna_B)),unlist(unique(de_lists_mrna_my)))))
+tspec_mrna <- (unique(setdiff(unlist(unique(de_lists_mrna_T)), c(unlist(unique(de_lists_mrna_B)),unlist(unique(de_lists_mrna_my))))))
+bspec_mrna <- (unique(setdiff(unlist(unique(de_lists_mrna_B)), c(unlist(unique(de_lists_mrna_T)),unlist(unique(de_lists_mrna_my))))))
+myspec_mrna <- (unique(setdiff(unlist(unique(de_lists_mrna_my)), c(unlist(unique(de_lists_mrna_T)),unlist(unique(de_lists_mrna_B))))))
+length(tspec_mrna); length(bspec_mrna); length(myspec_mrna)
+celltype_spec_mrna <- c(tspec_mrna, bspec_mrna, myspec_mrna)
+length(unique(celltype_spec_mrna))
+
+# Stage specific DE genes 
+earlyspec_mrna <- (unique(setdiff(unlist(unique(early_de_pc)),c(unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))))))
+middlespec_mrna <- (unique(setdiff(unlist(unique(middle_de_pc)),c(unlist(unique(early_de_pc)),unlist(unique(late_de_pc))))))
+latespec_mrna <- (unique(setdiff(unlist(unique(late_de_pc)),c(unlist(unique(early_de_pc)),unlist(unique(middle_de_pc))))))
+length(earlyspec_mrna); length(middlespec_mrna); length(latespec_mrna)
+stage_spec_mrna <- c(earlyspec_mrna, middlespec_mrna, latespec_mrna)
+length(unique(stage_spec_mrna))
+
+overlap_cell_stage_specific_mrna <- intersect(stage_spec_mrna, celltype_spec_mrna)
+onlycelltypespec <- length(unique(setdiff(celltype_spec_mrna, overlap_cell_stage_specific_mrna)))
+length(unique(overlap_cell_stage_specific_mrna))
+onlystagetypespec <- length(unique(setdiff(stage_spec_mrna, overlap_cell_stage_specific_mrna)))
+
 venn.diagram(
   x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my))),
   category.names = c( "T DE lncRNAs " , "B DE lncRNAs ","Myeloid DE lncRNAs" ),
@@ -795,7 +861,7 @@ venn.diagram(
           rotation = 1
         )
 
-
+dim(immune.combined)
 # -------------------------------------------
 # overlap stage specific genes
 # -------------------------------------------
@@ -835,6 +901,8 @@ venn.diagram(
 early_de_pc <- c(de_lists_mrna_T$mrna_T_early, de_lists_mrna_B$mrna_B_early, de_lists_mrna_my$mrna_myeloid_early)
 middle_de_pc <- c(de_lists_mrna_T$mrna_T_middle, de_lists_mrna_B$mrna_B_middle, de_lists_mrna_my$mrna_myeloid_middle)
 late_de_pc <- c(de_lists_mrna_T$mrna_T_late, de_lists_mrna_B$mrna_B_late, de_lists_mrna_my$mrna_myeloid_late)
+
+
 
 venn.diagram(
   x = list( unlist(unique(early_de_pc)), unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))),
@@ -937,18 +1005,16 @@ do_go(unlist(all_lnc_1mb_max10))
 
 ```
 
-# Correlation 
 
-# Calculate correlation measure 
+# -----------------------------------------
+#               Correlation 
+# -----------------------------------------
+# Per DE lncRNA check wether it is correlated with ANY protein coding gene
 
 ```{r colocation}
-counts <- matrix(rpois(20*50, 100), 20, 50)
-group <- sample(c("A", "B"), size = 20, replace = TRUE)
-devtools::install_github("tpq/propr")
-library(propr)
 
 # Calculate counts matrix
-count_matrix <- immune.combined@assays$RNA@counts
+
 
 
 
@@ -966,7 +1032,7 @@ calc_corr <- function(index){
     print(index)
     if(nrow(expression_close_genes) > 0){
 
-          rhos <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$estimate))
+    rhos <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$estimate))
     pvals <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$p.value))
     print("hey")
     df <- data.frame(lnc = gene_name , genename = rownames(expression_close_genes)[1:nrow(expression_close_genes)], rho = rhos , pvals = pvals)
@@ -976,6 +1042,48 @@ calc_corr <- function(index){
     print("aa")
     return(df)
 }
+
+
+calc_corr_all<- function(index, mrnas_ranges_input){
+    gene_name <- str_replace( lnc_ranges_complete_de[index]$gene_name, "_", "-")
+    gene_counts <- as.vector(count_matrix[gene_name,])
+    #FeaturePlot(immune.combined, features = c(gene_name), order = TRUE, pt.size  = 1.5)
+    
+    pc_genes_to_test <-unique(mrnas_ranges_input$gene_id)
+    expression_close_genes <- as.matrix(count_matrix[gsub("-unkown", "", rownames(count_matrix)) %in% pc_genes_to_test,, drop = FALSE])
+    print("hey")
+    if(nrow(expression_close_genes) > 0){
+      rhos <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$estimate))
+      pvals <- unlist(lapply(1:nrow(expression_close_genes), function(x) cor.test(gene_counts, expression_close_genes[x,], method = "spearman")$p.value))
+      df <- data.frame(lnc = gene_name , genename = rownames(expression_close_genes)[1:nrow(expression_close_genes)], rho = rhos , pvals = pvals)
+    }else{
+      df <- NULL
+    }
+    return(df)
+}
+
+mrnas_ranges_input <- mrnas_ranges[mrnas_ranges$type == "gene",]
+count_matrix <- immune.combined@assays$RNA@data
+cor_table <- rbindlist((lapply(1:2, function(x) calc_corr_all(x, mrnas_ranges_input))))
+unique(cor_table$lnc)
+immune.combined_small<- subset(immune.combined, features = 1:100, cells = 1:100)
+dim(immune.combined_small)
+cor_table$
+
+cor_table <- rbindlist((lapply(1:(length(lnc_ranges_complete_de$gene_id)), function(x) calc_corr_all(x, mrnas_ranges_input))))
+saveRDS(cor_table, file.path(robjectsdir, "cor-table_1.rds"))
+cor_table <-readRDS(file.path(robjectsdir, "cor-table_1.rds"))
+
+
+
+corr_genes_test <- gsub("-unkown", "", cor_table[cor_table$pvals < 0.05 & cor_table$lnc == "ENSMMUG00000052777-unkown", ]$genename)
+
+ref[ref$gene_id %in% corr_genes_test, ]$gene_name
+
+do_go(ref[ref$gene_id %in% corr_genes_test, ]$gene_name)
+
+
+
 
 cor_table <- rbindlist((lapply(1:(length(lnc_ranges_complete_de$gene_id)), function(x) calc_corr(x))))
 sig_cor_table <- cor_table[[1]][ cor_table[[1]]$pvals < 0.05, ]
@@ -1063,16 +1171,61 @@ ggplot(df, aes(x = a, fill = c ))+geom_bar()+scale_fill_manual(values  = c("navy
 library(Gviz)
 library(GenomicRanges)
 
-ref_14 <- ref[seqnames(ref) == 14,]
-seqnames(ref_14)
-atrack <- AnnotationTrack(ref_14, name = "ref")
+
+ref[ref$gene_id == gene_id,]
 gene_id <- "ENSMMUG00000061948"
-ref[ref$gene_id == gene_id, ]
 
 
 from  <- (112674831-224000)
 to <- (112681345+150000)
 ref_14_small<- ref[start(ref) > from  & end(ref) < to   ,]
+# Change reference levels to UCSC
+seqlevelsStyle(ref_14_small) <- "UCSC"
+
+geneModels_14 <- as.data.frame(ref_14_small)
+geneModels_14 <- geneModels_14[as.character(geneModels_14$seqnames) == "chr14", ]
+geneModels_14$gene <- geneModels_14$gene
+geneModels_14 <- geneModels_14[geneModels_14$type =="exon",]
+geneModels_14$symbol <- gsub("_unkown", "", geneModels_14$gene_name)
+geneModels_14$exon <- geneModels_14$exon_id
+geneModels_14$transcript <- geneModels_14$transcript_id
+geneModels_14$gene <- geneModels_14$gene_id
+
+direction <- ifelse(geneModels_14$strand == "+", ">", "<")
+geneModels_14$symbol <- paste(geneModels_14$symbol, direction)
+geneModels_14 <- geneModels_14[geneModels_14$gene_biotype %in% c("protein_coding", "lncRNA"),]
+
+#geneModels_14 <- geneModels_14[geneModels_14$symbol %in%  c("ENSMMUG00000061948_unkown", "THY1"),]
+gtrack1 <- GeneRegionTrack(geneModels_14, genome  = "rheMac10", chr = "chr14", name = "Macaque rheMac10")
+atrack <- GeneRegionTrack(geneModels_14, genome  = "rheMac10", chr = "chr14", name = "Macaque rheMac10", cex.axis = 15)
+gtrack <- GenomeAxisTrack()
+itrack <- IdeogramTrack(genome = "rheMac10", chromosome = "chr14")
+
+
+col_lnc = "#C7ABBE"
+col_mrna = "#8692B3"
+col_lnc_highlight = "#870052"
+col_mrna_highlight = "navy"
+palette_plot_percentage <- c(col_lnc, col_mrna, col_lnc_highlight, col_mrna_highlight)
+
+geneModels_14[geneModels_14$gene_id == "ENSMMUG00000061948",]$gene_biotype <- "lncRNA_highlight"
+geneModels_14[geneModels_14$gene_name == "THY1",]$gene_biotype <- "mRNA_highlight"
+
+feature(atrack) <- geneModels_14$gene_biotype
+plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
+           background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2],
+           lncRNA_highlight = palette_plot_percentage[3],
+           mRNA_highlight = palette_plot_percentage[4],cex.id = 2, sizes = c(2, 0.3,0.3,1))
+
+
+
+# Highlight region 
+
+gene_ranges <-ref[ref$type == "gene" & ref$gene_id == gene_id, ]
+
+from  <- start(gene_ranges)
+to <- end(gene_ranges)
+ref_14_small<- ref[start(ref) >= from  & end(ref) <= to   ,]
 # Change reference levels to UCSC
 seqlevelsStyle(ref_14_small) <- "UCSC"
 
@@ -1100,8 +1253,8 @@ col_mrna = "#2e88bf"
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
 feature(atrack) <- geneModels_14$gene_biotype
-plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
-           background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2], cex.id = 2, sizes = c(2, 0.3,0.3,1))
+plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from-1700 , to = to, col = NULL, 
+           background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2], cex.id = 2, sizes = c(3, 0.3,0.3,0.2))
 
 
 

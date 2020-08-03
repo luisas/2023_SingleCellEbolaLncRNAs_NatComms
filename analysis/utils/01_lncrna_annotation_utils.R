@@ -270,7 +270,7 @@ barplot_tissues <- function(df, type, col){
   df_l <- df[df$type == type,]
   h <- ggplot(df_l, aes(x=n_tissues_expresseing_gene, fill=type)) + 
     geom_histogram(position="identity", binwidth =1)+
-    xlim(1,16)
+    xlim(1,15)
   
   h_plotdata <- ggplot_build(h)$data[[1]]
   h_plotdata$group <- as.factor(h_plotdata$group)

@@ -1,0 +1,118 @@
+---
+title: "00_celltype_specificity"
+author: "Luisa Santus"
+date: "7/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r cars}
+
+
+# 1. Are DE lncRNA more cell-type or cell-stage specific than DE protein-coding genes ####
+# cell-type specific
+#           cell-type_specific non_cell-type_specific
+# lncRNA            x11               x12      
+# PC                x21               x22
+x11 <- 48
+x21 <- 367
+x12 <- 58-48
+x22 <- 527-367
+m_type <- base::matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+rownames(m_type) <- c("lncRNA","PC")
+colnames(m_type) <- c("type_specific","non_cell-type_specific")
+m_type
+fisher.test(m_type,alternative = "greater")
+
+# cell-stage specific
+#           cell-stage_specific non_cell-stage_specific
+# lncRNA            x11               x12      
+# PC                x21               x22
+x11 <- 36
+x21 <- 187
+x12 <- 58-36
+x22 <- 527-187
+m_stage <- matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+rownames(m_stage) <- c("lncRNA","PC")
+colnames(m_stage) <- c("stage_specific","non_cell-stage_specific")
+m_stage
+fisher.test(m_stage,alternative = "greater")
+
+
+# 2. Is there a significant overlap between cell-type or cell-stage specific DE lincRNA and  DE protein-coding genes ####
+#                           cell-type_specific non_cell-type_specific
+# cell_stage_specific                    x11             x12
+# non_cell-stage_specific
+
+# lncRNA
+total_DE_lncRNA <- 58
+x11 <- 33
+x12 <- 48-33
+x21 <- 36-33
+x22 <- 58-(x11+x12+x21)
+m_lncRNA <- matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+rownames(m_lncRNA) <- c("cell_stage_specific ","non_cell-type_specific")
+colnames(m_lncRNA) <- c("cell-type_specific ","non_cell-type_specific")
+m_lncRNA
+sum(unlist(m_lncRNA))
+fisher.test(m_lncRNA,alternative = "greater")
+
+# PC
+total_PC_PC <- 527
+x11 <- 183
+x12 <- 367-183
+x21 <- 187-183
+x22 <- 527-(x11+x12+x21)
+m_PC <- matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+rownames(m_PC) <- c("cell_stage_specific ","non_cell-type_specific")
+colnames(m_PC) <- c("cell-type_specific ","non_cell-type_specific")
+m_PC
+sum(unlist(m_PC))
+fisher.test(m_PC,alternative = "greater")
+
+```
+
+## Including Plots
+```{r plot}
+cell_spec_de_lnc <- 48
+stage_spec_de_lnc <- 36
+tot_de_lnc <- 58
+
+cell_spec_de_pc <- 367
+stage_spec_de_pc <- 187
+tot_de_pc <- 527
+
+perc_celltype_spec_lnc <- cell_spec_de_lnc*100/tot_de_lnc
+perc_stage_spec_lnc <- stage_spec_de_lnc*100/tot_de_lnc
+
+perc_celltype_spec_pc <- cell_spec_de_pc*100/tot_de_pc
+perc_stage_spec_pc <- stage_spec_de_pc*100/tot_de_pc
+
+df <- data.frame( count = c(perc_celltype_spec_pc, perc_celltype_spec_lnc, perc_stage_spec_pc, perc_stage_spec_lnc), type = c( "mRNA", "lncRNA","mRNA","lncRNA"),
+                  spectype = c("Cell type Specific", "Cell type Specific","Stage Specific","Stage Specific"))
+ggplot(df, aes(y = count, fill = type, x = spectype, col = type))+
+  geom_col(position = "dodge", alpha = 0.6)+
+  theme_classic()+ylim(0,100)+
+  labs(y = "% DE Genes", x = "")+
+  scale_fill_manual(values = c('#870052','navy') )+
+  scale_color_manual(values = c('#870052','navy') )+
+  theme(legend.title = element_blank(), axis.text.x = element_text(size = 15), axis.text.y = element_text(size = 15), axis.title.y = element_text(size = 15), axis.line.x = element_blank())
+
+
+label.df <- data.frame(Group = c("lncRNA", "mRNA"),
+                       count = c(6, 9))
+r <- .5
+t <- seq(0, 180, by = 1) * pi / 180
+x <- r * cos(t)
+y <- r*4 * sin(t)
+y[20:162] <- y[20] # Flattens the arc
+
+arc.df <- data.frame(type = x, count = y)
+
+```
+
