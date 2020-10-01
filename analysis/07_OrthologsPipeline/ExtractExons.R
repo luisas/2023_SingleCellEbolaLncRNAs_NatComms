@@ -4,6 +4,7 @@ shhh(library(rtracklayer))
 args = commandArgs(trailingOnly=TRUE)
 file = args[1]
 #file = "/home/luisas/Desktop/cluster/gene_annotations/gencode/release_26/gencode.v26.GRCh38.annotation.gtf"
+#file= "/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"
 output = args[2]
 filter = args[3]
 
@@ -12,8 +13,9 @@ gtf<- import(file)
 # If specified in the input, only select non coding rnas from set 
 if( filter == "lncrna"){
   print("!!!!!!!!!!!!!!! Filtering only lncrnas")
-  gtf[substr(gtf$gene_id,1,3) == "pol",]$gene_biotype <- "lncRNA"
   gtf[substr(gtf$gene_id,1,3) == "rib",]$gene_biotype <- "lncRNA"
+  print("hey")
+  #gtf[substr(gtf$gene_id,1,3) == "rib",]$gene_biotype <- "lncRNA"
   gtf <- gtf[!is.na(gtf$gene_biotype) &gtf$gene_biotype == "lncRNA"]
 }
 
@@ -43,10 +45,9 @@ df$score  <- rep("-", length(df$name ))
 df$strand <- strand(gtf_exons)
 
 
-
 if(filter == "addbiotype"){
   print("Adding gene biotype")
-  df$biotype <- gtf_exons$gene_type
+  df$biotype <- gtf_exons$gene_biotype
 }
 
 

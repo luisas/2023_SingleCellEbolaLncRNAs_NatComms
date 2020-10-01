@@ -1,0 +1,67 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [soggy_cajal] - revision: 829f312aa8
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+==============================================
+lncRNA Annotation w/ FeelNC
+==============================================
+executor >  local (1)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [  0%] 0 of 1
+
+executor >  local (1)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+
+executor >  local (2)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [  0%] 0 of 1
+
+executor >  local (3)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [  0%] 0 of 1
+
+executor >  local (4)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [100%] 1 of 1 ✔
+[bd/871063] process > feelnc_codpot                    [  0%] 0 of 1
+
+executor >  local (6)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [100%] 1 of 1 ✔
+[bd/871063] process > feelnc_codpot                    [100%] 1 of 1 ✔
+[84/a79042] process > feelnc_classifier                [  0%] 0 of 1
+[ee/abb329] process > gffCompare                       [  0%] 0 of 1
+
+executor >  local (6)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [100%] 1 of 1 ✔
+[bd/871063] process > feelnc_codpot                    [100%] 1 of 1 ✔
+[84/a79042] process > feelnc_classifier                [  0%] 0 of 1
+[ee/abb329] process > gffCompare                       [100%] 1 of 1 ✔
+
+executor >  local (6)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [100%] 1 of 1 ✔
+[bd/871063] process > feelnc_codpot                    [100%] 1 of 1 ✔
+[84/a79042] process > feelnc_classifier                [100%] 1 of 1 ✔
+[ee/abb329] process > gffCompare                       [100%] 1 of 1 ✔
+Done!
+
+executor >  local (6)
+[24/6f4569] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[a0/8ac24c] process > ChangeChromosome                 [100%] 1 of 1 ✔
+[7a/115523] process > feelnc_filter                    [100%] 1 of 1 ✔
+[bd/871063] process > feelnc_codpot                    [100%] 1 of 1 ✔
+[84/a79042] process > feelnc_classifier                [100%] 1 of 1 ✔
+[ee/abb329] process > gffCompare                       [100%] 1 of 1 ✔
+Completed at: 30-Sep-2020 18:27:18
+Duration    : 1h 9m 10s
+CPU hours   : 7.7
+Succeeded   : 6
+

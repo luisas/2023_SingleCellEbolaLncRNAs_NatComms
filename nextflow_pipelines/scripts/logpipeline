@@ -1,0 +1,4 @@
+chromosomes=$(cat ~/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf  | tail -n +6 | cut -f 1 | sort | uniq); for chr in $chromosomes; do echo Rscript createFasta_forFEELnc_chr.R "$chr" >> commands_list.txt; done
+
+cat commands_list.txt | parallel -j 4 {}
+

@@ -15,6 +15,11 @@ process{
   withName:feelnc_codpot{
   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/feelnc-0.1.1_supp.simg'
   }
+  withName:feelnc_classifier{
+  container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/feelnc-0.1.1_supp.simg'
+  }
+
+
 
 }
 

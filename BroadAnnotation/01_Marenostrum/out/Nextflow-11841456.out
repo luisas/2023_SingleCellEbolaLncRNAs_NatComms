@@ -1,0 +1,23 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [sleepy_ritchie] - revision: 30b845685f
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+==============================================
+lncRNA Annotation w/ FeelNC
+==============================================
+ERROR ~ Error executing process > 'StringTie_Merge_Reference_Guided (1)'
+
+Caused by:
+  Unknown variable 'reference_gtf_UCSC' -- Make sure it is not misspelt and defined somewhere in the script before using it
+
+Source block:
+  """
+  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf_UCSC} ${stringtie_gtfs}
+  """
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong

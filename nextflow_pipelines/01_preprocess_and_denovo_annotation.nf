@@ -16,12 +16,12 @@ log.info "=============================================="
 params.prefix = "rheMac10_EBOV-Kikwit"
 // BaseFolders
 params.prefix_data = "/gpfs/projects/bsc83/Data"
-params.dataset_bam_dir_zyagen = "${params.prefix_data}/Ebola/00_RawData/pardis_shared_data/sabeti-txnomics/alin/190713_Zyagen-longRNA/tmp/00_demux/bams_per_lane/*/"
-params.dataset_bam_dir_batch = "${params.prefix_data}/Ebola/00_RawData_links/"
+params.bams = "empty"
+
 
 // Reference Annotation and Assembly - Macaque
-params.rhesus_gtf = "${params.prefix_data}/gene_annotation/ensembl_release98/rheMac10/*.gtf"
-params.rhesus_genome = "${params.prefix_data}/assemblies/ensembl/release-98/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
+params.rhesus_gtf = "${params.prefix_data}/gene_annotation/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"
+params.rhesus_genome = "${params.prefix_data}/assemblies/ensembl/release-100/Macaca_mulatta.Mmul_10.dna.toplevel.fa"
 
 // Ebola virus annotation and assembly
 params.prefix_rawdata = "${params.prefix_data}/Ebola/00_RawData"
@@ -30,31 +30,29 @@ params.ebov_gtf = "${params.prefix_rawdata}/pardis_shared_data/sabeti-txnomics/s
 
 // FEELNC: TRAINING DATA (Human Gencode)
 params.data_folder = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation"
-params.known_mrna = "${params.data_folder}/01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas_nochr.gtf"
-params.known_lncrna = "${params.data_folder}/01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs_nochr.gtf"
-Channel.fromPath("${params.known_mrna}").set{ known_mrna_channel}
-Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
+
 
 
 // Output folders
 params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
-params.output_dir_name = "02_RNA-Seq_external"
+params.output_dir_name = "02_RNA-Seq_ribodepl"
 params.output_dir = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/${params.output_dir_name}/"
 
 // scripts directory
 params.scripts="${baseDir}/scripts/"
 
 // Does the dataset provide umi tags?
-params.umi = "true"
+params.umi = ""
 // Strandness
 params.strandness = "FR"
 if( "${params.strandness}" == "FR" ){
   params.htseqsense="yes"
+  params.stringtiestrandness="fr"
 }
 if( "${params.strandness}" == "RF" ){
   params.htseqsense="reverse"
+  params.stringtiestrandness="rf"
 }
-
 
 
 // -----------------------------------------------
@@ -74,24 +72,30 @@ if( "${params.strandness}" == "RF" ){
 
 // ---------------------------------
 
+
 if( "${params.umi}" == "true" ){
-  unmapped_bams_1 = Channel
-                  .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")
+  unmapped_bams = Channel
+                  .fromPath("${params.bams}")
                   .ifEmpty('bam files directory is empty')
-                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[2].split('-')[0] +"_"+ it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2].split('-')[1] +"_"+ "l" +  it.parent.name.split('\\.')[1],
+                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1] +"_"+ it.baseName.split('_')[2] +"_"+ it.baseName.split('_')[3] +"_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
                               it)}
 
-  unmapped_bams_2 = Channel
-                  .fromPath("${params.dataset_bam_dir_batch}/*.bam")
-                  .ifEmpty('bam files directory is empty')
-                  .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
-                              it)}
+  // unmapped_bams_2 = Channel
+  //                 .fromPath("${params.dataset_bam_dir_batch}/*.bam")
+  //                 .ifEmpty('bam files directory is empty')
+  //                 .map{ tuple(it.baseName.split('_')[0] + "_" + it.baseName.split('_')[1]+ "_" +it.baseName.split('_')[2] + "_" +it.baseName.split('_')[3] + "_" + "l"+it.baseName.split('_')[4].split('\\.')[1],
+  //                             it)}
 
-  unmapped_bams = unmapped_bams_1.mix(unmapped_bams_2)
 }
 // ---------------------------------
 
-params.fastqs  = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/extrenal_rhesus_RNA-Seq/*/*/Brain/*/*/*.{1,2}.fastq.gz"
+//printing.subscribe{ println "$it"}
+
+
+
+
+
+
 fastqs = Channel.fromFilePairs("${params.fastqs}")
                 .ifEmpty("No fastqs found")
                 .map { tuple(it[0].split('_')[0],
@@ -107,8 +111,8 @@ fastqs = Channel.fromFilePairs("${params.fastqs}")
                              it[1] ) }
 
 
-fastqs.into{ fastq_files_for_qc; fastq_files_for_mapping; printing }
-printing.subscribe{ println "$it" }
+fastqs.into{ fastq_files_for_qc; fastq_files_for_mapping; printing2 }
+//printing2.subscribe{ println "$it" }
 
 // ------------------------------------------------------------
 //-------------- CREATE CHANNELS ------------------------------
@@ -130,8 +134,8 @@ extract_ss_script = Channel
 extract_exon_script = Channel
                     .fromPath("${params.scripts}/hisat2_extract_exons.py")
 
-gtfToGenePred_script_ch = Channel
-                      .fromPath("${params.scripts}/gtfToGenePred")
+gtfToBed_script_ch = Channel
+                      .fromPath("${params.scripts}/gtf2bed")
 genePredToBed_script_ch = Channel
                       .fromPath("${params.scripts}/genePredToBed")
 
@@ -192,16 +196,14 @@ process convert_gtf_to_bed12{
 
   input:
   file merged_annotation from merged_annotation_ch
-  file gtfToGenePred_script from gtfToGenePred_script_ch
-  file genePredToBed_script from genePredToBed_script_ch
+  file gtf2bed from gtfToBed_script_ch
 
   output:
-  set file("${params.prefix}.bed"), file("${params.prefix}.bed12") into bed_channel
+  file("${params.prefix}.bed") into bed_channel
 
   script:
   """
-  ./${gtfToGenePred_script} ${params.prefix}.gtf ${params.prefix}.bed
-  ./${genePredToBed_script} ${params.prefix}.bed ${params.prefix}.bed12
+  perl ./gtf2bed $merged_annotation > ${merged_annotation.baseName}.bed
   """
 }
 
@@ -313,8 +315,8 @@ process generate_fastqc{
   """
 
 }
-
-
+//
+//
 /*
 *  Mapping with HISAT.
 * It maps the reads of the generated fastq files
@@ -324,7 +326,7 @@ process generate_fastqc{
 process mapping_hisat{
 
   label 'big_mem'
-  cpus 1
+  cpus 8
   tag "${complete_id}"
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
@@ -337,7 +339,7 @@ process mapping_hisat{
   output:
   set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file("${complete_id}.novel_ss.txt"), file("${complete_id}.hisat2_summary.txt"),
-      file("${complete_id}.sam") into mapped_sam
+      file("${complete_id}.bam") into mapped_bam
 
   script:
   """
@@ -346,7 +348,7 @@ process mapping_hisat{
                       --novel-splicesite-outfile ${complete_id}.novel_ss.txt \
                       --downstream-transcriptome-assembly \
                       --time --summary-file ${complete_id}.hisat2_summary.txt \
-                      --rna-strandness ${params.strandness} > ${complete_id}.sam
+                      --rna-strandness ${params.strandness} | samtools sort -T $TMPDIR/${complete_id}.tmp -@ ${task.cpus} -O bam -o ${complete_id}.bam -
   """
 
 }
@@ -369,17 +371,17 @@ process sort_bam{
   input:
   set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(novel_ss),file(summary),
-      file(sam) from mapped_sam
+      file(bam) from mapped_bam
 
   output:
   set complete_id,lane, dataset_name, dayPostInfection, tissue, sample,
       file(summary),
-      file(sam), file("${complete_id}.bam")   into (sorted_and_index_bam, sorted_indexed_bams_for_stats, hisat2_bams)
-  file("${complete_id}.bam") into sorted_and_index_bam_2
+      file(bam), file("${complete_id}_sorted.bam")   into (sorted_and_index_bam, sorted_indexed_bams_for_stats, hisat2_bams)
+  file("${complete_id}_sorted.bam") into sorted_and_index_bam_2
 
   script:
   """
-  samtools sort ${sam} -T $TMPDIR/${complete_id}.tmp -@ ${task.cpus} -O bam -o ${complete_id}.bam
+  samtools sort ${bam} -T $TMPDIR/${complete_id}.tmp -@ ${task.cpus} -O bam -o ${complete_id}_sorted.bam
   """
 }
 
@@ -399,14 +401,25 @@ process sort_bam{
 *
 */
 
+
 // We join the mapped and unmapped channel by complete_id.
 // See how channel were built at the beginning - complete id is always in the -2 position
 
+
+
 if( "${params.umi}" == "true" ){
-  unmapped_and_mapped_bams = sorted_and_index_bam.combine(unmapped_bams, by:0)
+  sorted_and_index_bam.into{ printing3; sorted_and_index_bam_1; }
+  unmapped_bams.into{ printing4; unmapped_bams_2; }
+  unmapped_and_mapped_bams = sorted_and_index_bam_1.combine(unmapped_bams_2, by:0)
+
+  println " -----------------------------------------"
+  printing3.subscribe{ println "$it"}
+  printing4.subscribe{ println "$it"}
+
 
   process add_unmapped_bam{
 
+    cpus 16
     tag "${complete_id}"
     storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
     label 'big_mem'
@@ -431,10 +444,15 @@ if( "${params.umi}" == "true" ){
                   PAIRED_RUN=true
     """
   }
+
 }
 else{
   sorted_and_index_bam_2.set{merged_bam_alignments_channel}
 }
+
+
+
+
 
 
 // In this channel we group the files by the complete_id after removing the lane.
@@ -450,10 +468,16 @@ merged_bam_alignments_channel.map { file ->
                  it.get(0).get(1),
                  it.get(0).get(2),
                  it.get(0).get(3),
-                 it.get(0).get(4),
+                 it.get(0).get(0)+"_"+it.get(0).get(1)+"_"+it.get(0).get(2)+"_"+it.get(0).get(3),
                  it.get(1))}
     .set{ groups_lanes }
 
+
+
+
+
+
+//groups_lanes.subscribe{println "$it"}
 
 /*
 * Merge lanes
@@ -486,6 +510,9 @@ process merge_lanes{
 }
 
 
+//merged_bylanes.unique().subscribe{ println "$it" }
+
+
 
 /*
 *   Filter bams
@@ -501,7 +528,7 @@ process filter_bams_samtools{
   storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
-  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(merged_bam), file(bai_mereged_bam) from merged_bylanes
+  set dataset_name, dayPostInfection, tissue, sample, complete_id, file(merged_bam), file(bai_mereged_bam) from merged_bylanes.unique()
 
   output:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file("${complete_id}.UMI.f3.q60.bam"), file("${complete_id}.UMI.f3.q60.bam.bai") into filtered_bams
@@ -556,15 +583,23 @@ if( "${params.umi}" == "true" ){
 filtered_bams_ch.into{ filtered_merged_bams_1;  filtered_merged_bams_2;  filtered_merged_bams_3;   filtered_merged_bams_4;   filtered_merged_bams_5}
 
 
+filtered_merged_bams_4.subscribe{ println "$it"}
+
 process runRSeQC{
 
-  storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample/rseqc"
+  storeDir "${params.output_dir}/03b_rseqc/$dataset_name/$tissue/$dayPostInfection/$sample/rseqc"
 
   input:
+
+
+  // set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
+  //     file(ss), file(sum),
+  //     file(bam) from mapped_bam
+
   set  dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(bam),
       file(bai) from filtered_merged_bams_2
-  set file(bed), file(bed12) from  bed_channel.collect()
+  file(bed12) from  bed_channel.collect()
 
   output:
   file "*" into read_distribution_channel
@@ -590,16 +625,14 @@ process runRSeQC{
 // -B	This switch enables the output of Ballgown input table files (*.ctab) containing coverage data for the reference transcripts given with the -G option.
 // --fr	Assumes a stranded library fr-secondstrand.
 // -f <0.0-1.0>	Sets the minimum isoform abundance of the predicted transcripts as a fraction of the most abundant transcript assembled at a given locus.
-
+//
 params.transcriptome_assembly = true
 process DeNovoAssembly{
 
-  cpus 4
+  cpus 1
   tag "${complete_id}"
-  storeDir "${params.output_dir}/04a_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample"
+  publishDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample",  mode: 'copy'
 
-  when:
-  params.transcriptome_assembly
 
   input:
   set dataset_name, dayPostInfection, tissue, sample, complete_id, file(bam), file(bai) from filtered_merged_bams_1
@@ -612,207 +645,132 @@ process DeNovoAssembly{
   script:
   file_prefix = get_file_name_no_extension(bam.name)
   """
-  stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --fr -p ${task.cpus}
+  stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --${params.stringtiestrandness} -p ${task.cpus}
   """
 }
 
-/*
-* Merge all the assemblies Reference Guided
-*/
-process StringTie_Merge_Reference_Guided{
-
-  cpus 48
-  storeDir "${params.output_dir}/04a_stringtie/"
-
-  when:
-  params.transcriptome_assembly
-
-  input:
-  file(stringtie_gtfs) from stringTie_channel.collect()
-  file reference_gtf from gtfChannel5
-
-  output:
-  file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
-
-  script:
-  """
-  stringtie --merge -p ${task.cpus} -F 1.0 -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
-  """
-}
-
-
-/*
-* Compare stringtie output with reference GTF
-*/
-process gffCompare2{
-
-  storeDir "${params.output_dir}/04b_gffCompare"
-
-  input:
-  file merged_gtf from merged_denovo_assmebly
-  file reference_gtf from gtfChannel6
-
-  output:
-  file("merged*") into gff_compare_output_channel2
-
-  script:
-  """
-  gffcompare -R -r ${reference_gtf} -o merged ${merged_gtf}
-  """
-}
-
-
-merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
-
-
-
-log.info "=============================================="
-log.info "            lncRNA Annotation w/ FeelNC "
-log.info "=============================================="
-
-/*
-* Deplete transcripts that are: short (<200 nucleotides), monoexonic, overlapping protein coding genes
-*/
-
-process feelnc_filter{
-
-  storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc"
-
-  input:
-  file merged_gtf from merged_de_novo_assembly_3
-  file reference_gtf from ref_gtf_channel
-
-  output:
-  file("candidate_lncRNA.gtf") into candidates
-
-  script:
-  """
-  FEELnc_filter.pl -i ${merged_gtf} \
-                   -a ${reference_gtf} \
-                   -b transcript_biotype=protein_coding > candidate_lncRNA.gtf
-  """
-}
-
-/*
-* Predict novel lncRNAs
-*/
-
-process feelnc_codpot{
-  cpus 48
-  storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc"
-
-  input:
-  file candidate_lncrna from candidates
-  file known_mrna from known_mrna_channel
-  file known_lncrna from known_lncrna_channel
-  file reference_genome from fasta_reference_channel
-
-  output:
-  set file("rheMac10_EBOV-Kikwit.fa.index"), file("feelnc_codpot_out") into coding_potentials
-
-  script:
-  """
-  FEELnc_codpot.pl -i ${candidate_lncrna} -a ${known_mrna} -l ${known_lncrna} \
-                   -g ${reference_genome} --proc ${task.cpus}
-  """
-
-}
-
-/*
-* Compare prediction with reference GTF
-*/
-process gffCompare{
-
-  storeDir "${params.output_dir}/05_feelNC_prediction_a/feelnc_gencode_linc/01_gffcompare"
-
-  input:
-  set index, codpot from coding_potentials
-  file reference_gtf from ref_gtf_channel_2
-
-  output:
-  file("merged*") into gff_compare_output_channel
-
-  script:
-  """
-  gffcompare -R -r ${reference_gtf} -o merged ${codpot}/candidate_lncRNA.gtf.lncRNA.gtf
-  """
-}
-
-// ---------------------------------------
-// Explorative - not real part of the pipeline
-// ----------------------------------------
-
-
-// process getHTseqCountMerged{
+// /*
+// * Merge all the assemblies Reference Guided
+// */
+// process StringTie_Merge_Reference_Guided{
 //
-//   cpus 8
-//   storeDir "${params.output_dir}/06_counts/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//   cpus 48
+//   storeDir "${params.output_dir}/04a_stringtie/"
+//
+//   when:
+//   params.transcriptome_assembly
 //
 //   input:
-//   file gtf from merged_de_novo_assembly_4.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from filtered_merged_bams_3
+//   file(stringtie_gtfs) from stringTie_channel.collect()
+//   file reference_gtf from gtfChannel5
 //
 //   output:
-//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsMerged_channel
+//   file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
 //
 //   script:
-//   bam_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   # Calc the counts for the umi_dedup
-//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   stringtie --merge -p ${task.cpus} -F 1.0 -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
 //   """
 // }
 //
 //
-// process getHTseqCountRef{
+// /*
+// * Compare stringtie output with reference GTF
+// */
+// process gffCompare2{
 //
-//   cpus 8
-//   storeDir "${params.output_dir}/06_counts_ref/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//   storeDir "${params.output_dir}/04b_gffCompare"
 //
 //   input:
-//   file gtf from gtfChannel1.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from filtered_merged_bams_4
+//   file merged_gtf from merged_denovo_assmebly
+//   file reference_gtf from gtfChannel6
 //
 //   output:
-//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsRef_channel
+//   file("merged*") into gff_compare_output_channel2
 //
 //   script:
-//   bam_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   # Calc the counts for the umi_dedup
-//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   gffcompare -R -r ${reference_gtf} -o merged ${merged_gtf}
 //   """
 // }
 //
-// // I merge the novel with the reference
-// params.gtf_ref_merged =  "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncrnas/00_gtf_external/rheMac10_EBOV-Kikwit_and_novel.gtf"
-// Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
 //
-// process getHTseqCountALL{
+// merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
 //
-//   cpus 24
-//   storeDir "${params.output_dir}/06_counts_all/$dataset_name/$tissue/$dayPostInfection/$sample/htseq_counts"
+//
+//
+// log.info "=============================================="
+// log.info "            lncRNA Annotation w/ FeelNC "
+// log.info "=============================================="
+//
+// /*
+// * Deplete transcripts that are: short (<200 nucleotides), monoexonic, overlapping protein coding genes
+// */
+//
+// process feelnc_filter{
+//
+//   storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc"
 //
 //   input:
-//   file gtf from gtfANDnovel.collect()
-//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
-//       file(bam),
-//       file(bai) from filtered_merged_bams_5
+//   file merged_gtf from merged_de_novo_assembly_3
+//   file reference_gtf from ref_gtf_channel
 //
 //   output:
-//   file "${bam_prefix}.HTseq.gene_counts.tab" into htseqCountsALL_channel
+//   file("candidate_lncRNA.gtf") into candidates
 //
 //   script:
-//   bam_prefix = get_file_name_no_extension(bam.name)
 //   """
-//   # Calc the counts for the umi_dedup
-//   htseq-count -f bam -r name -s ${params.htseqsense} -t exon -i gene_id ${bam} ${gtf} > ${bam_prefix}.HTseq.gene_counts.tab
+//   FEELnc_filter.pl -i ${merged_gtf} \
+//                    -a ${reference_gtf} \
+//                    -b transcript_biotype=protein_coding > candidate_lncRNA.gtf
 //   """
 // }
+//
+// /*
+// * Predict novel lncRNAs
+// */
+//
+// process feelnc_codpot{
+//   cpus 48
+//   storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc"
+//
+//   input:
+//   file candidate_lncrna from candidates
+//   file known_mrna from known_mrna_channel
+//   file known_lncrna from known_lncrna_channel
+//   file reference_genome from fasta_reference_channel
+//
+//   output:
+//   set file("rheMac10_EBOV-Kikwit.fa.index"), file("feelnc_codpot_out") into coding_potentials
+//
+//   script:
+//   """
+//   FEELnc_codpot.pl -i ${candidate_lncrna} -a ${known_mrna} -l ${known_lncrna} \
+//                    -g ${reference_genome} --proc ${task.cpus}
+//   """
+//
+// }
+//
+// /*
+// * Compare prediction with reference GTF
+// */
+// process gffCompare{
+//
+//   storeDir "${params.output_dir}/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare"
+//
+//   input:
+//   set index, codpot from coding_potentials
+//   file reference_gtf from ref_gtf_channel_2
+//
+//   output:
+//   file("merged*") into gff_compare_output_channel
+//
+//   script:
+//   """
+//   gffcompare -R -r ${reference_gtf} -o merged ${codpot}/candidate_lncRNA.gtf.lncRNA.gtf
+//   """
+// }
+//
 
 
 workflow.onComplete {

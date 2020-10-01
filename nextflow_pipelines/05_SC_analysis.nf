@@ -139,8 +139,8 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
       process STAR{
 
         label 'big_mem'
-        //cpus 24
-        cpus 1
+        cpus 16
+        //cpus 1
         tag "${complete_id}"
         storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
@@ -173,7 +173,7 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
 
     label 'big_mem'
     //cpus 24
-    cpus 1
+    cpus 16
     tag "${complete_id}"
     publishDir "${params.output_dir}/02_star/$animal_id/$hpi/$replicate/$exp/$preprocessing", mode: "copy", overwrite: false
 
@@ -204,7 +204,7 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
 }
 
 process sort_bam{
-  cpus 48
+  cpus 16
   //cpus 1
   memory '300 GB'
   label "rnaseq"
@@ -249,7 +249,7 @@ storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preproce
 
 
 process RevertSam{
-  cpus 48
+  cpus 16
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
@@ -277,7 +277,7 @@ unmapped_and_mapped_bams1.subscribe{ println "$it" }
 // // TODO: Missing orientation !
 process MergeBamAlignment{
 
-  cpus 48
+  cpus 16
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"

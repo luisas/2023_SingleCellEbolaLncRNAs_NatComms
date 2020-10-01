@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "FeelNC Benchmark"
 author: "Luisa Santus"
 date: "2/7/2020"
 output: html_document
@@ -7,19 +7,95 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);
+stringsAsfactors=FALSE
+library(ggplot2)
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 ```
 
 # FeelNC training Benchmark
 
-## Obtain sensitivity of feelNC model trained with human data
+
+## Compare number of genes in macaques vs Human annotation 
 ```{r results='hide', message=FALSE, warning=FALSE}
-library(rtracklayer);
+ref_macaque <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+ref_human <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"))
 
 
+ref_macaque_gene <- ref_macaque[ref_macaque$type =="gene",]
+
+table(ref_macaque[ref_macaque$source == "ensembl",]$gene_biotype)]
+table(ref_macaque[ref_macaque$source == "RefSeq",]$gene_biotype)
+
+table(ref_human$gene_biotype)
+ref_macaque_gene <- ref_macaque[ref_macaque$type == "gene",]
+ref_human_gene <- ref_human[ref_human$type == "gene",]
+
+lnc_macaque <- sum(ref_macaque_gene$gene_biotype == "lncRNA")
+pc_macaque <- sum(ref_macaque_gene$gene_biotype == "protein_coding")
+lnc_human <- sum(ref_human_gene$gene_biotype == "lncRNA")
+pc_human <- sum(ref_human_gene$gene_biotype == "protein_coding")
+
+count <- c(lnc_macaque, pc_macaque, lnc_human, pc_human ) 
+species <- c(rep("Macaque", 2), rep("Human",2))
+gene_biotype <- c(rep(c("LncRNA", "Protein Coding"), 2 ) )
+df_n_genes <- data.frame(count, species, gene_biotype)
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+ggplot(df_n_genes, aes(fill = gene_biotype, y = count, x = species))+
+                geom_bar(stat="identity", position = position_dodge2())+
+                theme_paper+scale_fill_manual(values = palette_plot_percentage)+
+                scale_color_manual(values = palette_plot_percentage)+
+                labs(x = "", y = "")+
+                scale_y_continuous( breaks = c(lnc_macaque, lnc_human))+
+                geom_abline(slope=0, intercept=lnc_macaque,  col = "darkgrey",lty=2)+
+                geom_abline(slope=0, intercept=lnc_human,  col = "darkgrey",lty=2)
+```
+
+
+## Obtain sensitivity of feelNC model trained with human data
+
+```{r results='hide', message=FALSE, warning=FALSE}
 datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
-ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release98/rheMac10/Macaca_mulatta.Mmul_10.98.gtf"))
-predicted_lnc <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf"))
-predicted_mrnas <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"))
+ref <- ref_macaque
+predicted_lnc <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark_human_fullinput/feelnc_codpot_out/Macaca_mulatta.Mmul_10.100_copy.gtf.lncRNA.gtf"))
+predicted_mrnas <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark_human_fullinput/feelnc_codpot_out/Macaca_mulatta.Mmul_10.100_copy.gtf.mRNA.gtf"))
+
+ref_lnc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype %in% c("lncRNA", "antisense")]
+ref_pc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding"]
+ref_not_lnc <- ref[!is.na(ref$gene_biotype) & !(ref$gene_biotype %in% c("lncRNA", "antisense"))]
+# How many of the total amount of lncRNAs is predicted as lncRNAs
+identified_lnc <- ref_lnc[ref_lnc$gene_id %in% predicted_lnc$gene_id]
+missed_lnc <- ref_lnc[ !(ref_lnc$gene_id %in% predicted_lnc$gene_id)]
+
+TP <- length(unique(identified_lnc$gene_id))
+FN <- length(unique(missed_lnc$gene_id))
+Sensitivity <- (TP/(FN+TP))*100
+print(Sensitivity)
+
+# How many of the predicted mrnas are lnc? 
+length(intersect(unique(predicted_lnc$gene_id),unique(ref_pc$gene_id)))
+length(unique(predicted_lnc$gene_id))
+
+
+
+
+
+```
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+ref <- ref_macaque
+predicted_lnc <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark_human_fullinput/feelnc_codpot_out/Macaca_mulatta.Mmul_10.100_copy.gtf.lncRNA.gtf"))
+predicted_mrnas <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/00_feelNC_benchmark_human_fullinput/feelnc_codpot_out/Macaca_mulatta.Mmul_10.100_copy.gtf.mRNA.gtf"))
 
 ref_lnc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype %in% c("lncRNA", "antisense")]
 ref_pc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding"]
@@ -33,4 +109,3 @@ FN <- length(unique(missed_lnc$transcript_id))
 Sensitivity <- (TP/(FN+TP))*100
 print(Sensitivity)
 ```
-

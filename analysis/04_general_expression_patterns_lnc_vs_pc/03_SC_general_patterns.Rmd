@@ -16,9 +16,9 @@ robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
 source("../utils/02_sc_utils.R")
 
 # Read reference files 
-#ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+#ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation_old/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
-ref_old<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/OLD_rheMac10_EBOV_and_novel_genenames.gtf"))
+ref_old<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation_old/03_novel_lncRNAs_list_2/OLD_rheMac10_EBOV_and_novel_genenames.gtf"))
 
 ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
@@ -196,10 +196,31 @@ DGEList(counts = count_matrix_small, group = factor(celltype))
 dds <- DESeqDataSetFromMatrix(countData = count_matrix_small, colData = sampleTable, design = design)
 dds <- DESeq(dds)
 
+
+
 resultsNames(dds)
 design(dds)
-r1 <- results(dds, contrast = c(0,-1,-1,1))
+r1 <- results(dds)
+res <- results(dds, name=c("celltype_Myeloid_vs_B"))
+res
 
+
+
+markers <- FindAllMarkers(immune.combined)
+
+saveRDS(markers, "/home/luisas/Desktop/cluster/data/RObjects_old/mk.rds")
+
+plot(density(markers$avg_logFC))
+
+gene_test <- markers[markers$avg_logFC== max(abs(markers$avg_logFC)),]
+
+plot_genes(immune.combined,gene_test$gene,threshold= 3, title = "Monocytes marker expression", col = "purple")
+
+```
+
+
+
+```{r a }
 subset <- subset(immune.combined, feature = c("CD14"))
 m_vs_t <- FindMarkers(immune.combined, ident.1 = "Myeloid", ident.2 = "T")
 m_vs_nk <- FindMarkers(immune.combined, ident.1 = "Myeloid", ident.2 = "NK")

@@ -4,14 +4,14 @@
 #input="/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"
 #input="/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"
 
-name="rheMac10_EBOV_and_novel_genenames"
+name="rheMac10_EBOV_and_novel_genenames_exonid"
 
 input="/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/$name.gtf"
 
 
-human_reference="/home/luisas/Desktop/cluster/gene_annotations/gencode/release_26/gencode.v26.GRCh38.annotation.gtf"
+human_reference="/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"
 #output_dir="/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/03_orthologs_novel/ribodepl"
-output_dir="/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs/00_lncrna_025"
+output_dir="/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs/00_lncrna_05"
 
 chain_rhemac_human="/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/chains/rheMac10.hg38.rbest.chain"
 chain_human_rhemac="/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/chains/hg38.rheMac10.rbest.chain"
@@ -45,7 +45,7 @@ bedtools sort -i "$output_dir/$name.human.macaque.bed6" > "$output_dir/$name.hum
 rm "$output_dir/$name.human.macaque.bed6"
 #
 # # Intersect
-bedtools intersect -wo -f 0.25 -r -s -a "$output_dir/$name.sorted.bed6" -b "$output_dir/$name.human.macaque.sorted.bed6" > "$output_dir/intersection.tab"
+bedtools intersect -wo -f 0.5 -r -s -a "$output_dir/$name.sorted.bed6" -b "$output_dir/$name.human.macaque.sorted.bed6" > "$output_dir/intersection.tab"
 
 # Exploratory
 # FindOverlaps of the human ones with human annotation so we can retrieve the gene biotype
@@ -58,4 +58,4 @@ Rscript ./Create_bed6.R $human_reference "$output_dir_reference/human_reference_
 bedtools sort -i "$output_dir_reference/human_reference_gene.bed6" > "$output_dir_reference/human_reference.gene.sorted.bed6"
 rm "$output_dir_reference/human_reference_gene.bed6"
 
-bedtools intersect -wo -F 0.5 -r -s -a  "$output_dir_reference/human_reference.gene.sorted.bed6" -b "$output_dir/$name.human.sorted.bed6"> "$output_dir/intersection_human_macaquehuman_genelevel.tab"
+bedtools intersect -wo -f 0.5 -r -s -a  "$output_dir_reference/human_reference.gene.sorted.bed6" -b "$output_dir/$name.human.sorted.bed6"> "$output_dir/intersection_human_macaquehuman_genelevel.tab"

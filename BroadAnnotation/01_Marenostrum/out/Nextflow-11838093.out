@@ -1,0 +1,47 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [ecstatic_pauling] - revision: d72dcf2a08
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+==============================================
+lncRNA Annotation w/ FeelNC
+==============================================
+executor >  local (1)
+[c4/df137e] process > ChangeChromosome [  0%] 0 of 1
+
+executor >  local (2)
+[c4/df137e] process > ChangeChromosome [100%] 1 of 1 ✔
+[f0/e132d2] process > feelnc_filter    [  0%] 0 of 1
+
+executor >  local (3)
+[c4/df137e] process > ChangeChromosome [100%] 1 of 1 ✔
+[f0/e132d2] process > feelnc_filter    [100%] 1 of 1 ✔
+[01/80fa07] process > feelnc_codpot    [  0%] 0 of 1
+
+executor >  local (5)
+[c4/df137e] process > ChangeChromosome  [100%] 1 of 1 ✔
+[f0/e132d2] process > feelnc_filter     [100%] 1 of 1 ✔
+[01/80fa07] process > feelnc_codpot     [100%] 1 of 1 ✔
+[87/c56640] process > feelnc_classifier [  0%] 0 of 1
+[74/6b4bc9] process > gffCompare        [  0%] 0 of 1
+
+executor >  local (5)
+[c4/df137e] process > ChangeChromosome  [100%] 1 of 1 ✔
+[f0/e132d2] process > feelnc_filter     [100%] 1 of 1 ✔
+[01/80fa07] process > feelnc_codpot     [100%] 1 of 1 ✔
+[87/c56640] process > feelnc_classifier [  0%] 0 of 1
+[74/6b4bc9] process > gffCompare        [100%] 1 of 1 ✔
+Done!
+
+executor >  local (5)
+[c4/df137e] process > ChangeChromosome  [100%] 1 of 1 ✔
+[f0/e132d2] process > feelnc_filter     [100%] 1 of 1 ✔
+[01/80fa07] process > feelnc_codpot     [100%] 1 of 1 ✔
+[87/c56640] process > feelnc_classifier [100%] 1 of 1 ✔
+[74/6b4bc9] process > gffCompare        [100%] 1 of 1 ✔
+Completed at: 30-Sep-2020 15:49:07
+Duration    : 50m 9s
+CPU hours   : 6.9
+Succeeded   : 5
+

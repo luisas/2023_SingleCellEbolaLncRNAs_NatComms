@@ -1,0 +1,40 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [berserk_bartik] - revision: ff28737a60
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+==============================================
+lncRNA Annotation w/ FeelNC
+==============================================
+executor >  local (1)
+[f2/f40ff1] process > ChangeChromosome [  0%] 0 of 1
+Oops .. something went wrong
+
+executor >  local (1)
+[f2/f40ff1] process > ChangeChromosome [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'ChangeChromosome (1)'
+
+Caused by:
+  Process `ChangeChromosome (1)` terminated with an error exit status (2)
+
+Command executed:
+
+  Rscript DataflowVariable(value=[/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/scripts/convert_annotation.R]) stringtie_merged_reference_guided.gtf "stringtie_merged_reference_guided_ensembl.gtf"
+
+Command exit status:
+  2
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  .command.sh: line 2: syntax error near unexpected token `('
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/f2/f40ff129ee26dfa46e8812e4f8e375
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details

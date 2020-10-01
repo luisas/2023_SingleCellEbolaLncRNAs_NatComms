@@ -1,0 +1,10 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [kickass_kimura] - revision: 06c3f5cf7a
+ERROR ~ unexpected char: '\' @ line 78, column 14.
+     sed 's/^chr\|%$//g' ${assembly_merged} > "stringtie_merged_reference_guided_ensembl.gtf"
+                ^
+
+1 error
+
+
+ -- Check '.nextflow.log' file for details

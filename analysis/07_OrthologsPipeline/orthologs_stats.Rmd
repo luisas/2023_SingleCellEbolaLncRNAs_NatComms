@@ -12,107 +12,119 @@ library(tidyverse)
 library(dplyr)
 library(stringr)
 library(scales)
-
-get_stats_liftover <- function(folder, filename, lim = 100 ){
-  intersection_table <- read.table(paste(file.path(folder, "intersection.tab")))
-  
-  bed_macaque <- read.table(paste(file.path(folder, filename), "sorted.bed6", sep = "."))
-  bed_human <- read.table(paste(file.path(folder, filename), "human.sorted.bed6", sep = "."))
-  bed_human_macaque <- read.table(paste(file.path(folder, filename), "human.macaque.sorted.bed6", sep = "."))
-  names(bed_macaque) <- c("chr", "start", "end", "complete_id", "score", "strand")
-  names(bed_human) <- c("chr", "start", "end", "complete_id", "score", "strand")
-  names(bed_human_macaque) <- c("chr", "start", "end", "complete_id", "score", "strand")
-  
-  
-  names(intersection_table) <- c("chrA", "startA", "endA", "complete_idA", "scoreA", "strandA", "chrB", "startB", "endB", "complete_idB", "scoreB", "strandB", "overlap")
-  intersection_table$complete_idA <- as.character(intersection_table$complete_idA)
-  intersection_table$complete_idB <- as.character(intersection_table$complete_idB)
-  #intersection_table$geneA <- unlist(lapply(intersection_table$complete_idA, function(x) unlist(str_split(x, "_"))[[1]]))
-  #intersection_table$geneB <- unlist(lapply(intersection_table$complete_idB, function(x) unlist(str_split(x, "_"))[[1]]))
-  
-  # Check how many have the same gene overlap or exon overlap
-  exon_overlap <- intersection_table %>% dplyr::filter(complete_idA == complete_idB)
-  number_exons_with_exact_overlap <- length(unique(exon_overlap$complete_idB))
-   
-  # total number of exons tested 
-  total_exons_beginning <- length(unique(bed_macaque$complete_id))
-  total_exons_after_first_liftover <- length(unique(bed_human$complete_id))
-  total_exons_after_second_liftover <- length(unique(bed_human_macaque$complete_id))
-  
- 
-   # ORTHOLOGS BIOTYPES 
-  intersection_table_biotype <- read.table(paste(file.path(folder, "intersection_human_macaquehuman.tab")))
-  names(intersection_table_biotype) <- c("chrA", "startA", "endA", "complete_idA", "scoreA", "strandA", "biotype", "chrB", "startB", "endB", "complete_idB", "scoreB", "strandB", "overlap")
-  
-  # Get the biotypes for the overlapped exons( the ones matching after both liftovers)
-  new_dataset <- intersection_table_biotype %>% right_join(exon_overlap, by=c("complete_idB"))
-  correspondence <- as.data.frame(c(new_dataset$complete_idB))
-  correspondence$biotype <- as.character(new_dataset$biotype)
-  names(correspondence) <- c("id", "biotype")
-  correspondence$id <- as.character(correspondence$id)
-  
-  # remove duplicate rows (distinct) and get biotype's combination occurrence
-  correspondence_filtered <- distinct(correspondence) %>% group_by(id) %>% dplyr::summarise(biotype = paste(biotype, collapse=", "))
-  
-  # Reformat data for plotting
-  df <- as.data.frame(as.matrix(table(correspondence_filtered$biotype)))
-  df$type <- rownames(df)
-  colnames(df) <- c("count", "biotype")
- 
-  biotype_na <- df[df$biotype == "NA",]$count
-  biotype_not_na <- sum(df[df$biotype != "NA",]$count)
-  
-  # plot with no restrictions
-  max = NA
-  lim = lim
-  p2 <- ggplot(data=df[df$count > lim,][df[df$count > lim,]$biotype != "NA",], aes(x=biotype, y=count, fill=biotype)) +geom_bar(stat="identity", width=0.5) + coord_flip()+  scale_fill_brewer(palette="Paired")+
-    theme_minimal() + ylim(0,max) + theme(legend.position = "none") 
-  
-
-  labels <- c("1_Total", "2_After1stLiftover", "3_After2ndLiftover", "4_biotype NA", "5_biotypeFound")
-  df1 <- as.data.frame(labels)
-  if(length(biotype_na) == 0){ biotype_na <- 0}
-  df1$count <- c(total_exons_beginning,total_exons_after_first_liftover,total_exons_after_second_liftover,biotype_na, biotype_not_na)
-  p1 <- ggplot(data=df1, aes(x = labels,  y=count, fill=labels)) +
-    geom_bar(stat="identity")+
-    scale_fill_brewer(palette="Paired")+
-    theme_minimal()+scale_y_continuous(limits=c(number_exons_with_exact_overlap -1000, total_exons_beginning),oob = rescale_none, labels = function(x) format(x, comma = TRUE))
-  
-
-  return(list(p1,p2))
-}
 ```
 
-## Compute number of orthologs
 
-    TODO 
-
-# if number is ok --> check intersect with human annotation to get the biotype, also check for strandness!!!
 ```{r cars}
 
 folder = "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs"
-folder_lncrna= file.path(folder, "00_lncrna/")
-folder_lncrna_05 = file.path(folder, "00_lncrna_05/")
-folder_lncrna_025 = file.path(folder, "00_lncrna_025/")
-folder_mrna = file.path(folder, "01_mrna/")
-filename = "rheMac10_EBOV_and_novel_genenames"
+folder_lncrna = file.path(folder, "00_lncrna_05/")
+filename = "rheMac10_EBOV_and_novel_genenames_exonid"
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
-
-folder <- folder_lncrna_05
-lncrnas_plot <- get_stats_liftover(folder_lncrna, filename, lim = 1)
-#mrns_plot <- get_stats_liftover(folder_mrna, filename)
-#folder <- folder_lncrn
-de_lnc_all <- readRDS( file.path(robjectsdir, "de_lnc_all.rds"))
-de <- gsub("-unkown", "",unlist(de_lnc_all))
-length(unique(de))
+ref[substr(ref$gene_id, 1,3 ) == "rib",]$exon_id <- paste(ref[substr(ref$gene_id, 1,3 ) == "rib",]$transcript_id, ref[substr(ref$gene_id, 1,3 ) == "rib",]$exon_number, sep = ".")
+#export(ref,file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_exonid.gtf") )
 
 
+# Try to add transcript and gene id 
 
-# Analsysis Orthologs 
-folder_input <- folder_lncrna_05
-intersection_table <- read.table(paste(file.path(folder_input, "intersection.tab")))
+
+get_entry_gene <- function(ref, gene){
+  seqname <- as.character(seqnames(ref[ref$gene_id == gene, ]))[1]
+  range <- ranges(range(ref[ref$gene_id == gene, ]))
+  score <- as.character((ref[ref$gene_id == gene, ])$score)[1]
+  source <- as.character((ref[ref$gene_id == gene, ])$source)[1]
+  phase <- as.character((ref[ref$gene_id == gene, ])$phase)[1]
+  gene_id <- as.character((ref[ref$gene_id == gene, ])$gene_id)[1]
+  gene_name <- as.character((ref[ref$gene_id == gene, ])$gene_name)[1]
   
+  
+  newentry_gene <- GRanges(
+      seqnames = seqname,
+      ranges = range,
+      source = source, 
+      type = "gene", 
+      score = score,
+      phase = phase,
+      gene_id = gene_id,
+      gene_name = gene_name, 
+      strand =strand(range(ref[ref$gene_id == gene, ]))
+      )
+  
+  return(newentry_gene)
+}
+
+get_entry_transcript <- function(ref, transcript){
+  seqname <- as.character(seqnames(ref[!is.na(ref$transcript_id) & ref$transcript_id == transcript, ]))[1]
+  range <- ranges(range(ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ]))
+  score <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$score)[1]
+  source <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$source)[1]
+  phase <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$phase)[1]
+  gene_id <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$gene_id)[1]
+  gene_name <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$gene_name)[1]
+  transcript_id <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$transcript_id)[1]
+  transcript_name <- as.character((ref[!is.na(ref$transcript_id) &ref$transcript_id == transcript, ])$transcript_name)[1]  
+  
+  newentry_transcript <- GRanges(
+      seqnames = seqname,
+      ranges = range,
+      source = source, 
+      type = "transcript", 
+      score = score,
+      phase = phase,
+      gene_id = gene_id,
+      gene_name = gene_name, 
+      transcript_id = transcript_id, 
+      transcipt_name = transcript_name,
+      strand =strand(range(ref[ref$gene_id == gene, ]))
+      )
+  
+  return(newentry_transcript)
+}
+
+
+
+genes_missing <- ref[substr(ref$gene_id, 1,3 ) == "rib",]$gene_id
+transcripts_missing <- ref[substr(ref$gene_id, 1,3 ) == "rib",]$transcript_id
+
+
+gene_missing_gr <-lapply(genes_missing, function(x) get_entry_gene(ref,x))
+transcript_missing_gr <-lapply(transcripts_missing, function(x) get_entry_transcript(ref,x))
+gene_missing_gr <- do.call("c",gene_missing_gr)
+transcript_missing_gr <- do.call("c", transcript_missing_gr)
+
+full <- append(append(ref, transcript_missing_gr), gene_missing_gr) 
+
+
+full <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_full.gtf"))
+
+
+full <- sortSeqlevels(full)
+full_sorted <- sort(full)
+
+export(full_sorted, file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_full_sorted.gtf"))
+
+full
+
+
+
+
+
+```
+
+
+
+
+
+```{r cars}
+# ---------------------------------
+#      Analsysis Orthologs
+# ---------------------------------
+
+folder_input <- folder_lncrna
+intersection_table <- read.table(paste(file.path(folder_input, "intersection.tab")))
+
+# Rename columns so that we can assign them correctly 
 bed_macaque <- read.table(paste(file.path(folder_input, filename), "sorted.bed6", sep = "."))
 bed_human <- read.table(paste(file.path(folder_input, filename), "human.sorted.bed6", sep = "."))
 bed_human_macaque <- read.table(paste(file.path(folder_input, filename), "human.macaque.sorted.bed6", sep = "."))
@@ -127,22 +139,42 @@ intersection_table$complete_idB <- as.character(intersection_table$complete_idB)
 # Check how many have the same gene overlap or exon overlap
 exon_overlap <- intersection_table %>% dplyr::filter(complete_idA == complete_idB)
 number_exons_with_exact_overlap <- length(unique(exon_overlap$complete_idB))
-   
-# total number of exons tested 
+
+
+
+# Put a threshold 
+exon_overlap$macaque_gene <- unlist(lapply(exon_overlap$complete_idA, function(x) strsplit(x,"_")[[1]][1]))
+exon_overlap$macaque_exon <- unlist(lapply(exon_overlap$complete_idA, function(x) strsplit(x,"_")[[1]][2]))
+
+
+# Each gene which ortholog exons it has 
+orth_exons_per_gene <- distinct(exon_overlap) %>% group_by(macaque_gene) %>% dplyr::summarise(exon = paste(macaque_exon, collapse=", "))
+
+exon_overlap[exon_overlap$macaque_gene =="ENSMMUG00000000258", ]
+orth_exons_per_gene[substr(orth_exons_per_gene$macaque_gene, 1,3 ) == "rib",]
+
+gene <- "ribodepl-MSTRG.102407"
+
+calc_overlap_gene_exonorthologs <- function(gene){
+  gene_length_spliced <- sum(width(ranges(ref[ref$gene_id == gene & ref$type == "exon", ])))
+  sum_exons_orthologs <- sum(width(IRanges::reduce(ranges(ref[ref$exon_id %in% unlist(str_split(orth_exons_per_gene[orth_exons_per_gene$macaque_gene == gene,]$exon, ", ")), ]))))
+  orth_exons_overlap_gene <- sum_exons_orthologs*100/gene_length_spliced
+  return(orth_exons_overlap_gene)
+}
+
+
+# Total number of exons tested 
 total_exons_beginning <- length(unique(bed_macaque$complete_id))
 total_exons_after_first_liftover <- length(unique(bed_human$complete_id))
 total_exons_after_second_liftover <- length(unique(bed_human_macaque$complete_id))
   
- # ORTHOLOGS BIOTYPES 
+# ORTHOLOGS BIOTYPES 
 intersection_table_biotype <- read.table(paste(file.path(folder_input, "intersection_human_macaquehuman.tab")))
 names(intersection_table_biotype) <- c("chrA", "startA", "endA", "complete_idA", "scoreA", "strandA", "biotype", "chrB", "startB", "endB", "complete_idB", "scoreB", "strandB", "overlap")
   
 # Get the biotypes for the overlapped exons( the ones matching after both liftovers)
-new_dataset <- intersection_table_biotype %>% right_join(exon_overlap, by=c("complete_idB"))
+full_correspondence <- intersection_table_biotype %>% right_join(exon_overlap, by=c("complete_idB"))
 
-
-full_correspondence <- new_dataset 
-correspondence <- new_dataset 
 
 
 # Remove lines where there is no match 
@@ -153,49 +185,49 @@ full_correspondence_reduced <- data.frame(human_id_full = as.character(full_corr
 full_correspondence_reduced$human_gene_id <-  unlist(lapply(full_correspondence_reduced$human_id_full, function(x) strsplit(x,"_")[[1]][1]))
 full_correspondence_reduced$macaque_gene_id <-  unlist(lapply(full_correspondence_reduced$macaque_id_full, function(x) strsplit(x,"_")[[1]][1]))
 
-distinct(full_correspondence_reduced) %>% group_by(macaque_id_full, human_id_full) %>% dplyr::summarise(biotype = paste(biotype, collapse=", "))
-
-de_full_corr <- full_correspondence_reduced[full_correspondence_reduced$macaque_gene_id %in% de, ]
-de_full_corr_unique <- de_full_corr[!duplicated(de_full_corr$macaque_gene_id),]
-de_full_corr_unique$human_gene_id
-
-# test ----
-
-new_dataset <- intersection_table_biotype %>% right_join(exon_overlap, by=c("complete_idB"))
-correspondence <- as.data.frame(c(new_dataset$complete_idB))
-correspondence$biotype <- as.character(new_dataset$biotype)
-names(correspondence) <- c("id", "biotype")
-correspondence$id <- as.character(correspondence$id)
-correspondence$macaque_id <- unlist(lapply(as.character(correspondence$id), function(x) strsplit(x,"_")[[1]][1]))
-correspondence <- correspondence[!is.na(correspondence$biotype),]
-# remove duplicate rows (distinct) and get biotype's combination occurrence
-correspondence_filtered <- distinct(correspondence) %>% group_by(macaque_id) %>% dplyr::summarise(biotype = paste(biotype, collapse=", "))
+full_correspondence_reduced <- distinct(full_correspondence_reduced) %>% group_by(macaque_id_full, human_id_full) %>% dplyr::summarise(biotype = paste(biotype, collapse=", "))
 
 
-correspondence_filtered$biotype_summarized <- unlist(lapply(correspondence_filtered$biotype, function(x) paste(unique(trimws(unlist(str_split(x, ",")))), collapse = ",")))
+full_correspondence_reduced$macaque_gene <- unlist(lapply(as.character(full_correspondence_reduced$macaque_id_full), function(x) strsplit(x,"_")[[1]][1]))
+full_correspondence_reduced <- distinct(full_correspondence_reduced) %>% group_by(macaque_gene) %>% dplyr::summarise(biotype = paste(biotype, collapse=", "))
+full_correspondence_reduced$biotype_summarized <- unlist(lapply(full_correspondence_reduced$biotype, function(x) paste(unique(trimws(unlist(str_split(x, ",")))), collapse = ",")))
+
+
+full_correspondence_reduced$perc_gene_orth_exons <-unlist(lapply(full_correspondence_reduced$macaque_gene,calc_overlap_gene_exonorthologs))
+
+full_correspondence_reduced_filter <- full_correspondence_reduced[full_correspondence_reduced$perc_gene_orth_exons > 50, ]
+novel_orth_macaque <- full_correspondence_reduced[substr(full_correspondence_reduced$macaque_gene, 1,3 ) == "rib",]
+
+table(full_correspondence_reduced$perc_gene_orth_exons > 50 ) 
 
 # Orthologs for how many of my lnc do i find? 
-length(unique(correspondence_filtered$macaque_id))
-sum(table(correspondence_filtered$biotype_summarized))
-ggplot(correspondence_filtered, aes(y = biotype_summarized, fill = biotype_summarized))+geom_bar()+theme_classic()+theme(legend.position = "none")+labs(y = "Biotype")
+novel_orth_macaque <- full_correspondence_reduced_filter[substr(full_correspondence_reduced_filter$macaque_gene, 1,3 ) == "rib",]
+annot_orth_macaque <- full_correspondence_reduced_filter[substr(full_correspondence_reduced_filter$macaque_gene, 1,3 ) != "rib",]
 
+
+ggplot(annot_orth_macaque, aes(y = biotype_summarized, fill = biotype_summarized))+geom_bar()+theme_classic()+theme(legend.position = "none")+labs(y = "Biotype")
+
+ggplot(novel_orth_macaque, aes(y = biotype_summarized, fill = biotype_summarized))+geom_bar()+theme_classic()+theme(legend.position = "none")+labs(y = "Biotype")
+
+
+```
+
+
+````{r bio}
 # I find only 900
 correspondence_filtered$type <- unlist(lapply(correspondence_filtered$macaque_id, function(x) substr(x,1,4)))
 length(unique(correspondence_filtered$macaque_id))
-ggplot(correspondence_filtered, aes(y = biotype_summarized, fill = type))+geom_bar()+theme_classic()+scale_fill_brewer(palette = "Paired")+theme(legend.position = "none")
+ggplot(correspondence_filtered, aes(y = biotype_summarized, fill = type))+geom_bar()+theme_classic()+scale_fill_brewer(palette = "Paired")
 
 count_biotype <- as.data.frame(table(correspondence_filtered$biotype_summarized))
 count_biotype <- count_biotype[count_biotype$Freq > 10, ] 
 biotypes_keep <- as.vector(count_biotype$Var1)
 
-ggplot(correspondence_filtered[correspondence_filtered$biotype_summarized %in% biotypes_keep, ], aes(y = biotype_summarized, fill = type))+geom_bar()+theme_classic()+scale_fill_brewer(palette = "Paired")+theme(legend.position = "none")+labs(y = "Biotype")
+ggplot(correspondence_filtered[correspondence_filtered$biotype_summarized %in% biotypes_keep, ], aes(y = biotype_summarized, fill = type))+geom_bar()+theme_classic()+scale_fill_brewer(palette = "Paired")+labs(y = "Biotype")
 
+```
 
-# How many of the De genes 
-de_lnc_orthologs <- correspondence_filtered[correspondence_filtered$macaque_id %in% de, ]
-ggplot(de_lnc_orthologs, aes(y = biotype_summarized, fill = type ))+geom_bar()+theme_classic()+scale_fill_brewer(palette = "Paired")+labs(y = "Biotype")
-
-
+```{r de}
 
 full_correspondence[full_correspondence$complete_idA.x %in% de, ]
 
