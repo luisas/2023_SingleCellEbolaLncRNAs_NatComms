@@ -34,12 +34,12 @@ add_prefix <- function(gtf, prefix){
 }
 
 
-gtf_ribodepl_newids <- add_prefix(ribodepl_novel, "ribodepl-")
+#gtf_ribodepl_newids <- add_prefix(ribodepl_novel, "ribodepl-")
 
 # ---------------------------------------
 # Merge Novel and Ref  together ( just append ) 
 # ---------------------------------------
-glst_ref_and_novel <-list(ref_gtf,gtf_ribodepl_newids)
+glst_ref_and_novel <-list(ref_gtf,ribodepl_novel)
 gtf_ref_and_novel <- do.call(c, as(glst_ref_and_novel, "GRangesList"))
 
 

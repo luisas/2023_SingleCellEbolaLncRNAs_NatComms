@@ -24,8 +24,6 @@
 use Data::Dumper;
 use Getopt::Long;
 
-print("Before reading");
-
 my $extended;
 GetOptions("x"=>\$extended);
 
@@ -43,8 +41,6 @@ while (<IN>) {
 	# 0-chr 1-src 2-feat 3-beg 4-end 5-scor 6-dir 7-fram 8-attr
 	my @f = split /\t/;
 	if ($gff) {
-
-		print("hey");
         # most ver 2's stick gene names in the id field
 		($id) = $f[8]=~ /\bID="([^"]+)"/;
         # most ver 3's stick unquoted names in the name field
@@ -52,6 +48,7 @@ while (<IN>) {
 	} else {
 		($id) = $f[8]=~ /transcript_id "([^"]+)"/;
 	}
+
 
 	next unless $id && $f[0];
 

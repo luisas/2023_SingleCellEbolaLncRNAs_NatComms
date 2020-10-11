@@ -1,0 +1,204 @@
+---
+title: "01_lncrnas_plots_paper"
+author: "Luisa Santus"
+date: "4/23/2020"
+output: html_document
+  keep_md: true
+---
+
+## 01 lncRNAs annotation summary
+
+
+### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
+library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
+
+# Reoccurring paths
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+# Human reference for comparison
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_lncrna.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
+
+# Macaque reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+
+all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+
+
+
+```
+### Comparison of exon length, transcript length and number ofe exons distributions
+
+
+```{r stats}
+# How many novel lncRNAs do i identify (Genes)
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+length(unique(all_novel_lnc$gene_id))
+plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
+```
+
+
+# How many are intergenic and how many antisense
+```{r stats}
+
+gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
+
+gffcompare_novel <- gffcompare[gffcompare$transcript_id %in%all_novel_lnc$transcript_id,]
+
+length(unique(gffcompare_novel$gene_id))
+table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code)
+prop.table(table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code))
+
+```
+
+
+```{r expression}
+
+palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
+
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
+
+
+dir_counts_ref <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/"
+
+
+abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
+
+# Read all files
+abundances <- list()
+for(i in 1:length(abundance_files)) {
+  file <- readr::read_tsv(abundance_files[i])
+  # Sum up values for double entries (https://github.com/gpertea/stringtie/issues/192)
+  file <- file %>% dplyr::group_by(`Gene ID`)%>% dplyr::summarise(TPM = sum(TPM))
+  abundances[[i]] <- data.frame(file$TPM, row.names =file$`Gene ID` )
+}
+
+# Summarize all TPMs from all quantification files 
+rn <- rownames(abundances[[1]])
+dat <- abundances[[1]]
+for(i in 2:length(abundances)) {
+  dat <- merge(dat, abundances[[i]],  by= "row.names", all.x= F, all.y= F) [,-1]
+  rownames(dat) <- rn
+}
+
+expression <- dat
+expression <- as.matrix(expression)
+# ----------------------------------------------------------------------
+# Extract expression ALL
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(as.matrix(expression))))
+max_expression['type'] <- "0"
+max_expression$type
+max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
+
+# ----------------------------------------------------------------------
+# Same for the median
+# ----------------------------------------------------------------------
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(as.matrix(expression))))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))+labs(y = "logTPM")
+
+median_expression_novel <- median_expression[median_expression$type == "Novel lncRNAs",]$expr
+median_expression_annot <- median_expression[median_expression$type == "Annotated lncRNAs",]$expr
+median_expression_pc <- median_expression[median_expression$type == "mRNAs",]$expr
+wilcox.test(median_expression_novel, median_expression_pc)
+wilcox.test(median_expression_novel, median_expression_annot)
+wilcox.test(median_expression_pc, median_expression_annot)
+
+#level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+#ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
+#                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
+
+
+```
+
+# -----------------------------
+# Tissue Sharing
+# -----------------------------
+
+
+```{r tissuespecificity}
+
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
+tissues <- lapply(tissues, function(x) (str_split(x, "-")[[1]])[1])
+unique(tissues)
+colnames(expression) <- tissues
+tissues <- gsub("Testes", "Testis", tissues)
+tissues <- gsub("Wholeblood", "Blood", tissues)
+tissues <- gsub("Serum", "Blood", tissues)
+
+# Check how many tissues express a gene
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
+colnames(expressed_booleans) <- tissues
+grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
+n_tissues_expresseing_gene <- rowSums(grouped_expression)
+
+# Create DF for plotting
+df <- as.data.frame(as.data.frame(n_tissues_expresseing_gene))
+df$id <- rownames(df)
+
+
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+
+
+type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
+palette <- c("#E8C2D8", "#D4549C", "#8195D7")
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[3])
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
+b
+
+
+
+```
+# Find an example of a novel transcript expressed only in one tissue
+```{r tissuespecificity}
+novel_tissue_expression <- grouped_expression[substr(rownames(grouped_expression),1,4) == "MSTR",]
+novel_tissue_expression["MSTRG.107655",]
+
+# Get gene only expressed in Brain 
+novel_tissue_expression[novel_tissue_expression[,"Blood"] == 1 & rowSums(novel_tissue_expression) == 1, ]
+all[all$gene_id == "MSTRG.104218", ]
+
+```
+
+

@@ -288,4 +288,88 @@ barplot_tissues <- function(df, type, col){
     scale_fill_manual(values=c(col))+scale_y_continuous(expand = c(0,1),breaks = c(round_any(max(h_plotdata$y), 100, f = floor)))
   return(p1)
 }
+library(rtracklayer)
+library(dplyr)
+library(ggplot2)
+library(plyr)
+library(ggpubr)
+
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
+exon_nr_summary <- function(gr){
+  get_nr_exons_mod<- function(gr){
+    df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
+    number_exons <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
+    return(number_exons)
+  }
+  gr <- gr[gr$type =="exon",]
+  #gr <- get_only_max_transcript(gr)
+  df_l <- data.frame(get_nr_exons_mod(gr))
+  return(df_l)
+}
+
+
+transcript_length_summary <- function(gr){
+  gr <- gr[gr$type =="exon",]
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+  return(collapsed)
+}
+plot_assembly_stats <- function(summary_exons){
+  #Visualize 
+  # Create Data
+  data <- data.frame(
+    group=c("1", "2", "3+"),
+    value=c(sum(summary_exons$max_exon == 1),sum(summary_exons$max_exon == 2),sum(summary_exons$max_exon > 1))
+  )
+  
+  # Basic piechart
+  # Compute the position of labels
+  data <- data %>% 
+    arrange(desc(group)) %>%
+    mutate(prop = value / sum(data$value) *100) %>%
+    mutate(ypos = cumsum(prop)- 0.5*prop )
+  
+  # Basic piechart
+  plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
+    geom_bar(stat="identity", width=1, color="white") +
+    coord_polar("y", start=0) +
+    theme_void() + 
+    theme(legend.position="none") +
+    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
+    scale_fill_brewer(palette="Set1")+ggtitle(paste("Number of exons per assembled transcript\n\nTotal number of assembled transcripts: ", length(unique(summary_exons$transcript_id))))
+  return(plotassembly)
+}
+
+calc_transcript_length_2 <- function(gr){
+  gr <- gr[gr$type =="exon",]
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+  return(collapsed)
+}
+
+bed12_entry <- function(transcript){
+  
+  entry <- gtf_no_gene[gtf_no_gene$transcript_id == transcript, ]
+  exons <- entry[entry$type == "exon",]
+  
+  # Extract all informations 
+  chrom <- as.character(seqnames(entry))[1]
+  start <- min(start(ranges(exons)))-1
+  stop <- max(end(ranges(exons)))
+  name <- exons$transcript_id[1]
+  score <- "-"
+  strand <- as.character(strand(exons))[1]
+  thickstart<- start
+  thickend <- stop
+  rgb <- 0 
+  blockcount <- length(exons) 
+  blocksizes <- paste(width(ranges(exons)), collapse = ",")
+  blockstarts <- paste(start(ranges(exons))-1-start , collapse= ",")
+  line <- data.frame(chrom, start, stop, name, score, strand, thickstart, thickend, rgb, blockcount, blocksizes, blockstarts)
+  
+  return(line)
+}
 

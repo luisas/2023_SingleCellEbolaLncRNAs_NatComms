@@ -1,0 +1,12 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [goofy_mcclintock] - revision: d0b05abfe0
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+Done!
+Completed at: 10-Oct-2020 20:37:26
+Duration    : 1.8s
+CPU hours   : (a few seconds)
+Succeeded   : 0
+

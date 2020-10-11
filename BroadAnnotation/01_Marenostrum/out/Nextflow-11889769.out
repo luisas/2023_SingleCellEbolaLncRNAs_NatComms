@@ -1,0 +1,96 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [serene_wescoff] - revision: 1f974e7455
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[1a/195fa6] process > novelANDconcordant [  0%] 0 of 1
+Oops .. something went wrong
+
+executor >  local (1)
+[1a/195fa6] process > novelANDconcordant [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'novelANDconcordant'
+
+Caused by:
+  Process `novelANDconcordant` terminated with an error exit status (1)
+
+Command executed:
+
+  Rscript 03_prefilter_script.R merged.annotated.gtf stringtie_merged_reference_guided.gtf rheMac10_EBOV-Kikwit_UCSC.gtf candidates.gtf
+
+Command exit status:
+  1
+
+Command output:
+  [1] 200305
+  [1] 37831
+  [1] "After filter 0:"
+  [1] 10552
+  [1] 10564
+  [1] "After filter 1:"
+  [1] 39
+  [1] 42
+  [1] "After filter 2:"
+  [1] 39
+  [1] 42
+  [1] 0
+  [1] "After filter 3:"
+  [1] 39
+  [1] 42
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  Loading required package: GenomicRanges
+  Loading required package: stats4
+  Loading required package: BiocGenerics
+  Loading required package: parallel
+  
+  Attaching package: ‘BiocGenerics’
+  
+  The following objects are masked from ‘package:parallel’:
+  
+      clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+      clusterExport, clusterMap, parApply, parCapply, parLapply,
+      parLapplyLB, parRapply, parSapply, parSapplyLB
+  
+  The following objects are masked from ‘package:stats’:
+  
+      IQR, mad, sd, var, xtabs
+  
+  The following objects are masked from ‘package:base’:
+  
+      anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+      dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+      grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+      order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+      rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+      union, unique, unsplit, which, which.max, which.min
+  
+  Loading required package: S4Vectors
+  
+  Attaching package: ‘S4Vectors’
+  
+  The following object is masked from ‘package:base’:
+  
+      expand.grid
+  
+  Loading required package: IRanges
+  Loading required package: GenomeInfoDb
+  Warning message:
+  Factor `gene_id` contains implicit NA, consider using `forcats::fct_explicit_na` 
+  Error in file(file, ifelse(append, "a", "w")) : 
+    cannot open the connection
+  Calls: export ... export -> export -> export -> .local -> cat -> file
+  In addition: Warning message:
+  In file(file, ifelse(append, "a", "w")) :
+    cannot open file '/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/candidates.gtf': No such file or directory
+  Execution halted
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/1a/195fa65d0f3b851dd705ba25e0e7ef
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details

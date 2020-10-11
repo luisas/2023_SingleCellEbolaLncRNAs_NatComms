@@ -8,7 +8,7 @@ log.info "=============================================="
 
 
 // BaseFolders
-params.prefix = "rheMac10_EBOV-Kikwit"
+params.prefix = "rheMac10_EBOV-Kikwit_UCSC"
 params.prefix_data = "/gpfs/projects/bsc83/Data"
 params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
 params.output_dir_name = "01_RNA-Seq_ribodepl"
@@ -16,12 +16,12 @@ params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation/"
 
 
 // Reference annotation
-params.reference_annotated = "${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit.gtf"
+params.reference_annotated = "${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit_UCSC.gtf"
 gtfChannel = Channel.fromPath("${params.reference_annotated}")
 
 gtfChannel_ucsc = Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit_UCSC.gtf")
 
-params.reference_fasta = "${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit.fa"
+params.reference_fasta = "${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit_UCSC.fa"
 ref_fasta = Channel.fromPath("${params.reference_fasta}")
 
 gtfChannel.into{gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4;gtfChannel5;  }
@@ -30,8 +30,10 @@ gtfChannel.into{gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4;gtfChannel5; 
 stringTie_channel = Channel.fromPath("${params.prefix_data}/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/stringtie2-gtfs/*.gtf")
 
 
-params.known_mrna = "${params.output_dir_preliminary}//Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"
-params.known_lncrna = "${params.output_dir_preliminary}/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"
+params.known_mrna = "${params.output_dir_preliminary}/Homo_sapiens.GRCh38.83_antisense.lincRNA_learning5k.fa"
+params.known_lncrna = "${params.output_dir_preliminary}/Homo_sapiens.GRCh38.83_protein_coding_learning5k.fa"
+
+
 
 Channel.fromPath("${params.known_mrna}").set{ known_mrna_channel}
 Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
@@ -52,7 +54,7 @@ process StringTie_Merge_Reference_Guided{
   file reference_gtf from gtfChannel_ucsc
 
   output:
-  file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly)
+  file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assmebly, merged_de_novo_assembly_2)
 
   script:
   """
@@ -61,26 +63,44 @@ process StringTie_Merge_Reference_Guided{
 }
 
 
-process ChangeChromosome{
+// process ChangeChromosome{
+//
+//   cpus 1
+//   storeDir "${params.output_dir}/01_stringtie_assembly_merged/"
+//
+//
+//   input:
+//   file scriptConversion
+//   file assembly_merged from merged_denovo_assmebly
+//
+//   output:
+//   file "stringtie_merged_reference_guided_ensembl.gtf" into (merged_denovo_assmebly_ensembl, merged_de_novo_assembly_2)
+//
+//   script:
+//   """
+//   sed 's/^chr//g' ${assembly_merged} > "stringtie_merged_reference_guided_ensembl.gtf"
+//   """
+// }
 
-  cpus 1
-  storeDir "${params.output_dir}/01_stringtie_assembly_merged/"
+/*
+* Compare stringtie output with reference GTF
+*/
+process gffCompare2{
 
+  storeDir "${params.output_dir}/01_stringtie_assembly_merged/01_gffCompare"
 
   input:
-  file scriptConversion
-  file assembly_merged from merged_denovo_assmebly
+  file merged_gtf from merged_denovo_assmebly
+  file reference_gtf from gtfChannel2
 
   output:
-  file "stringtie_merged_reference_guided_ensembl.gtf" into (merged_denovo_assmebly_ensembl, merged_de_novo_assembly_2)
+  file("merged*") into gff_compare_output_channel2
 
   script:
   """
-  sed 's/^chr//g' ${assembly_merged} > "stringtie_merged_reference_guided_ensembl.gtf"
+  gffcompare -R -r ${reference_gtf} -o merged ${merged_gtf}
   """
 }
-
-
 
 merged_de_novo_assembly_2.into{ merged_de_novo_assembly_3; merged_de_novo_assembly_4; merged_de_novo_assembly_5}
 
@@ -96,7 +116,7 @@ log.info "=============================================="
 
 process feelnc_filter{
 
-  storeDir "${params.output_dir}/02_FEELnc_prediction"
+  storeDir "${params.output_dir}/02_FEELnc_prediction_1"
 
   input:
   file merged_gtf from merged_de_novo_assembly_3
@@ -120,7 +140,7 @@ process feelnc_filter{
 process feelnc_codpot{
   cpus 16
   //cpus 1
-  storeDir "${params.output_dir}/02_FEELnc_prediction"
+  storeDir "${params.output_dir}/02_FEELnc_prediction_1"
 
   input:
   file candidate_lncrna from candidates
@@ -129,7 +149,7 @@ process feelnc_codpot{
   file reference_genome from ref_fasta
 
   output:
-  set file("rheMac10_EBOV-Kikwit.fa.index"), file("feelnc_codpot_out") into coding_potentials2
+  file("feelnc_codpot_out") into coding_potentials2
 
   script:
   """
@@ -142,10 +162,10 @@ process feelnc_codpot{
 coding_potentials2.into{coding_potentials; coding_potentials1; }
 
 process feelnc_classifier{
-  storeDir "${params.output_dir}/02_FEELnc_prediction/"
+  storeDir "${params.output_dir}/02_FEELnc_prediction_1/"
 
   input:
-  set index, codpot from coding_potentials1
+  file codpot from coding_potentials1
   file reference_gtf from gtfChannel5
 
   output:
@@ -167,7 +187,7 @@ process gffCompare{
   storeDir "${params.output_dir}/02_FEELnc_prediction/01_gffcompare"
 
   input:
-  set index, codpot from coding_potentials
+  file codpot from coding_potentials
   file reference_gtf from gtfChannel4
 
   output:

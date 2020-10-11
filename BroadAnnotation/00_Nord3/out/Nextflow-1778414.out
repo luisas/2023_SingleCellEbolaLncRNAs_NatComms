@@ -1,0 +1,137 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf` [naughty_lamarck] - revision: 33867e96b4
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+==============================================
+lncRNA Annotation w/ FeelNC
+==============================================
+executor >  local (1)
+[78/54010d] process > StringTie_Merge_Reference_Guided [  0%] 0 of 1
+
+executor >  local (1)
+[78/54010d] process > StringTie_Merge_Reference_Guided [  0%] 0 of 1 ✔
+
+executor >  local (1)
+[78/54010d] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+
+executor >  local (2)
+[78/54010d] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[65/1a0f49] process > ChangeChromosome                 [  0%] 0 of 1
+
+executor >  local (2)
+[78/54010d] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[65/1a0f49] process > ChangeChromosome                 [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'ChangeChromosome (1)'
+
+Caused by:
+  Process `ChangeChromosome (1)` terminated with an error exit status (127)
+
+Command executed:
+
+  sed 's/^chr//g' stringtie_merged_reference_guided.gtf > "stringtie_merged_reference_guided_ensembl.gtf"
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  FATAL: kernel too old
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/65/1a0f492f6f87e530f6d8d84f5c0918
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong
+
+executor >  local (2)
+[78/54010d] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[65/1a0f49] process > ChangeChromosome                 [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'ChangeChromosome (1)'
+
+Caused by:
+  Process `ChangeChromosome (1)` terminated with an error exit status (127)
+
+Command executed:
+
+  sed 's/^chr//g' stringtie_merged_reference_guided.gtf > "stringtie_merged_reference_guided_ensembl.gtf"
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  FATAL: kernel too old
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/65/1a0f492f6f87e530f6d8d84f5c0918
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b23>
+Subject: Job 1778414: <NextflowannotationPipeline> in cluster <mn3> Exited
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b23>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Thu Oct  1 11:49:42 2020
+Results reported on Thu Oct  1 12:05:31 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/01_prediction.nf \
+                  -w /gpfs/projects/bsc83/Data/Ebola/work/ \
+                  -c ../configs/nextflow.config.rnaseq
+
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :               658.82 sec.
+    Max Memory :             1512 MB
+    Average Memory :         719.62 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           238.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          13
+    Max Threads :            62
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1778414.err> for stderr output of this job.
+

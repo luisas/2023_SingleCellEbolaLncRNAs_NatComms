@@ -1,0 +1,12 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_rseqc.nf` [sleepy_lamarck] - revision: fbaa8b41ff
+WARN: There's no process matching config selector: feelnc_filter
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+Completed at: 06-Oct-2020 12:41:20
+Duration    : 1.3s
+CPU hours   : (a few seconds)
+Succeeded   : 0
+

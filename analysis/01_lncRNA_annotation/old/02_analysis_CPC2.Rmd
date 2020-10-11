@@ -1,0 +1,398 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+## R Markdown
+
+# Analysis assmebly 
+```{r cars}
+assembly <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided.gtf")
+lnc_novel_compared_to_ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
+
+assembly_stringtie <- assembly[assembly$source == "StringTie",]
+# Keep only novel (u) and antisense (x)
+mask_ux <- lnc_novel_compared_to_ref$class_code == "u" | lnc_novel_compared_to_ref$class_code == "x" ;
+mask_ux[is.na(mask_ux)] <- FALSE
+
+# comparing the predicted one with the reference.
+novel_transcript_ids <- lnc_novel_compared_to_ref[mask_ux]$transcript_id
+assembly_stringtie <- assembly_stringtie[assembly_stringtie$transcript_id %in% novel_transcript_ids]
+
+# number of exons for novel transcripts
+summary_exons <- exon_nr_summary(assembly_stringtie)
+plot_assembly_stats(summary_exons)
+ggplot(summary_exons, aes(x = max_exon, col = max_exon))+geom_bar()+theme_paper+xlim(0.5,5)
+table(summary_exons$max_exon != 1)
+
+length(unique(assembly_stringtie$transcript_id))
+length(unique(assembly_stringtie$gene_id))
+# transcript length 
+transcript_length_summary_df <- transcript_length_summary(assembly_stringtie)
+df <- merge(summary_exons,transcript_length_summary_df, by = "transcript_id" )
+df$exon <- df$max_exon 
+df[df$exon >2, ]$exon <- "3+"
+df$exon <- as.factor(df$exon)
+
+ggplot(df[df$range < 5000,], aes(y= range, fill= exon, x= exon))+geom_boxplot()+theme_paper+ylab("Transcript length")
+
+
+
+#------------------------
+#
+# -------------------
+
+assembly_braoad <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
+gffcompare_braoad <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
+
+
+assembly_braoad <- assembly_braoad[assembly_braoad$source == "StringTie",]
+# Keep only novel (u) and antisense (x)
+mask_ux <- gffcompare_braoad$class_code == "u" | gffcompare_braoad$class_code == "x" ;
+mask_ux[is.na(mask_ux)] <- FALSE
+
+# comparing the predicted one with the reference.
+novel_transcript_ids <- gffcompare_braoad[mask_ux]$transcript_id
+assembly_braoad <- assembly_braoad[assembly_braoad$transcript_id %in% novel_transcript_ids]
+
+length(unique(assembly_braoad$transcript_id))
+length(unique(assembly_braoad$gene_id))
+# number of exons for novel transcripts
+summary_exons <- exon_nr_summary(assembly_braoad)
+plot_assembly_stats(summary_exons)
+ggplot(summary_exons, aes(x = max_exon, col = max_exon))+geom_bar()+theme_paper+xlim(0.5,5)
+
+table(summary_exons$max_exon!=1)
+
+# transcript length 
+transcript_length_summary_df_broad <- transcript_length_summary(assembly_braoad)
+df_broad <- merge(summary_exons,transcript_length_summary_df_broad, by = "transcript_id" )
+df_broad$exon <- df_broad$max_exon 
+df_broad[df_broad$exon >2, ]$exon <- "3+"
+df_broad$exon <- as.factor(df_broad$exon)
+
+ggplot(df_broad[df_broad$range < 5000,], aes(y= range, fill= exon, x= exon))+geom_boxplot()+theme_paper+ylab("Transcript length")
+
+
+df$type <- "our"
+df_broad$type <- "broad"
+merged <- rbind(df, df_broad)
+ggplot(merged[merged$max_exon ==1,], aes(y= range, fill= type, x= type))+geom_boxplot()+theme_paper+ylab("Transcript length")
+
+
+merged_monoexonic <- merged[merged$max_exon ==1,]
+
+my_comparisons <- list( c("our", "broad") )
+ 
+merged_monoexonic$type <- as.factor(merged_monoexonic$type)
+p <-ggboxplot(merged_monoexonic, x = "type", y = "range",
+                color = "type", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
+                add = "jitter", shape = "type", size =0 )
+p + stat_compare_means(comparisons = my_comparisons)
+
+
+gghistogram(merged_monoexonic, x = "range",
+   add = "mean", rug = TRUE,
+   color = "type", fill = "type",
+   palette = c("#00AFBB", "#E7B800"))+xlim(0,10000)
+```
+
+
+```{r cars}
+
+# ---------------------------------
+#        ABOUT THE ASSEMBLY
+# ---------------------------------
+
+# How many transcripts do we assemble ? 
+assembly <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided.gtf")
+
+lnc_novel_compared_to_ref_file <- ("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
+
+# ------------------------------- INSPECT ----------------------------------
+assembly_stringtie <- assembly[assembly$source == "StringTie",]
+assembly_ensembl <- assembly[assembly$source == "ensembl",]
+
+# How many transcripts do we assemble in total ?
+t0 <- length(unique(assembly_stringtie$transcript_id))
+g0 <- length(unique(assembly_stringtie$gene_id))
+
+# Assess the number of exons - how many monoexonic 
+summary_exons <- exon_nr_summary(assembly_stringtie)
+monoexonic_transcript_ids <- summary_exons[summary_exons$max_exon == 1,]$transcript_id
+plot_assembly_stats(summary_exons)
+# ----------------------------------------------------------------------------
+
+
+# ------------------------------- FILTER 1: retain only novel ones  --------------
+
+# Get only novel with GFF compare 
+lnc_novel_compared_to_ref <- import(lnc_novel_compared_to_ref_file)
+
+# Keep only novel (u) and antisense (x)
+mask_ux <- lnc_novel_compared_to_ref$class_code == "u" | lnc_novel_compared_to_ref$class_code == "x" ;
+mask_ux[is.na(mask_ux)] <- FALSE
+
+# comparing the predicted one with the reference.
+novel_transcript_ids <- lnc_novel_compared_to_ref[mask_ux]$transcript_id
+assembly_stringtie <- assembly_stringtie[assembly_stringtie$transcript_id %in% novel_transcript_ids]
+print("After filter 0:")
+g1 <- length(unique(assembly_stringtie$gene_id))
+t1 <- length(unique(assembly_stringtie$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
+
+
+
+# ------------------------------- FILTER 2: remove monoexonic transcripts ----------------------------------
+# Remove monoexonic entries 
+assembly_stringtie_multiple_exons <- assembly_stringtie[!(assembly_stringtie$transcript_id %in% monoexonic_transcript_ids),]
+print("After filter 1:")
+length(unique(assembly_stringtie_multiple_exons$gene_id))
+length(unique(assembly_stringtie_multiple_exons$transcript_id))
+g2 <- length(unique(assembly_stringtie_multiple_exons$gene_id))
+t2 <- length(unique(assembly_stringtie_multiple_exons$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
+
+
+#export(assembly_stringtie_multiple_exons,"/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided_multipleexons.gtf")
+
+
+# ------------------------------- FILTER 3: Remove transcripts shorter than 200 nucleotides --------------
+transcript_length <- calc_transcript_length(assembly_stringtie_multiple_exons)
+short_transcripts_ids <- transcript_length[transcript_length$range < 200,]$transcript_id
+assembly_filtered <- assembly_stringtie_multiple_exons[!(assembly_stringtie_multiple_exons$transcript_id %in% short_transcripts_ids),]
+print("After filter 2:")
+length(unique(assembly_filtered$gene_id))
+length(unique(assembly_filtered$transcript_id))
+g3 <- length(unique(assembly_filtered$gene_id))
+t3 <- length(unique(assembly_filtered$transcript_id))
+
+# ------------------------------------------------------------------------------------------------------------------
+
+
+
+# ------------------------------- FILTER 4: Remove anything overlapping protein coding genes --------------
+# Remove anything overlapping a protein coding genes 
+ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
+ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
+overlap <- findOverlaps(assembly_filtered, ref_mrna )
+remove <- assembly_filtered[unique(queryHits(overlap))]$transcript_id
+length(unique(remove))
+assembly_filtered <- assembly_filtered[!(assembly_filtered$transcript_id %in% remove)]
+print("After filter 3:")
+length(unique(assembly_filtered$gene_id))
+length(unique(assembly_filtered$transcript_id))
+g4 <- length(unique(assembly_filtered$gene_id))
+t4 <- length(unique(assembly_filtered$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
+
+export(assembly_filtered, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/candidates.gtf" ) 
+
+# Expression calc and filtering 
+candidates <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/02_novel_expressed/novel_expressed_ribodepleted.gtf")
+
+t5<- length(unique(candidates$transcript_id))
+g5<- length(unique(candidates$gene_id))
+
+# Transcripts
+novel_filter  <- t0-t1
+monoexonic_filter <- t1-t2
+length_filter <- t2-t3
+overlap_filter <- t3-t4
+expression_fiter <- t4-t5
+
+
+# Plot lost transcripts 
+lost <- c(novel_filter, monoexonic_filter, length_filter, overlap_filter, expression_fiter)
+def <- c("Novel", "Monoexonic", "Length", "Overlap PC", "Expression")
+
+df <- data.frame(lost = lost, def = def)
+df$def <- factor(df$def, levels = rev(def))
+
+ggplot(df, aes(x = lost, y = def))+geom_bar(stat = "identity")+theme_paper+ylab("")+xlab("Lost transcripts")
+
+
+
+# Genes
+novel_filter  <- g0-g1
+monoexonic_filter <- g1-g2
+length_filter <- g2-g3
+overlap_filter <- g3-g4
+expression_fiter <- g4-g5
+
+# Plot lost genes 
+lost <- c(novel_filter, monoexonic_filter, length_filter, overlap_filter, expression_fiter)
+def <- c("Novel", "Monoexonic", "Length", "Overlap PC", "Expression")
+
+df <- data.frame(lost = lost, def = def)
+df$def <- factor(df$def, levels = rev(def))
+
+ggplot(df, aes(x = lost, y = def))+geom_bar(stat = "identity")+theme_paper+ylab("")+xlab("Lost Genes")
+```
+
+```{r aa}
+
+
+
+# Convert to bed12
+# --------------------------------------------------
+# Remove gene entries ( not needed )
+gtf_no_gene <- candidates[candidates$type != "gene", ]
+# Extract all transcripts
+transcript_ids <- (unique(gtf_no_gene[!is.na(gtf_no_gene$transcript_id), ]$transcript_id))
+transcript_ids_novel <- (unique(gtf_no_gene[substr(gtf_no_gene$transcript_id,1,4) == "MSTR",]$transcript_id))
+length(unique(transcript_ids_novel))
+dfset <- lapply(transcript_ids_novel, function(x) (bed12_entry(x)))
+df <- do.call(rbind, dfset)
+output <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/candidates.bed12"
+write.table(df, output,sep="\t",row.names=FALSE, col.names = FALSE, quote = FALSE)
+# --------------------------------------------------
+
+
+# RUN BEDTOOLS TO GET FASTA
+# cd /home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2
+#bedtools getfasta -fi ../../01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/reference_assembly/rheMac10_EBOV-Kikwit.fa -bed ./candidates.bed12 -name -fo candidates.fa -s
+
+# RUN CPC2
+# cd /home/luisas/Desktop/CPC2-beta & python2 ./bin/CPC2.py -i /home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/candidates.fa -o /home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/cpc2_pred.txt & cd -
+
+# RUN CPAT 
+# cpat.py -g /home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/candidates.fa -o cpat_pred  -d ../dat/Human_logitModel.RData -x ../dat/Human_Hexamer.tsv
+
+```
+
+
+
+```{r cpc2}
+# -------------------------------------------
+#                     CPC2 
+# -------------------------------------------
+
+# Load cpc2 prediction 
+cpc2 <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/cpc2_pred.txt")
+names(cpc2) <- c("ID","transcript_length ","peptide_length","Fickett_score" , " pI", "ORF_integrity", "coding_probability","label")
+ggplot(cpc2, aes(x = coding_probability, col = label))+geom_density()
+cpc2_nc <- cpc2[cpc2$label == "noncoding",]
+pred_nc_ids <- cpc2_nc$ID
+cpc2_pre_lnc <- candidates[candidates$transcript_id %in% pred_nc_ids, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cpc2$gene_id <- unlist(lapply(as.character(cpc2$ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+cpc2$transcript_id <- cpc2$ID
+unconcordant_prediction <- cpc2 %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cpc2_pre_lnc <- cpc2_pre_lnc[!(cpc2_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cpc2_pre_lnc$gene_id))
+# -----------------------------------------------
+
+
+plot_stats_annotation(cpc2_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+```
+
+
+
+```{r cpc2vscpan}
+
+# Compare which ones and how many overlap 
+cpat <- read.table("/home/luisas/CPAT-3.0.0/luisa/cpat_pred.ORF_prob.tsv", header = TRUE)
+@#cpat <- read.table("/home/luisas/CPAT-3.0.0/luisa/cpat_pred.ORF_prob.best.tsv", header = TRUE)
+
+
+cutoff <-  0.364
+cpat$label <- ifelse(cpat$Coding_prob > cutoff, "coding", "noncoding")
+
+cpat_nc <- cpat[cpat$label == "noncoding",]
+
+cpat_pre_lnc <- candidates[candidates$transcript_id %in% cpat_nc$seq_ID, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cpat$gene_id <- unlist(lapply(as.character(cpat$ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+cpat$transcript_id <- cpat$ID
+unconcordant_prediction <- cpat %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cpat_pre_lnc <- cpat_pre_lnc[!(cpat_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cpat_pre_lnc$gene_id))
+# -----------------------------------------------
+
+length(unique(cpat_pre_lnc$gene_id))
+
+
+
+
+plot_stats_annotation(cpat_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+```
+
+```{r cnit}
+
+# Compare which ones and how many overlap 
+cnit <- read.table("/home/luisas/CNIT/CNCI2/cand1/CNCI2.index",sep="\t", header=TRUE)
+cnit$label <- cnit$index
+cnit_nc <- cnit[cnit$label == "noncoding",]
+
+cnit_pre_lnc <- candidates[candidates$transcript_id %in% cnit_nc$Transcript.ID, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cnit$gene_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+cnit$transcript_id <- cnit$ID
+unconcordant_prediction <- cnit %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cnit_pre_lnc <- cnit_pre_lnc[!(cnit_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cnit_pre_lnc$gene_id))
+# -----------------------------------------------
+
+length(unique(cnit_pre_lnc$gene_id))
+
+
+
+
+plot_stats_annotation(cnit_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+```
+
+
+# Overlap 
+```{r cpc2vscpan}
+length(unique(cpat_pre_lnc$transcript_id))
+length(unique(cpc2_pre_lnc$transcript_id))
+length(unique(cnit_pre_lnc$transcript_id))
+
+intersection <- unique(intersect(intersect(cpat_pre_lnc$transcript_id, cpc2_pre_lnc$transcript_id), cnit_pre_lnc$transcript_id))
+intersection_pre_lnc <- candidates[candidates$transcript_id %in% intersection, ]
+length(unique(intersection_pre_lnc$transcript_id))
+length(unique(intersection_pre_lnc$gene_id))
+plot_stats_annotation(intersection_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+```
+
+# Visualize overlap 
+```{r cpc2vscpan}
+library(UpSetR)
+library(ComplexHeatmap)
+# example of list input (list of named vectors)
+listInput <- list(cpat = cpat_pre_lnc$transcript_id, CPC2 = cpc2_pre_lnc$transcript_id, CNIT = cnit_pre_lnc$transcript_id)
+
+
+upset(fromList(listInput), order.by = "freq", main.bar.color = c("#CC0066", rep("gray23",6)))
+
+feelnc_id <- unique(feelncpred$transcript_id)
+
+listInput <- list(cpat = cpat_pre_lnc$gene_id, CPC2 = cpc2_pre_lnc$gene_id, CNIT = cnit_pre_lnc$gene_id)
+upset(fromList(listInput), order.by = "freq", main.bar.color = c("#CC0066", rep("gray23",6)))
+```
+
+```{r cpc2vscpan}
+feelncpred <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/05_feelNC_5k/feelnc_codpot_out/candidate_lncRNA.gtf.lncRNA.gtf")
+
+feelncpred1 <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_5k/02_novel_expressed/novel_expressed_ribodepleted.gtf")
+
+can <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/05_feelNC_5k/candidate_lncRNA.gtf")
+
+feelncpred <- feelncpred1
+feelnc_id <- unique(feelncpred$transcript_id)
+intersection_full <- unique(intersect(intersection, feelnc_id))
+length(unique(intersection_full))
+length(unique(feelncpred1$transcript_id))
+```

@@ -1,0 +1,525 @@
+---
+title: "01_lncrnas_plots_paper"
+author: "Luisa Santus"
+date: "4/23/2020"
+output: html_document
+  keep_md: true
+---
+
+## 01 lncRNAs annotation summary
+
+#test 111
+
+### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
+library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
+
+# Reoccurring paths
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+datadir_old <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/"
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+# Human reference for comparison
+lncRNAs_ref_human <- import(file.path(datadir_old, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownlncRNAs.gtf"))
+mrna_ref_human <- import(file.path(datadir_old, "01_PreliminaryFiles_rheMac10/gene_annotations/gencode.v26.GRCh38.annotation_knownMrnas.gtf"))
+
+# Macaque reference
+lncRNAs_ref <- import(file.path(datadir_old, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir_old, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"))
+
+
+# Novel
+#all <- import(file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"))
+#ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf"))
+#polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf"))
+
+#Old
+all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ribo_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf"))
+polya_expr <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf"))
+
+#levels(seqnames(all))
+#seqlevelsStyle(all) <- "ucsc"
+#export(all, file.path(datadir, "03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_ucsc.gtf"))
+```
+### Comparison of exon length, transcript length and number ofe exons distributions
+
+
+```{r stats}
+# Testing
+ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
+ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
+ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
+
+# Answer reviewer - check how many we lose each step
+# ----------------------------------------------------
+all_novel_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/00_all_novels/rheMac10_EBOV-Kikwit_and_both_novel.gtf")
+table(substr(unique(all_novel_polya$gene_id),1,3))
+
+
+
+novel_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_external/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf")
+
+novel_transcripts <- novel_polya[novel_polya$type == "transcript", ]
+novel_transcripts <- novel_transcripts[novel_transcripts$class_code %in% c("u", "x"),]
+table(substr(unique(novel_transcripts$gene_id),1,3))
+
+conc_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/00_all_novels/novel_rhemac10_concordant_polyA.gtf")
+table(substr(unique(conc_polya$gene_id),1,3))
+
+expre_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_polyA.gtf")
+table(substr(unique(expre_polya$gene_id),1,3))
+
+# Ribodepleted
+novel_ribo <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_BatchZyagen//05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf")
+
+novel_transcripts <- novel_ribo[novel_ribo$type == "transcript", ]
+novel_transcripts <- novel_transcripts[novel_transcripts$class_code %in% c("u", "x"),]
+table(substr(unique(novel_transcripts$gene_id),1,3))
+
+conc_ribo <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/00_all_novels/novel_rhemac10_concordant_ribodepleted.gtf")
+table(substr(unique(conc_ribo$gene_id),1,3))
+
+expre_ribo <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/01_novel_expressed/novel_expressed_ribodepleted.gtf")
+table(substr(unique(expre_ribo$gene_id),1,3))
+
+
+ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_2/OLD_rheMac10_EBOV_and_novel_genenames.gtf"))
+
+
+
+```
+
+
+```{r stats}
+polya_lnc  <- all[substr(all$gene_id,1,4) == "poly",]
+length(unique(polya_lnc$gene_id))
+ribo_lnc  <- all[substr(all$gene_id,1,4) == "ribo",]
+length(unique(ribo_lnc$gene_id))
+
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c("poly", "ribo"),]
+length(unique(all_novel_lnc$gene_id))
+
+# Just chek there is no overlap with protein coding genes
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+
+plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+plot_stats_annotation_separated(polya_lnc,ribo_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+# Check for significance
+df <- data.frame()
+df <- rbind(df,data.frame(calc_exon_length(all_novel_lnc, "Novel LncRNAs")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Annotated mRNAs - Human")))
+df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+
+wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$exon_number), as.numeric(df[df$type == "Annotated LncRNAs - Macaque ",]$exon_number))
+wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$exon_number), as.numeric(df[df$type == "Annotated mRNAs - Macaque",]$exon_number))
+
+# Numer of exons distribution
+
+exon_nr_distr <- function(gr){
+  gr <- gr[gr$type =="exon",]
+gr <- get_only_max_transcript(gr)
+df_l <- data.frame(get_nr_exons(gr))
+return(as.vector(as.numeric(df_l$max_exon)))
+}
+
+wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(lncRNAs_ref))
+wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(mRNAs_ref))
+
+df <- data.frame()
+df <- rbind(df,data.frame(calc_transcript_length(all_novel_lnc, "Novel LncRNAs")))
+df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
+df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+
+wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated LncRNAs - Macaque ",]$range))
+wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated mRNAs - Macaque",]$range))
+
+
+  df <- data.frame()
+  df <- rbind(df,data.frame(calc_transcript_length(polya_lnc, "Poly(A) Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_transcript_length(ribo_lnc, "Ribodepleted Novel LncRNAs")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
+  df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
+  df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+
+wilcox.test(as.numeric(df[df$type == "Poly(A) Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated LncRNAs - Macaque ",]$range))
+wilcox.test(as.numeric(df[df$type == "Ribodepleted Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated LncRNAs - Macaque ",]$range))
+
+```
+
+```{r expression}
+
+#palette_expression <-c("#E8C2D8", "#D4549C", "#A1D76A")
+palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
+
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
+
+# ----------------------------------------------------------------------
+# Extract expression ALL
+# ----------------------------------------------------------------------
+dir_counts_ref = file.path(datadir, "04_quantification/")
+#OLD
+dir_counts_ref =file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/04_Stringtie_correct_with_names_gene_ab/")
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+# new
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
+#old
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[5]))
+
+# Create Map for Transcript names to Gene names
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene, abundanceCol = tissues)
+
+# Remove non expressed genes
+expression <- txi$abundance
+mask<- rowSums(as.data.frame(log(expression)) > 0) > 2
+expression <- expression[mask,]
+
+
+# ----------------------------------------------------------------------
+# Extract expression ALL
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
+# ----------------------------------------------------------------------
+# Same for the median
+# ----------------------------------------------------------------------
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
+median_expression_novel <- median_expression[median_expression$type == "Novel lncRNAs",]$expr
+median_expression_annot <- median_expression[median_expression$type == "Annotated lncRNAs",]$expr
+median_expression_pc <- median_expression[median_expression$type == "mRNAs",]$expr
+wilcox.test(median_expression_novel, median_expression_pc)
+wilcox.test(median_expression_novel, median_expression_annot)
+wilcox.test(median_expression_pc, median_expression_annot)
+
+#level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+#ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
+#                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
+
+# ----------------------------------------------------------------------
+# Extract compared
+# ----------------------------------------------------------------------
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(expression)))
+max_expression['type'] <- "0"
+max_expression <- add_type(max_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
+max_expression <- add_type(max_expression, ribo_lnc$gene_id, "Ribodepleted Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+
+levels <-  c("Poly(A) Novel lncRNAs", "Ribodepleted Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(max_expression, palette_expression, level = levels)+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))
+
+
+
+
+
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, polya_lnc$gene_id, "Poly(A) Novel lncRNAs")
+median_expression <- add_type(median_expression, ribo_lnc$gene_id, "Ribodepleted Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+
+levels <-  c("Poly(A) Novel lncRNAs", "Ribodepleted Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))
+```
+
+# -----------------------------
+# Tissue Sharing
+# -----------------------------
+
+
+```{r tissuespecificity}
+colnames(expression) <- tissues
+tissues <- gsub("Testes", "Testis", tissues)
+tissues <- gsub("Wholeblood", "Blood", tissues)
+
+
+# Check how many tissues express a gene
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
+colnames(expressed_booleans) <- tissues
+grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
+n_tissues_expresseing_gene <- rowSums(grouped_expression)
+
+# Create DF for plotting
+df <- as.data.frame(as.data.frame(n_tissues_expresseing_gene))
+df$id <- rownames(df)
+
+
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+
+
+type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
+palette <- c("#E8C2D8", "#D4549C", "#8195D7")
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[3])
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
+b+xlim(1,15)
+
+```
+
+
+# Check which ones are ribodepleted
+
+```{r ribodepl-enrichment}
+
+dir_counts_ref =file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/04_Stringtie_correct_with_names_gene_ab/")
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+#old
+tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[5]))
+dpi <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
+dpi <- gsub("D000", "D00", dpi)
+tissues <- gsub("Testes", "Testis", tissues)
+tissues <- gsub("Wholeblood", "Blood", tissues)
+
+# Identify library prep
+libraryprep <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[6]))
+libraryprep <-gsub("Batch01", "Ribodepleted", libraryprep)
+libraryprep <-gsub("Zyagen", "Ribodepleted", libraryprep)
+libraryprep <-gsub("RhesusmacaqueChinese", "Polya", libraryprep)
+libraryprep <-gsub("SRP016501-rhesus", "Polya", libraryprep)
+table(libraryprep)
+
+# Select only tissues present in both
+df <- data.frame(t = (tissues), lib = libraryprep)
+summary_proprieties_samples <- df %>% dplyr::group_by(t) %>% dplyr::summarise(num = n_distinct(lib))
+tissues_available_both <- summary_proprieties_samples[summary_proprieties_samples$num > 1,]$t
+
+# Create Map for Transcript names to Gene names
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene, abundanceCol = libraryprep)
+
+# Remove non expressed genes
+expression <- txi$abundance
+colnames(expression) <- libraryprep
+
+
+# remove infected samples - optional
+expression <- expression[ , dpi %in% c("D00", "D-04", "D-07", "D-21", "D-30")]
+tissues <- tissues[ dpi %in% c("D00", "D-04", "D-07", "D-21", "D-30")]
+find_enrichment_libraryprep <- function(expression , tissue){
+
+  expression <- expression[ ,tissues == tissue]
+
+  # every gene to be consifered is required to be expressed in at least one sample abofe log(FPKM) of 1
+  mask<- rowSums(as.data.frame(log(expression)) > 1) > 0
+  expression <- expression[mask,]
+  # Calculate mean expression per libraries
+  expression_libraries <- as.data.frame(do.call(cbind, by(t(expression),INDICES=colnames(expression),FUN=colMeans)))
+
+  # Calculate enrichment Ribodepleted/Polya
+  expression_libraries$enrichmentPolyAnegative <- expression_libraries$Ribodepleted/expression_libraries$Polya
+  expression_libraries$enrichmentPolyApositive <- expression_libraries$Polya/expression_libraries$Ribodepleted
+
+  # I use 5 fold expression
+  #enriched <- expression_libraries[expression_libraries$enrichmentPolyAnegative > 0,]
+  enriched <- expression_libraries
+  enriched$tissue <- tissue
+  return(enriched)
+}
+
+# ---------------------------------------------
+#       Check number of samples per Tissue
+# ---------------------------------------------
+df_samples_summary <- data.frame(tissue = tissues, libraryprep = colnames(expression))
+df_samples_summary_counts <- df_samples_summary %>% dplyr::group_by(tissue, libraryprep) %>% count()
+df_samples_summary_counts[df_samples_summary_counts$tissue %in% tissues_available_both, ]
+```
+
+
+
+
+```{r ribodepl-enrichment}
+
+ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+
+# Check DE lncRNAs
+list_de <- gsub("_unkown", "", gsub("-", "_", unique(unlist(de_lists_lnc))))
+list_de_mrna <- gsub("_unkown", "", gsub("-", "_", unique(unlist(de_lists_mrna))))
+
+# Check that i get NO poly a selected ones enriched
+all_enriched <- do.call(rbind, (lapply(tissues_available_both, function(tissue) find_enrichment_libraryprep(expression, tissue))))
+
+
+ref[substr(ref$gene_id, 1,4) == "poly", ]$gene_biotype <-"lncRNA"
+ref[substr(ref$gene_id, 1,4) == "ribo", ]$gene_biotype <-"lncRNA"
+
+all_enriched$genetype <- "other"
+all_enriched$type <- substr(rownames(all_enriched), 1,4)
+# Log scale measures
+all_enriched$Polya <- log10(all_enriched$Polya)
+all_enriched$Ribodepleted <- log10(all_enriched$Ribodepleted)
+
+all_enriched[rownames(all_enriched) %in% ref[!is.na(ref$gene_biotype) & ref$gene_biotype %in% c("lncRNA", "antisense"),]$gene_id, ]$genetype <- "lncRNA"
+all_enriched_lnc <- all_enriched[ all_enriched$genetype == "lncRNA",]
+table(all_enriched_lnc$type)
+all_enriched[rownames(all_enriched) %in% mRNAs_ref$gene_id, ]$genetype <- "mRNA"
+all_enriched_mrna <- all_enriched[ all_enriched$genetype == "mRNA",]
+
+# check DE ones
+
+all_enriched$de <- "NOT DE"
+all_enriched[rownames(all_enriched) %in% c(ref[ref$gene_name %in% list_de_mrna, ]$gene_id), ]$de <- "DE - pc"
+all_enriched[rownames(all_enriched) %in% list_de, ]$de <- "DE - lnc"
+
+
+
+
+
+plot_enrichment <- function(tissues, fold_enrichment){
+  p1 <- ggplot(all_enriched_lnc[all_enriched_lnc$tissue %in% tissues,], aes(x = Polya, y = Ribodepleted, col = type ))+geom_point(size = 0.6)+xlim(-2,5)+ylim(-2,5)+
+  geom_abline(intercept = log(fold_enrichment), color = "red" )+geom_abline(intercept = log(1/fold_enrichment), color = "red")+theme_minimal()+labs(title = paste0("lncRNAs   ", tissues), subtitle = paste0("Fold enrichment in plot: ", fold_enrichment))
+
+    p2 <- ggplot(all_enriched_mrna[all_enriched_mrna$tissue %in% tissues,], aes(x = Polya, y = Ribodepleted, col = type ))+geom_point(size = 0.6)+xlim(-2,5)+ylim(-2,5)+
+  geom_abline(intercept = log(fold_enrichment), color = "red" )+geom_abline(intercept = log(1/fold_enrichment), color = "red")+theme_minimal()+labs(title = paste0("mRNAs   ", tissues), subtitle = paste0("Fold enrichment in plot: ", fold_enrichment))
+    return(list(p1,p2))
+
+}
+fold_enrichment <- 4
+lapply( tissues_available_both, function(x) plot_enrichment(x, fold_enrichment))
+
+
+
+p1 <- ggplot(all_enriched_lnc[all_enriched_lnc$tissue %in% tissues,], aes(x = Polya, y = Ribodepleted, col = de ))+geom_point(size = 0.6)+xlim(-2,5)+ylim(-2,5)+
+  geom_abline(intercept = log(fold_enrichment), color = "red" )+geom_abline(intercept = log(1/fold_enrichment), color = "red")+theme_minimal()+labs(title = paste0("lncRNAs   ", tissues), subtitle = paste0("Fold enrichment in plot: ", fold_enrichment))
+
+
+# Enichment of differentially expressed genes identified by ribodepletion
+enriched_polyneg_de <- all_enriched[rownames(all_enriched) %in% list_de, ]
+length(unique(rownames(enriched_polyneg_de)))
+enriched_polyneg_de[enriched_polyneg_de$enrichmentPolyAnegative > 10,]
+enriched_ribo <-  length(unique(rownames(enriched_polyneg_de[enriched_polyneg_de$enrichmentPolyAnegative > 5,])))
+tot <- length(unique(rownames(enriched_polyneg_de)))
+(enriched_ribo/tot)*100
+# Check general fold enrichments
+ribo <-  enriched_polyneg_de[enriched_polyneg_de$type == "ribo", ]
+ribo
+fold_enrichment <- 2
+ggplot(ribo[ribo$tissue == "Blood",], aes(x = Polya, y  = Ribodepleted ))+geom_point()+geom_abline(intercept = log(1/fold_enrichment), color = "red")+theme_minimal()+xlim(-2,5)+ylim(-2,5)+geom_abline(intercept = log(fold_enrichment), color = "red" )
+ggplot(data.frame(enrichment=ribo$enrichmentPolyAnegative, y = ribo$Ribodepleted ), aes(x = enrichment, y  = y ))+geom_point()
+
+
+
+
+
+```
+
+
+```{r ribodepl-enrichment}
+# Heatmap DE genes
+table(tissues %in% tissues_available_both)
+expression_de <- expression[rownames(expression) %in% list_de, tissues %in% tissues_available_both]
+expression_de_log <- log10(expression_de+0.5)
+expression_de_log_ordered <- expression_de_log[, order((as.character(colnames(expression_de_log))))]
+tissues_ordered<- tissues[tissues %in% tissues_available_both]
+tissues_ordered <- tissues_ordered[order((as.character(colnames(expression_de_log))))]
+
+calc_z <- function(matrix){
+  mean <- rowMeans(matrix);
+  sd <- apply(matrix,1, sd)
+  z_scores <-apply(matrix,2, function(x) (x-mean)/sd)
+  return(z_scores)
+}
+
+
+column_ha <- HeatmapAnnotation(libraryprep = colnames(expression_de_log_ordered), tissue = tissues_ordered[tissues_ordered %in% tissues_available_both])
+row_ha <- rowAnnotation(genetype =substring(rownames(expression_de_log_ordered), 1,3),
+                        show_annotation_name = FALSE,
+                        col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
+                                                  "rib" = brewer.pal(3, "Paired")[1],
+                                                  "pol" = brewer.pal(3, "Paired")[2])))
+
+m <-(expression_de_log_ordered)
+Heatmap((m), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = FALSE, right_annotation  = row_ha, top_annotation = column_ha, cluster_columns = FALSE)
+
+# Heatmap
+
+libraryprep_backup <- colnames(m)
+colnames(m) <- tissues_ordered[tissues_ordered %in% tissues_available_both]
+# FPKM values
+Heatmap((m), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = FALSE, right_annotation  = row_ha, top_annotation = column_ha, cluster_columns = FALSE)
+# Z-score
+Heatmap(calc_z(m), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = FALSE, right_annotation  = row_ha, top_annotation = column_ha, cluster_columns = FALSE)
+
+
+# Mean per tissue
+m_tissue_reduced<- (do.call(cbind,by(t(m),INDICES=paste(colnames(m), tissues_ordered,sep = "-"),FUN=colMeans)))
+
+
+column_ha <- HeatmapAnnotation(libraryprep =unlist(lapply( colnames(m_tissue_reduced), function(x) str_split(x, "-")[[1]][1]))
+ ,  tissue = unlist(lapply( colnames(m_tissue_reduced), function(x) str_split(x, "-")[[1]][2]))
+)
+row_ha <- rowAnnotation(genetype =substring(rownames(m_tissue_reduced), 1,3),
+                        show_annotation_name = FALSE,
+                        col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
+                                                  "rib" = brewer.pal(3, "Paired")[1],
+                                                  "pol" = brewer.pal(3, "Paired")[2])))
+
+
+
+Heatmap((m_tissue_reduced), show_row_names = FALSE, show_column_names = FALSE, cluster_rows = FALSE, right_annotation  = row_ha, top_annotation = column_ha, cluster_columns = FALSE)
+
+
+
+# I need a quantification
+# How manty lncRNAs are expressed in no poly(A) sample ( of the tissues selected ) and are detectable in ribo depleted ones?
+
+length(tissues_ordered)
+m <-(expression_de)
+
+m_poly <- m[,colnames(m) == "Polya"]
+m_ribo <- m[,colnames(m) == "Ribodepleted"]
+colnames(m)
+rownames(m_poly)[(rowSums(m_poly < 1) == ncol(m_poly))]
+rownames(m_ribo)[(rowSums(m_ribo < 1) == ncol(m_ribo))]
+
+```

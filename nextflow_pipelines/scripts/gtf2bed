@@ -26,7 +26,6 @@ use Getopt::Long;
 
 my $extended;
 GetOptions("x"=>\$extended);
-print("Reading input parameters /n");
 
 $in = shift @ARGV;
 
@@ -50,8 +49,7 @@ while (<IN>) {
 		($id) = $f[8]=~ /transcript_id "([^"]+)"/;
 	}
 
-	print("$id");
-	
+
 	next unless $id && $f[0];
 
 	if ($f[2] eq 'exon') {

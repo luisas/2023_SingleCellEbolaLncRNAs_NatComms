@@ -8,7 +8,6 @@ output: html_document
 
 ## 01 lncRNAs annotation summary
 
-#test 111
 
 ### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
 
@@ -36,6 +35,8 @@ mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
 
 all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
+
+
 ```
 ### Comparison of exon length, transcript length and number ofe exons distributions
 
@@ -44,137 +45,25 @@ all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRN
 # How many novel lncRNAs do i identify (Genes)
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
 length(unique(all_novel_lnc$gene_id))
-```
-
-# Check how many for each class 
-```{r stats}
-classes <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/05_feelNC_prediction/feelnc_gencode_linc/02_feelnc_classifier/rheMac10_EBOV-Kikwit_lncRNA_classes.txt", header = TRUE)
-novel <- all_novel_lnc
-novel_classes <- classes[classes$lncRNA_gene %in% novel$gene_id, ]
-#novel_classes <- novel_classes[novel_classes$isBest ==1, ]
-
-# Keep entry with lowest distance
-novel_classes <- novel_classes %>% group_by(lncRNA_gene) %>% dplyr::mutate(mindistance = min(distance)) %>%  ungroup() %>% 
-  filter(distance==mindistance)
-novel_classes_type <- novel_classes %>% group_by(lncRNA_gene, subtype, direction, location) %>% dplyr::summarise(type = paste(type, collapse=", "))
-novel_classes_type$types_summarized <- unlist(lapply(novel_classes_type$type, function(x) paste(unique(trimws(unlist(str_split(x, ",")))), collapse = ",")))
-table(novel_classes_type$types_summarized)
-# Check the subtypes 
-subtypes <- (table(novel_classes_type[novel_classes_type$types_summarized  == "intergenic",]$subtype))
-genic_antisense <- (table(novel_classes_type[novel_classes_type$types_summarized  == "genic" & novel_classes_type$direction == "antisense",]$location))
-
-print(paste("Total novel lncRNA genes: ", length(unique(all_novel_lnc$gene_id))))
-print(paste("INTERGENIC: ", table(novel_classes_type$types_summarized)[2]))
-print("INTERGENIC subtypes : ")
-print(subtypes[subtypes != 0 ])
-print("-------------------")
-print(paste("GENIC ANTISENSE: ", sum(genic_antisense)))
-print("GENIC location : ")
-print(genic_antisense[genic_antisense != 0 ])
-
-```
-
-# Plot summary statistics
-```{r stats}
 plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
 ```
 
 
-
-```{r stats}
-# ----------------------------------------------------
-#   Check how many we lose each step
-# ----------------------------------------------------
-
-novel_ribo<- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/05_feelNC_prediction/feelnc_gencode_linc/01_gffcompare/merged.annotated.gtf")
-
-novel_transcripts <- novel_ribo[novel_ribo$type == "transcript", ]
-n_novel_transcripts <- table(substr(unique(novel_transcripts$gene_id),1,3))[[2]]
-
-novel_transcripts_ux <- novel_transcripts[novel_transcripts$class_code %in% c("u", "x"),]
-n_novel_transcripts_ux <- table(substr(unique(novel_transcripts_ux$gene_id),1,3))[[1]]
-
-conc_ribo <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/00_all_novels/novel_rhemac10_concordant_ribodepleted.gtf")
-n_conc_ribo <- table(substr(unique(conc_ribo$gene_id),1,3))[[1]]
-
-expre_ribo <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf")
-n_expre_ribo <- table(substr(unique(expre_ribo$gene_id),1,3))[[1]]
-
-
-# STATS 
-print("-----------------------")
-print(paste("Total novel transcripts",n_novel_transcripts, sep = ": "))
-print(paste("Total novel transcripts intergenic or x",n_novel_transcripts_ux, sep = ": "))
-print(paste("Total novel concordant",n_conc_ribo, sep = ": "))
-print(paste("Total novel expressed",n_expre_ribo, sep = ": "))
-print("-----------------------")
-print(paste("Total lost for Intergenic/Antisense filter",n_novel_transcripts-n_novel_transcripts_ux , sep= ": "))
-print(paste("Total lost for concordance filter",n_novel_transcripts_ux-n_conc_ribo , sep= ": "))
-print(paste("Total lost for expression filter",n_conc_ribo-n_expre_ribo , sep= ": "))
-print("-----------------------")
-
-
-
-
-
-
-
-# Distribution of novel lncRNAs across chromosomes 
-col_lnc = "#870052"
-df <- NULL
-df$chr <- seqnames(all[substr(all$gene_id,1,4) =="ribo"])
-df$gene_id <- (all[substr(all$gene_id,1,4) =="ribo"]$gene_id)
-df <- as.data.frame(df)
-df <- df[str_length(as.character(df$chr)) < 3, ]
-ggplot(unique(df), aes(x = chr))+geom_bar(color = col_lnc, fill =col_lnc, alpha = 0.75)+theme_paper+labs(x = "", y = "")+theme(legend.position = "")+theme(axis.text.x = element_text(angle = 45, hjust = 1) , axis.text.x.bottom = element_text(size = 12))
-
-
-
-```
-
+# How many are intergenic and how many antisense
 ```{r stats}
 
-# -------------------------------------
-#       Number of exons distributions 
-# -------------------------------------
+gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
 
-df <- data.frame()
-df <- rbind(df,data.frame(calc_exon_length(all_novel_lnc, "Novel LncRNAs")))
-df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
-df <- rbind(df,data.frame(calc_exon_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
-df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Annotated mRNAs - Human")))
-df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
+gffcompare_novel <- gffcompare[gffcompare$transcript_id %in%all_novel_lnc$transcript_id,]
 
-# Numer of exons distribution
-exon_nr_distr <- function(gr){
-  gr <- gr[gr$type =="exon",]
-  gr <- get_only_max_transcript(gr)
-  df_l <- data.frame(get_nr_exons(gr))
-  return(as.vector(as.numeric(df_l$max_exon)))
-}
-
-wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(lncRNAs_ref))
-wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(mRNAs_ref))
-
-
-# -------------------------------------
-#      Transcript lengths  
-# -------------------------------------
-df <- data.frame()
-df <- rbind(df,data.frame(calc_transcript_length(all_novel_lnc, "Novel LncRNAs")))
-df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref, "Annotated LncRNAs - Macaque ")))
-df <- rbind(df,data.frame(calc_transcript_length(lncRNAs_ref_human, "Annotated LncRNAs - Human")))
-df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
-df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
-
-
-wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated LncRNAs - Macaque ",]$range))
-wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated LncRNAs - Human",]$range))
-
-wilcox.test(as.numeric(df[df$type == "Novel LncRNAs",]$range), as.numeric(df[df$type == "Annotated mRNAs - Macaque",]$range))
-
+length(unique(gffcompare_novel$gene_id))
+table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code)
+prop.table(table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code))
 
 ```
+
 
 ```{r expression}
 
@@ -215,11 +104,13 @@ expression <- as.matrix(expression)
 # ----------------------------------------------------------------------
 max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(as.matrix(expression))))
 max_expression['type'] <- "0"
+max_expression$type
 max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
 max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
 max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
 max_expression <- max_expression[!max_expression$type == "0",]
 plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
 
 # ----------------------------------------------------------------------
 # Same for the median
@@ -299,6 +190,15 @@ b
 
 
 ```
+# Find an example of a novel transcript expressed only in one tissue
+```{r tissuespecificity}
+novel_tissue_expression <- grouped_expression[substr(rownames(grouped_expression),1,4) == "MSTR",]
+novel_tissue_expression["MSTRG.107655",]
 
+# Get gene only expressed in Brain 
+novel_tissue_expression[novel_tissue_expression[,"Blood"] == 1 & rowSums(novel_tissue_expression) == 1, ]
+all[all$gene_id == "MSTRG.104218", ]
+
+```
 
 
