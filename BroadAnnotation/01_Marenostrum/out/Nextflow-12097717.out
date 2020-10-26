@@ -1,0 +1,153 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [insane_mendel] - revision: 6accb38d2e
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[all, 7, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/7]
+[all, 6, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/6]
+[all, 3, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/3]
+[all, 11, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/11]
+[all, 14, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/14]
+[all, 5, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/5]
+[all, 2, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/2]
+[all, 4, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/4]
+[all, 1, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/1]
+[all, 13, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/13]
+[all, 9, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/9]
+[all, 12, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/12]
+[all, 15, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/15]
+[all, 10, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/10]
+[all, 8, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/all/8]
+executor >  local (15)
+[83/af1615] process > StringTie_Merge_Reference_Guided [  0%] 0 of 15
+
+executor >  local (16)
+[d9/772b59] process > StringTie_Merge_Reference_Guided [  7%] 1 of 15
+[c0/d541af] process > gffCompare2                      [  0%] 0 of 1
+
+executor >  local (16)
+[d9/772b59] process > StringTie_Merge_Reference_Guided [  7%] 1 of 15
+[c0/d541af] process > gffCompare2                      [100%] 1 of 1
+
+executor >  local (17)
+[fd/1e2d4f] process > StringTie_Merge_Reference_Guided [ 13%] 2 of 15
+[e4/9a6121] process > gffCompare2                      [ 50%] 1 of 2
+
+executor >  local (17)
+[fd/1e2d4f] process > StringTie_Merge_Reference_Guided [ 13%] 2 of 15
+[e4/9a6121] process > gffCompare2                      [100%] 2 of 2
+
+executor >  local (18)
+[89/1bea53] process > StringTie_Merge_Reference_Guided [ 20%] 3 of 15
+[22/936e6f] process > gffCompare2                      [ 67%] 2 of 3
+
+executor >  local (18)
+[89/1bea53] process > StringTie_Merge_Reference_Guided [ 20%] 3 of 15
+[22/936e6f] process > gffCompare2                      [100%] 3 of 3
+
+executor >  local (19)
+[33/3e5280] process > StringTie_Merge_Reference_Guided [ 27%] 4 of 15
+[92/c67025] process > gffCompare2                      [ 75%] 3 of 4
+
+executor >  local (19)
+[33/3e5280] process > StringTie_Merge_Reference_Guided [ 27%] 4 of 15
+[92/c67025] process > gffCompare2                      [100%] 4 of 4
+
+executor >  local (20)
+[5d/165243] process > StringTie_Merge_Reference_Guided [ 33%] 5 of 15
+[65/50d12a] process > gffCompare2                      [ 80%] 4 of 5
+
+executor >  local (20)
+[5d/165243] process > StringTie_Merge_Reference_Guided [ 33%] 5 of 15
+[65/50d12a] process > gffCompare2                      [100%] 5 of 5
+
+executor >  local (21)
+[b1/4fdaeb] process > StringTie_Merge_Reference_Guided [ 40%] 6 of 15
+[a9/4f6aa0] process > gffCompare2                      [ 83%] 5 of 6
+
+executor >  local (21)
+[b1/4fdaeb] process > StringTie_Merge_Reference_Guided [ 40%] 6 of 15
+[a9/4f6aa0] process > gffCompare2                      [100%] 6 of 6
+
+executor >  local (22)
+[cf/50737b] process > StringTie_Merge_Reference_Guided [ 47%] 7 of 15
+[c6/8758ab] process > gffCompare2                      [ 86%] 6 of 7
+
+executor >  local (22)
+[cf/50737b] process > StringTie_Merge_Reference_Guided [ 47%] 7 of 15
+[c6/8758ab] process > gffCompare2                      [100%] 7 of 7
+
+executor >  local (23)
+[be/dde3d2] process > StringTie_Merge_Reference_Guided [ 53%] 8 of 15
+[b8/503c62] process > gffCompare2                      [ 88%] 7 of 8
+
+executor >  local (23)
+[be/dde3d2] process > StringTie_Merge_Reference_Guided [ 53%] 8 of 15
+[b8/503c62] process > gffCompare2                      [100%] 8 of 8
+
+executor >  local (24)
+[c5/9eae55] process > StringTie_Merge_Reference_Guided [ 60%] 9 of 15
+[19/15bcf1] process > gffCompare2                      [ 89%] 8 of 9
+
+executor >  local (24)
+[c5/9eae55] process > StringTie_Merge_Reference_Guided [ 60%] 9 of 15
+[19/15bcf1] process > gffCompare2                      [100%] 9 of 9
+
+executor >  local (25)
+[ec/aaecfb] process > StringTie_Merge_Reference_Guided [ 67%] 10 of 15
+[ff/a8e770] process > gffCompare2                      [ 90%] 9 of 10
+
+executor >  local (25)
+[ec/aaecfb] process > StringTie_Merge_Reference_Guided [ 67%] 10 of 15
+[ff/a8e770] process > gffCompare2                      [100%] 10 of 10
+
+executor >  local (26)
+[33/577f91] process > StringTie_Merge_Reference_Guided [ 73%] 11 of 15
+[e1/c9f230] process > gffCompare2                      [ 91%] 10 of 11
+
+executor >  local (26)
+[33/577f91] process > StringTie_Merge_Reference_Guided [ 73%] 11 of 15
+[e1/c9f230] process > gffCompare2                      [100%] 11 of 11
+
+executor >  local (27)
+[98/431a21] process > StringTie_Merge_Reference_Guided [ 80%] 12 of 15
+[bb/193cfc] process > gffCompare2                      [ 92%] 11 of 12
+
+executor >  local (27)
+[98/431a21] process > StringTie_Merge_Reference_Guided [ 80%] 12 of 15
+[bb/193cfc] process > gffCompare2                      [100%] 12 of 12
+
+executor >  local (28)
+[39/5c2ed9] process > StringTie_Merge_Reference_Guided [ 87%] 13 of 15
+[ce/d70fcf] process > gffCompare2                      [ 92%] 12 of 13
+
+executor >  local (28)
+[39/5c2ed9] process > StringTie_Merge_Reference_Guided [ 87%] 13 of 15
+[ce/d70fcf] process > gffCompare2                      [100%] 13 of 13
+
+executor >  local (28)
+[97/1c2471] process > StringTie_Merge_Reference_Guided [ 93%] 14 of 15
+[ce/d70fcf] process > gffCompare2                      [100%] 13 of 13
+
+executor >  local (29)
+[97/1c2471] process > StringTie_Merge_Reference_Guided [ 93%] 14 of 15
+[11/9f2a09] process > gffCompare2                      [ 93%] 13 of 14
+
+executor >  local (29)
+[97/1c2471] process > StringTie_Merge_Reference_Guided [ 93%] 14 of 15
+[11/9f2a09] process > gffCompare2                      [100%] 14 of 14
+
+executor >  local (30)
+[83/af1615] process > StringTie_Merge_Reference_Guided [100%] 15 of 15 ✔
+[cf/66210b] process > gffCompare2                      [ 93%] 14 of 15
+
+executor >  local (30)
+[83/af1615] process > StringTie_Merge_Reference_Guided [100%] 15 of 15 ✔
+[cf/66210b] process > gffCompare2                      [100%] 15 of 15 ✔
+Completed at: 23-Oct-2020 15:45:45
+Duration    : 11m 30s
+CPU hours   : 1.5
+Succeeded   : 30
+

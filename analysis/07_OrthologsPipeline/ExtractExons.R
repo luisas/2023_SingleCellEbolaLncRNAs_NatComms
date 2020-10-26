@@ -13,7 +13,7 @@ gtf<- import(file)
 # If specified in the input, only select non coding rnas from set 
 if( filter == "lncrna"){
   print("!!!!!!!!!!!!!!! Filtering only lncrnas")
-  gtf[substr(gtf$gene_id,1,3) == "rib",]$gene_biotype <- "lncRNA"
+  gtf[substr(gtf$gene_id,1,3) == "MST",]$gene_biotype <- "lncRNA"
   print("hey")
   #gtf[substr(gtf$gene_id,1,3) == "rib",]$gene_biotype <- "lncRNA"
   gtf <- gtf[!is.na(gtf$gene_biotype) &gtf$gene_biotype == "lncRNA"]

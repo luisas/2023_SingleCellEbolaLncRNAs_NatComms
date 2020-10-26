@@ -1,0 +1,91 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [high_kilby] - revision: 1f9cf00a4a
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[4d/87856e] process > getFinalAnnotation [  0%] 0 of 1
+Oops .. something went wrong
+
+executor >  local (1)
+[4d/87856e] process > getFinalAnnotation [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'getFinalAnnotation (1)'
+
+Caused by:
+  Process `getFinalAnnotation (1)` terminated with an error exit status (1)
+
+Command executed:
+
+  Rscript 03_concordant_and_merge.R cpc2_pred.txt cpat_pred.ORF_prob.tsv CNCI2.index candidates.gtf rheMac10_EBOV-Kikwit_UCSC.gtf rheMac10_EBOV_and_novel.gtf rheMac10_EBOV_and_novel_genenames.gtf
+
+Command exit status:
+  1
+
+Command output:
+  [1] 164
+  [1] 134
+  [1] 159
+  [1] "---0 "
+  [1] "---1 "
+  NULL
+
+Command error:
+  
+      expand.grid
+  
+  Loading required package: IRanges
+  Loading required package: GenomeInfoDb
+  
+  Attaching package: ‘dplyr’
+  
+  The following objects are masked from ‘package:GenomicRanges’:
+  
+      intersect, setdiff, union
+  
+  The following object is masked from ‘package:GenomeInfoDb’:
+  
+      intersect
+  
+  The following objects are masked from ‘package:IRanges’:
+  
+      collapse, desc, intersect, setdiff, slice, union
+  
+  The following objects are masked from ‘package:S4Vectors’:
+  
+      first, intersect, rename, setdiff, setequal, union
+  
+  The following objects are masked from ‘package:BiocGenerics’:
+  
+      combine, intersect, setdiff, union
+  
+  The following objects are masked from ‘package:stats’:
+  
+      filter, lag
+  
+  The following objects are masked from ‘package:base’:
+  
+      intersect, setdiff, setequal, union
+  
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  Warning message:
+  In .Seqinfo.mergexy(x, y) :
+    Each of the 2 combined objects has sequence levels not in the other:
+    - in 'x': chrUn_NW_021161639v1
+    - in 'y': chr12, chr13, chr15, chr17, chr20, chr4_NW_021160161v1_random, chr19_NW_021160369v1_random, chr19_NW_021160375v1_random, chrUn_NW_021160834v1, chrUn_NW_021161269v1, chrUn_NW_021162005v1, chrUn_NW_021162108v1
+    Make sure to always combine/compare objects based on the same reference
+    genome (use suppressWarnings() to suppress this warning).
+  Error in `[[<-`(`*tmp*`, name, value = "-unknown") : 
+    1 elements in value to replace 0 elements
+  Calls: $<- -> $<- -> [[<- -> [[<-
+  Execution halted
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/4d/87856e2bd25c352933e961811910e6
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details

@@ -1,0 +1,166 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/03_rerun_assembly.nf` [sick_leakey] - revision: 880cd82b11
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `lnc_novel_compared_to_ref` -- Initialise it to a default value eg. `params.lnc_novel_compared_to_ref = some_value`
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[ad/e5e8f9] process > DeNovoAssembly [  0%] 0 of 1
+
+executor >  local (2)
+[d0/f9249a] process > DeNovoAssembly [  0%] 0 of 2
+
+executor >  local (4)
+[f3/dad621] process > DeNovoAssembly [  0%] 0 of 4
+
+executor >  local (6)
+[bb/2556ef] process > DeNovoAssembly [  0%] 0 of 6
+
+executor >  local (7)
+[e1/fad5d4] process > DeNovoAssembly [  0%] 0 of 7
+
+executor >  local (9)
+[ea/b5d7cf] process > DeNovoAssembly [  0%] 0 of 9
+
+executor >  local (10)
+[82/3bae52] process > DeNovoAssembly [  0%] 0 of 10
+
+executor >  local (11)
+[b7/1ea04b] process > DeNovoAssembly [  0%] 0 of 11
+
+executor >  local (14)
+[86/c0553f] process > DeNovoAssembly [  0%] 0 of 14
+
+executor >  local (15)
+[53/1fe2c2] process > DeNovoAssembly [  0%] 0 of 15
+
+executor >  local (16)
+[f7/3f852b] process > DeNovoAssembly [  0%] 0 of 16
+Oops .. something went wrong
+Oops .. something went wrong
+
+executor >  local (16)
+[f7/3f852b] process > DeNovoAssembly [  0%] 0 of 16
+WARN: Killing pending tasks (16)
+
+
+executor >  local (16)
+[ad/e5e8f9] process > DeNovoAssembly [  6%] 1 of 16, failed: 1
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[d0/f9249a] process > DeNovoAssembly [ 13%] 2 of 16, failed: 2
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[62/ce06df] process > DeNovoAssembly [ 19%] 3 of 16, failed: 3
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[f3/dad621] process > DeNovoAssembly [ 25%] 4 of 16, failed: 4
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[c9/277884] process > DeNovoAssembly [ 31%] 5 of 16, failed: 5
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[bb/2556ef] process > DeNovoAssembly [ 38%] 6 of 16, failed: 6
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[e1/fad5d4] process > DeNovoAssembly [ 44%] 7 of 16, failed: 7
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[84/b28cd9] process > DeNovoAssembly [ 50%] 8 of 16, failed: 8
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[ea/b5d7cf] process > DeNovoAssembly [ 56%] 9 of 16, failed: 9
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[82/3bae52] process > DeNovoAssembly [ 63%] 10 of 16, failed: 10
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[b7/1ea04b] process > DeNovoAssembly [ 69%] 11 of 16, failed: 11
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[09/734c12] process > DeNovoAssembly [ 75%] 12 of 16, failed: 12
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[5e/a27203] process > DeNovoAssembly [ 81%] 13 of 16, failed: 13
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[86/c0553f] process > DeNovoAssembly [ 88%] 14 of 16, failed: 14
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[53/1fe2c2] process > DeNovoAssembly [ 94%] 15 of 16, failed: 15
+WARN: Killing pending tasks (16)
+
+executor >  local (16)
+[f7/3f852b] process > DeNovoAssembly [100%] 16 of 16, failed: 16
+WARN: Killing pending tasks (16)
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b14>
+Subject: Job 1948193: <NextflowannotationPipeline> in cluster <mn3> Exited
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b14>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Wed Oct 21 12:57:09 2020
+Results reported on Wed Oct 21 12:59:20 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/03_rerun_assembly.nf                 -w /gpfs/projects/bsc83/Data/Ebola/work/                   -c ../configs/nextflow.filtering.config
+
+------------------------------------------------------------
+
+TERM_OWNER: job killed by owner.
+Exited with exit code 143.
+
+Resource usage summary:
+
+    CPU time :               80.25 sec.
+    Max Memory :             2668 MB
+    Average Memory :         1087.75 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           -918.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          148
+    Max Threads :            316
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1948193.err> for stderr output of this job.
+

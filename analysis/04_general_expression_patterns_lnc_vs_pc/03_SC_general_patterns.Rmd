@@ -27,6 +27,8 @@ immune.combined<- readRDS(file.path(robjectsdir, "EXVIVO_rhemac10_merged.rds"))
 file <- "/home/luisas/Desktop/cluster/data/RObjects_old/results/seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_dim_red.rds"
 immune.combined <- readRDS(file)
 
+library(Seurat)
+Idents(immune.combined)
 
 ref <- ref_old
 lnc_ref_id <- unique(ref$gene_name[ref$gene_biotype %in% c("lncRNA")])
@@ -103,8 +105,12 @@ p2 <- DimPlot(immune.combined, reduction = "umap", group.by = "hour")+theme_mini
 p3 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample", pt.size  = 0.01, cols = brewer.pal(8, "Set1"))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 #p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "individual")+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 p5 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-
+p1
 p1;p2; p3; p5
+
+immune.combined$a <- "a"
+DimPlot(immune.combined, reduction = "umap", group.by = "a", cols = "grey")+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.position = "")
+
 ```
 
 # Batch effect investigation 
@@ -137,7 +143,14 @@ immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "Myeloid", `2`
     `10` = "Myeloid", `11` = "B", `12` = "T", `13` = "Myeloid",`14` = "Myeloid", `15` = "T", `16` = "NK")
 
 #saveRDS(immune.combined, paste0(robjectsdir,"EXVIVO_immune.combined_idents.rds" ))
+subset(Idents(immune.combined), subset = Idents == 'NK') 
+immune.combined$cell <- Idents(immune.combined)
+a <- "NK"
 
+
+immune.combined$cell == rep(a, length(immune.combined$cell)
+type(a)
+subset(Idents(immune.combined), subset = immune.combined$cell == as.character(a))
 
 # Visualize identities 
 DimPlot(immune.combined, label = TRUE, pt.size = 0.1, cols=  brewer.pal(4, "Set2")[c(1,3,4,2)])+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
@@ -145,7 +158,19 @@ DimPlot(immune.combined, label = TRUE, pt.size = 0.1, cols=  brewer.pal(4, "Set2
 
 # DotPlot of the marker genes
 marker.genes <- c(b, nk, monocytes, t)
-DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8, split.by = "cond") + RotatedAxis()+theme(axis.text = element_text(size = 15), axis.title = element_blank())
+
+FeaturePlot(immune.combined, features = b[2])+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.position = "")
+
+FeaturePlot(immune.combined, features = monocytes[2])+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.position = "")
+
+
+
+FeaturePlot(immune.combined, features = nk[1])+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.position = "", )
+plot_genes(immune.combined,t,threshold= 3, col = "purple")
+
+
+immune.combined$celltype <- Idents(immune.combined)
+DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 15), axis.title = element_blank())
 
 immune.combined$celltype <- Idents(immune.combined)
 DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 15), axis.title = element_blank())

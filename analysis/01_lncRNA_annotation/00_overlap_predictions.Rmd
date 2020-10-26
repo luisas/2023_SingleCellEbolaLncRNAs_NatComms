@@ -13,6 +13,14 @@ library(ggplot2)
 library(plyr)
 library(ggpubr)
 
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 ```
 
@@ -22,7 +30,7 @@ theme_paper <- theme(legend.title = element_blank())+theme(panel.background = el
 # -------------------------------------------
 #                     CPC2 
 # -------------------------------------------
-
+candidates <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/candidates.gtf")
 # Load cpc2 prediction 
 cpc2 <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/03_predictions/CPC2/cpc2_pred.txt")
 names(cpc2) <- c("ID","transcript_length ","peptide_length","Fickett_score" , " pI", "ORF_integrity", "coding_probability","label")
@@ -101,12 +109,65 @@ plot_stats_annotation(intersection_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_r
 
 ```
 
+
+
 # Visualize overlap 
 ```{r cpc2vscpan}
 library(UpSetR)
 library(ComplexHeatmap)
 # example of list input (list of named vectors)
-listInput <- list(cpat = cpat_pre_lnc$gene_id, CPC2 = cpc2_pre_lnc$gene_id, CNIT = cnit_pre_lnc$gene_id)
-upset(fromList(listInput), order.by = "freq", main.bar.color = c("#CC0066", rep("gray23",6)))
+listInput <- list(CPAT = unique(cpat_pre_lnc$gene_id), CPC2 = unique(cpc2_pre_lnc$gene_id), CNIT = unique(cnit_pre_lnc$gene_id))
+upset(fromList(listInput), order.by = "freq", main.bar.color = c("darkorange", rep("gray23",6)),text.scale = 2.4)
+
 ```
 
+```{r venn}
+library(eulerr)
+plot(euler(listInput, shape = "ellipse"),
+     quantities = TRUE,
+     edges = list(lty = 3), 
+     legend = list(side = "right")
+    )
+
+
+```
+
+
+# Supplementary figures
+
+## Compare number of genes in macaques vs Human annotation 
+```{r results='hide', message=FALSE, warning=FALSE}
+ref_macaque <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+ref_human <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"))
+
+
+ref_macaque_gene <- ref_macaque[ref_macaque$type =="gene",]
+
+table(ref_macaque[ref_macaque$source == "ensembl",]$gene_biotype)
+table(ref_macaque[ref_macaque$source == "RefSeq",]$gene_biotype)
+
+table(ref_human$gene_biotype)
+ref_macaque_gene <- ref_macaque[ref_macaque$type == "gene",]
+ref_human_gene <- ref_human[ref_human$type == "gene",]
+
+lnc_macaque <- sum(ref_macaque_gene$gene_biotype == "lncRNA")
+pc_macaque <- sum(ref_macaque_gene$gene_biotype == "protein_coding")
+lnc_human <- sum(ref_human_gene$gene_biotype == "lncRNA")
+pc_human <- sum(ref_human_gene$gene_biotype == "protein_coding")
+
+count <- c(lnc_macaque, pc_macaque, lnc_human, pc_human ) 
+species <- c(rep("Macaque", 2), rep("Human",2))
+gene_biotype <- c(rep(c("LncRNA", "Protein Coding"), 2 ) )
+df_n_genes <- data.frame(count, species, gene_biotype)
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+ggplot(df_n_genes, aes(fill = gene_biotype, y = count, x = species))+
+                geom_bar(stat="identity", position = position_dodge2())+
+                theme_paper+scale_fill_manual(values = palette_plot_percentage)+
+                scale_color_manual(values = palette_plot_percentage)+
+                labs(x = "", y = "")+
+                scale_y_continuous( breaks = c(lnc_macaque, lnc_human))+
+                geom_abline(slope=0, intercept=lnc_macaque,  col = "darkgrey",lty=2)+
+                geom_abline(slope=0, intercept=lnc_human,  col = "darkgrey",lty=2)
+```

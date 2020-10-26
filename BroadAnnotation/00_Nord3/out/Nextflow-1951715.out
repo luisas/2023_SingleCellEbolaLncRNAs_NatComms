@@ -1,0 +1,89 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [voluminous_jepsen] - revision: 5c94fe228e
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[tissue_effect, 02_spleen_wholeblood_lymphnode, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/02_spleen_wholeblood_lymphnode]
+[tissue_effect, 01_spleen_wholeblood, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/01_spleen_wholeblood]
+[tissue_effect, 00_spleen, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/00_spleen]
+executor >  local (2)
+[06/2398ed] process > StringTie_Merge_Reference_Guided [  0%] 0 of 2
+
+executor >  local (3)
+[58/aa0db6] process > StringTie_Merge_Reference_Guided [  0%] 0 of 3
+
+executor >  local (3)
+[69/fee065] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+
+executor >  local (3)
+[06/2398ed] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+
+executor >  local (3)
+[58/aa0db6] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+
+executor >  local (3)
+[58/aa0db6] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+Completed at: 22-Oct-2020 17:49:45
+Duration    : 9m 13s
+CPU hours   : 0.3
+Succeeded   : 3
+
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b14>
+Subject: Job 1951715: <NextflowannotationPipeline> in cluster <mn3> Done
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b14>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Thu Oct 22 17:40:14 2020
+Results reported on Thu Oct 22 17:49:47 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf \
+                -w /gpfs/projects/bsc83/Data/Ebola/work/ \
+                -c ../configs/nextflow.filtering.config
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               403.97 sec.
+    Max Memory :             920 MB
+    Average Memory :         716.42 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           830.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          31
+    Max Threads :            99
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1951715.err> for stderr output of this job.
+

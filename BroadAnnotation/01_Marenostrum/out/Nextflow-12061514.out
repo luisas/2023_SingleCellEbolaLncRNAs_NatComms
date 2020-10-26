@@ -1,0 +1,66 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad.nf` [awesome_cantor] - revision: 66d14c751a
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+executor >  local (27)
+[16/ea948b] process > stringtie [  4%] 1 of 27, failed: 1
+ERROR ~ Error executing process > 'stringtie (3)'
+
+Caused by:
+  Process `stringtie (3)` terminated with an error exit status (127)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -B  --fr -G prefilter_candidates.gtf A0190_S149_L002_deduplicated.bam -A A0190_S149_L002_deduplicated.gene_abundances.tsv
+  mv t_data.ctab A0190_S149_L002_deduplicated_t_data.ctab
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 3: stringtie: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/1e/cd609fef2e1064b3b9eeb1b59004ac
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong
+
+executor >  local (27)
+[16/ea948b] process > stringtie [104%] 28 of 27, failed: 28
+WARN: Killing pending tasks (21)
+ERROR ~ Error executing process > 'stringtie (3)'
+
+Caused by:
+  Process `stringtie (3)` terminated with an error exit status (127)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -B  --fr -G prefilter_candidates.gtf A0190_S149_L002_deduplicated.bam -A A0190_S149_L002_deduplicated.gene_abundances.tsv
+  mv t_data.ctab A0190_S149_L002_deduplicated_t_data.ctab
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 3: stringtie: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/1e/cd609fef2e1064b3b9eeb1b59004ac
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details

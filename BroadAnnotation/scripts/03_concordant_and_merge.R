@@ -15,7 +15,7 @@ outfile_name <- args[7]
 #ribodepl_novel_compared_to_polya <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/03_polyA_vs_ribodepl/ribodeplVSpolyA.annotated.gtf")
 #polyA_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_polya.gtf")
 #ribodepl_novel <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/novel_expressed_ribodepleted.gtf")
-#ref_gtf <-  import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
+#ref_gtf <-  import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/UCSC/rheMac10_EBOV-Kikwit_UCSC.gtf")
 
 # --------------------------------------------------------------------------------------
 #                                   Merge Predictions 
@@ -132,6 +132,9 @@ gtf_ref_and_novel_sort$gene_name
 gtf_ref_and_novel_sort[mask]$gene_name <- paste(gtf_ref_and_novel_sort[mask]$gene_id, "-unknown", sep = "") 
 
 print("---1 ")
+if(is.null(gtf_ref_and_novel_sort$transcript_name)){
+  gtf_ref_and_novel_sort$transcript_name <- NA
+}
 mask_t <- is.na(gtf_ref_and_novel_sort$transcript_name)
 gtf_ref_and_novel_sort[mask_t]$transcript_name <-paste(gtf_ref_and_novel_sort[mask_t]$transcript_id, "-unknown", sep = "")  
 export(gtf_ref_and_novel_sort, outfile_name)  

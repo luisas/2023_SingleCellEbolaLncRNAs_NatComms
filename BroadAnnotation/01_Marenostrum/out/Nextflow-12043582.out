@@ -1,0 +1,14 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad.nf` [cranky_payne] - revision: b6b7d26e95
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+Done!
+Completed at: 19-Oct-2020 12:27:26
+Duration    : 966ms
+CPU hours   : (a few seconds)
+Succeeded   : 0
+

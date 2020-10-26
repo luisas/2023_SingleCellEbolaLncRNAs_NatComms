@@ -1,0 +1,41 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [irreverent_bassi] - revision: 6accb38d2e
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[02_add_sampleMIXinf, 02_wbMINinf_30, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/02_add_sampleMIXinf/02_wbMINinf_30]
+[02_add_sampleMIXinf, 00_wbni_10, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/02_add_sampleMIXinf/00_wbni_10]
+[02_add_sampleMIXinf, 01_wbMIXinf_20, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/02_add_sampleMIXinf/01_wbMIXinf_20]
+executor >  local (3)
+[9b/ca5745] process > StringTie_Merge_Reference_Guided [  0%] 0 of 3
+
+executor >  local (4)
+[64/87ce3b] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[39/ecaa6f] process > gffCompare2                      [  0%] 0 of 1
+
+executor >  local (4)
+[64/87ce3b] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[39/ecaa6f] process > gffCompare2                      [100%] 1 of 1
+
+executor >  local (5)
+[8b/6d34e9] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+[08/2fd7bf] process > gffCompare2                      [ 50%] 1 of 2
+
+executor >  local (5)
+[8b/6d34e9] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+[08/2fd7bf] process > gffCompare2                      [100%] 2 of 2
+
+executor >  local (6)
+[9b/ca5745] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+[d9/887671] process > gffCompare2                      [ 67%] 2 of 3
+
+executor >  local (6)
+[9b/ca5745] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+[d9/887671] process > gffCompare2                      [100%] 3 of 3 ✔
+Completed at: 23-Oct-2020 13:18:12
+Duration    : 2m 1s
+CPU hours   : 0.1
+Succeeded   : 6
+

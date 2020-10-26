@@ -1,0 +1,200 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [focused_mercator] - revision: ad7dd2ee21
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[f1/9a82ed] process > prefilter [  0%] 0 of 1
+
+executor >  local (2)
+[f1/9a82ed] process > prefilter           [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation [  0%] 0 of 1
+
+executor >  local (31)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[c9/fe390c] process > expression_stringtie [  0%] 0 of 29
+
+executor >  local (50)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ec/a81c9d] process > expression_stringtie [  0%] 0 of 48
+
+executor >  local (51)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1d/b20b1b] process > expression_stringtie [  2%] 1 of 49
+
+executor >  local (52)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2d/8b1510] process > expression_stringtie [  4%] 2 of 50
+
+executor >  local (53)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2e/299db8] process > expression_stringtie [  6%] 3 of 51
+
+executor >  local (54)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[68/4a8802] process > expression_stringtie [  8%] 4 of 52
+
+executor >  local (55)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[73/f39071] process > expression_stringtie [  9%] 5 of 53
+
+executor >  local (56)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[22/d10803] process > expression_stringtie [ 11%] 6 of 54
+
+executor >  local (57)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[11/30dea6] process > expression_stringtie [ 13%] 7 of 55
+
+executor >  local (58)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a2/8cf68a] process > expression_stringtie [ 13%] 7 of 56
+Oops .. something went wrong
+
+executor >  local (58)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[39/73c418] process > expression_stringtie [ 18%] 10 of 56, failed: 3
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'expression_stringtie (56)'
+
+Caused by:
+  Process `expression_stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB -G ref_novel_ribodepleted.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/11/30dea60d0a6fa0d1bd7b61420c9b0e
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (58)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[b3/854164] process > expression_stringtie [ 46%] 26 of 56, failed: 19
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'expression_stringtie (56)'
+
+Caused by:
+  Process `expression_stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB -G ref_novel_ribodepleted.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/11/30dea60d0a6fa0d1bd7b61420c9b0e
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (58)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[54/e78fa8] process > expression_stringtie [ 77%] 43 of 56, failed: 36
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'expression_stringtie (56)'
+
+Caused by:
+  Process `expression_stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB -G ref_novel_ribodepleted.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/11/30dea60d0a6fa0d1bd7b61420c9b0e
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (58)
+[f1/9a82ed] process > prefilter            [100%] 1 of 1 ✔
+[2a/aca9f8] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a2/8cf68a] process > expression_stringtie [100%] 56 of 56, failed: 49
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'expression_stringtie (56)'
+
+Caused by:
+  Process `expression_stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB -G ref_novel_ribodepleted.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/11/30dea60d0a6fa0d1bd7b61420c9b0e
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details

@@ -45,22 +45,33 @@ all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRN
 # How many novel lncRNAs do i identify (Genes)
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
 length(unique(all_novel_lnc$gene_id))
+length(unique(all_novel_lnc$transcript_id))
 plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
 
 export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
 ```
 
 
-# How many are intergenic and how many antisense
-```{r stats}
-
+# Separate by intergenic and antisense 
+```{r cpc2vscpan}
 gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
 
-gffcompare_novel <- gffcompare[gffcompare$transcript_id %in%all_novel_lnc$transcript_id,]
+# Check everything is allright 
+length(unique(all_novel_lnc$transcript_id))
+length(unique(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id,]$transcript_id))
 
-length(unique(gffcompare_novel$gene_id))
-table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code)
-prop.table(table(gffcompare_novel[gffcompare_novel$type == "transcript",]$class_code))
+plot_stats_benchmark(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",])
+
+gff_compare_pre_lnc <- gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",]
+antisense_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "x", ]$transcript_id
+intergenic_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "u", ]$transcript_id
+
+
+intergenic_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% intergenic_ids, ]
+antisense_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% antisense_ids, ]
+
+plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
 
 ```
 
@@ -134,6 +145,17 @@ wilcox.test(median_expression_pc, median_expression_annot)
 #ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
 #                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
 
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+median_expression <- add_type(median_expression, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+
+levels <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))+labs(y = "logTPM")
 
 ```
 
@@ -151,7 +173,7 @@ colnames(expression) <- tissues
 tissues <- gsub("Testes", "Testis", tissues)
 tissues <- gsub("Wholeblood", "Blood", tissues)
 tissues <- gsub("Serum", "Blood", tissues)
-
+table(tissues)
 # Check how many tissues express a gene
 expressed_booleans <- ifelse(log(expression) > 1,1,0)
 colnames(expressed_booleans) <- tissues
@@ -188,17 +210,74 @@ b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), lef
 b
 
 
+df$type <- "0"
+df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+type <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+palette <-c("orange","#994C00", "#D4549C", "#8195D7")
+
+tl0 <-barplot_tissues(df,"Intergenic Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+
+tl1 <-barplot_tissues(df,"Antisense Novel lncRNAs",palette[2])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[3]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[4])
+b <- ggarrange( tl0,tl1,tl2,tl3,  ncol=1, nrow=4)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
+b
 
 ```
-# Find an example of a novel transcript expressed only in one tissue
-```{r tissuespecificity}
-novel_tissue_expression <- grouped_expression[substr(rownames(grouped_expression),1,4) == "MSTR",]
-novel_tissue_expression["MSTRG.107655",]
 
-# Get gene only expressed in Brain 
-novel_tissue_expression[novel_tissue_expression[,"Blood"] == 1 & rowSums(novel_tissue_expression) == 1, ]
-all[all$gene_id == "MSTRG.104218", ]
+# Supplementary figures
 
+## Compare number of genes in macaques vs Human annotation 
+```{r results='hide', message=FALSE, warning=FALSE}
+ref_macaque <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+ref_human <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"))
+
+
+ref_macaque_gene <- ref_macaque[ref_macaque$type =="gene",]
+
+table(ref_macaque[ref_macaque$source == "ensembl",]$gene_biotype)
+table(ref_macaque[ref_macaque$source == "RefSeq",]$gene_biotype)
+
+table(ref_human$gene_biotype)
+ref_macaque_gene <- ref_macaque[ref_macaque$type == "gene",]
+ref_human_gene <- ref_human[ref_human$type == "gene",]
+
+lnc_macaque <- sum(ref_macaque_gene$gene_biotype == "lncRNA")
+pc_macaque <- sum(ref_macaque_gene$gene_biotype == "protein_coding")
+lnc_human <- sum(ref_human_gene$gene_biotype == "lncRNA")
+pc_human <- sum(ref_human_gene$gene_biotype == "protein_coding")
+
+count <- c(lnc_macaque, pc_macaque, lnc_human, pc_human ) 
+species <- c(rep("Macaque", 2), rep("Human",2))
+gene_biotype <- c(rep(c("LncRNA", "Protein Coding"), 2 ) )
+df_n_genes <- data.frame(count, species, gene_biotype)
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+ggplot(df_n_genes, aes(fill = gene_biotype, y = count, x = species))+
+                geom_bar(stat="identity", position = position_dodge2())+
+                theme_paper+scale_fill_manual(values = palette_plot_percentage)+
+                scale_color_manual(values = palette_plot_percentage)+
+                labs(x = "", y = "")+
+                scale_y_continuous( breaks = c(lnc_macaque, lnc_human))+
+                geom_abline(slope=0, intercept=lnc_macaque,  col = "darkgrey",lty=2)+
+                geom_abline(slope=0, intercept=lnc_human,  col = "darkgrey",lty=2)
 ```
 
 

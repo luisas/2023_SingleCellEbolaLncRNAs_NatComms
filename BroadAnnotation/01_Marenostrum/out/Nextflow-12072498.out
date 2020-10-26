@@ -1,0 +1,135 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [nice_monod] - revision: f1bd69972f
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[61/ff2d0b] process > getFinalAnnotation [  0%] 0 of 1
+Oops .. something went wrong
+
+executor >  local (1)
+[61/ff2d0b] process > getFinalAnnotation [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'getFinalAnnotation (1)'
+
+Caused by:
+  Process `getFinalAnnotation (1)` terminated with an error exit status (1)
+
+Command executed:
+
+  Rscript 03_concordant_and_merge.R cpc2_pred.txt cpat_pred.ORF_prob.tsv CNCI2.index candidates.gtf rheMac10_EBOV-Kikwit_UCSC.gtf rheMac10_EBOV_and_novel.gtf rheMac10_EBOV_and_novel_genenames.gtf
+
+Command exit status:
+  1
+
+Command output:
+  [99856] "ENSMMUG00000011860.4" "ENSMMUG00000011860.4" "ENSMMUG00000011860.4"
+  [99859] "ENSMMUG00000011860.4" "ENSMMUG00000011860.4" "ENSMMUG00000011860.4"
+  [99862] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99865] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99868] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99871] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99874] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99877] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99880] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99883] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99886] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99889] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99892] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99895] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99898] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000063853.1"
+  [99901] "ENSMMUG00000063853.1" "ENSMMUG00000063853.1" "ENSMMUG00000058261.1"
+  [99904] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99907] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99910] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99913] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99916] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99919] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99922] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99925] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99928] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99931] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99934] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99937] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99940] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99943] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99946] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99949] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99952] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99955] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99958] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99961] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99964] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99967] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99970] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99973] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99976] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000051252.1"
+  [99979] "ENSMMUG00000051252.1" "ENSMMUG00000026815.3" "ENSMMUG00000026815.3"
+  [99982] "ENSMMUG00000050852.1" "ENSMMUG00000050852.1" "ENSMMUG00000021535.4"
+  [99985] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99988] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99991] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99994] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99997] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+   [ reached getOption("max.print") -- omitted 1312178 entries ]
+  [1] "---1 "
+
+Command error:
+  Attaching package: ‘S4Vectors’
+  
+  The following object is masked from ‘package:base’:
+  
+      expand.grid
+  
+  Loading required package: IRanges
+  Loading required package: GenomeInfoDb
+  
+  Attaching package: ‘dplyr’
+  
+  The following objects are masked from ‘package:GenomicRanges’:
+  
+      intersect, setdiff, union
+  
+  The following object is masked from ‘package:GenomeInfoDb’:
+  
+      intersect
+  
+  The following objects are masked from ‘package:IRanges’:
+  
+      collapse, desc, intersect, setdiff, slice, union
+  
+  The following objects are masked from ‘package:S4Vectors’:
+  
+      first, intersect, rename, setdiff, setequal, union
+  
+  The following objects are masked from ‘package:BiocGenerics’:
+  
+      combine, intersect, setdiff, union
+  
+  The following objects are masked from ‘package:stats’:
+  
+      filter, lag
+  
+  The following objects are masked from ‘package:base’:
+  
+      intersect, setdiff, setequal, union
+  
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  Warning message:
+  In .Seqinfo.mergexy(x, y) :
+    Each of the 2 combined objects has sequence levels not in the other:
+    - in 'x': chr1_NW_021160098v1_random, chr1_NW_021160106v1_random, chr1_NW_021160108v1_random, chr1_NW_021160111v1_random, chr1_NW_021160114v1_random, chr2_NW_021160115v1_random, chr2_NW_021160123v1_random, chr3_NW_021160133v1_random, chr3_NW_021160137v1_random, chr3_NW_021160139v1_random, chr3_NW_021160142v1_random, chr3_NW_021160144v1_random, chr4_NW_021160145v1_random, chr4_NW_021160152v1_random, chr4_NW_021160153v1_random, chr4_NW_021160157v1_random, chr4_NW_021160159v1_random, chr5_NW_021160167v1_random, chr5_NW_021160176v1_random, chr6_NW_021160179v1_random, chr6_NW_021160184v1_random, chr6_NW_021160186v1_random, chr6_NW_021160188v1_random, chr7_NW_021160199v1_random, chr7_NW_021160200v1_random, chr7_NW_021160204v1_random, chr8_NW_021160212v1_random, chr8_NW_021160221v1_random, chr8_NW_021160222v1_random, chr9_NW_021160226v1_random, chr9_NW_021160239v1_random, chr10_NW_021160244v1_random, chr10_NW_021160245v1_r [... truncated]
+  Error in `[[<-`(`*tmp*`, name, value = "-unknown") : 
+    1 elements in value to replace 0 elements
+  Calls: $<- -> $<- -> [[<- -> [[<-
+  Execution halted
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/61/ff2d0b62ea77677cf21d4ca868b2f8
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+
+ -- Check '.nextflow.log' file for details

@@ -1,0 +1,628 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_quantify_ours_onbroad.nf` [nauseous_newton] - revision: 96a9c91609
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+executor >  local (26)
+[8e/56183e] process > stringtie [  0%] 0 of 26
+
+executor >  local (48)
+[54/fccaf7] process > stringtie [  0%] 0 of 48
+
+executor >  local (49)
+[bb/591781] process > stringtie [  2%] 1 of 49
+
+executor >  local (50)
+[54/4942d9] process > stringtie [  4%] 2 of 50
+
+executor >  local (51)
+[e1/6a666b] process > stringtie [  6%] 3 of 51
+
+executor >  local (52)
+[d2/cd6a37] process > stringtie [  8%] 4 of 52
+
+executor >  local (53)
+[7b/5c0b57] process > stringtie [  9%] 5 of 53
+
+executor >  local (54)
+[76/73d8be] process > stringtie [ 11%] 6 of 54
+
+executor >  local (55)
+[8e/b79d6d] process > stringtie [ 13%] 7 of 55
+
+executor >  local (56)
+[0b/39f1c9] process > stringtie [ 14%] 8 of 56
+
+executor >  local (57)
+[d3/a9a7ef] process > stringtie [ 16%] 9 of 57
+
+executor >  local (58)
+[a9/8200d9] process > stringtie [ 17%] 10 of 58
+
+executor >  local (59)
+[b0/e739bd] process > stringtie [ 19%] 11 of 59
+
+executor >  local (60)
+[c2/00e45b] process > stringtie [ 20%] 12 of 60
+
+executor >  local (61)
+[b6/698140] process > stringtie [ 21%] 13 of 61
+
+executor >  local (62)
+[c8/8b366b] process > stringtie [ 23%] 14 of 62
+
+executor >  local (63)
+[e5/cad7a4] process > stringtie [ 24%] 15 of 63
+
+executor >  local (64)
+[1f/995f85] process > stringtie [ 25%] 16 of 64
+
+executor >  local (65)
+[4c/7d589e] process > stringtie [ 26%] 17 of 65
+
+executor >  local (66)
+[e8/b6bfa7] process > stringtie [ 27%] 18 of 66
+
+executor >  local (67)
+[d3/924a2d] process > stringtie [ 28%] 19 of 67
+
+executor >  local (68)
+[2a/87fd30] process > stringtie [ 29%] 20 of 68
+
+executor >  local (69)
+[3e/bb1a8d] process > stringtie [ 30%] 21 of 69
+
+executor >  local (70)
+[dc/4e0a64] process > stringtie [ 31%] 22 of 70
+
+executor >  local (71)
+[52/e98d9b] process > stringtie [ 32%] 23 of 71
+
+executor >  local (73)
+[d4/ad78de] process > stringtie [ 34%] 25 of 73
+
+executor >  local (74)
+[e5/cad7a4] process > stringtie [ 35%] 26 of 74
+
+executor >  local (75)
+[87/06b4ee] process > stringtie [ 36%] 27 of 75
+
+executor >  local (76)
+[53/7babe7] process > stringtie [ 37%] 28 of 76
+
+executor >  local (77)
+[e9/e3963b] process > stringtie [ 38%] 29 of 77
+
+executor >  local (78)
+[55/aea6e9] process > stringtie [ 38%] 30 of 78
+
+executor >  local (79)
+[2d/38db26] process > stringtie [ 39%] 31 of 79
+
+executor >  local (80)
+[c3/f3f536] process > stringtie [ 40%] 32 of 80
+
+executor >  local (81)
+[51/d7703f] process > stringtie [ 41%] 33 of 81
+
+executor >  local (82)
+[a9/60e132] process > stringtie [ 41%] 34 of 82
+
+executor >  local (83)
+[b8/450ff2] process > stringtie [ 42%] 35 of 83
+
+executor >  local (84)
+[43/7d842f] process > stringtie [ 43%] 36 of 84
+
+executor >  local (85)
+[03/dcd773] process > stringtie [ 44%] 37 of 85
+
+executor >  local (86)
+[56/ba59b1] process > stringtie [ 44%] 38 of 86
+
+executor >  local (87)
+[dc/67ca3a] process > stringtie [ 45%] 39 of 87
+
+executor >  local (88)
+[cd/ab7fee] process > stringtie [ 45%] 40 of 88
+
+executor >  local (89)
+[d1/37bcd3] process > stringtie [ 46%] 41 of 89
+
+executor >  local (90)
+[54/fccaf7] process > stringtie [ 47%] 42 of 90
+
+executor >  local (91)
+[52/4fff91] process > stringtie [ 47%] 43 of 91
+
+executor >  local (92)
+[51/a4d49e] process > stringtie [ 48%] 44 of 92
+
+executor >  local (93)
+[e7/a74c3f] process > stringtie [ 48%] 45 of 93
+
+executor >  local (94)
+[c2/b2dcbb] process > stringtie [ 49%] 46 of 94
+
+executor >  local (95)
+[22/8d4476] process > stringtie [ 49%] 47 of 95
+
+executor >  local (96)
+[b0/e739bd] process > stringtie [ 50%] 48 of 96
+
+executor >  local (97)
+[22/f7eeb6] process > stringtie [ 51%] 49 of 97
+
+executor >  local (98)
+[4f/1260ae] process > stringtie [ 51%] 50 of 98
+
+executor >  local (99)
+[0b/39f1c9] process > stringtie [ 52%] 51 of 99
+
+executor >  local (100)
+[e9/61d957] process > stringtie [ 52%] 52 of 100
+
+executor >  local (101)
+[e1/6a666b] process > stringtie [ 52%] 53 of 101
+
+executor >  local (102)
+[09/30e6f0] process > stringtie [ 53%] 54 of 102
+
+executor >  local (103)
+[e5/a17f3e] process > stringtie [ 53%] 55 of 103
+
+executor >  local (104)
+[63/f4af6e] process > stringtie [ 54%] 56 of 104
+
+executor >  local (105)
+[a9/60e132] process > stringtie [ 54%] 57 of 105
+
+executor >  local (106)
+[0f/2750c3] process > stringtie [ 55%] 58 of 106
+
+executor >  local (107)
+[53/813c4c] process > stringtie [ 55%] 59 of 107
+
+executor >  local (108)
+[ca/1d356a] process > stringtie [ 56%] 60 of 108
+
+executor >  local (109)
+[76/73d8be] process > stringtie [ 56%] 61 of 109
+
+executor >  local (110)
+[78/090f16] process > stringtie [ 56%] 62 of 110
+
+executor >  local (112)
+[2d/528cd6] process > stringtie [ 57%] 64 of 112
+
+executor >  local (113)
+[a9/8200d9] process > stringtie [ 58%] 65 of 113
+
+executor >  local (114)
+[25/487a3b] process > stringtie [ 58%] 66 of 114
+
+executor >  local (115)
+[43/7d842f] process > stringtie [ 58%] 67 of 115
+
+executor >  local (116)
+[1c/72d74d] process > stringtie [ 59%] 68 of 116
+
+executor >  local (117)
+[fc/6bc12b] process > stringtie [ 59%] 69 of 117
+
+executor >  local (118)
+[d3/3848ea] process > stringtie [ 59%] 70 of 118
+
+executor >  local (119)
+[1a/77b473] process > stringtie [ 60%] 71 of 119
+
+executor >  local (120)
+[fb/3e0775] process > stringtie [ 60%] 72 of 120
+
+executor >  local (121)
+[b9/7ad0cb] process > stringtie [ 60%] 73 of 121
+
+executor >  local (122)
+[f2/2c6894] process > stringtie [ 61%] 74 of 122
+
+executor >  local (124)
+[52/195bb1] process > stringtie [ 61%] 76 of 124
+
+executor >  local (125)
+[01/c30210] process > stringtie [ 62%] 77 of 125
+
+executor >  local (126)
+[3e/bb1a8d] process > stringtie [ 62%] 78 of 126
+
+executor >  local (127)
+[76/4554f1] process > stringtie [ 62%] 79 of 127
+
+executor >  local (128)
+[fc/1fde21] process > stringtie [ 63%] 80 of 128
+
+executor >  local (129)
+[d3/924a2d] process > stringtie [ 63%] 81 of 129
+
+executor >  local (130)
+[6d/39fb06] process > stringtie [ 63%] 82 of 130
+
+executor >  local (131)
+[d3/ddc1b4] process > stringtie [ 63%] 83 of 131
+
+executor >  local (132)
+[5c/af5d88] process > stringtie [ 64%] 84 of 132
+
+executor >  local (133)
+[85/71ee09] process > stringtie [ 64%] 85 of 133
+
+executor >  local (134)
+[dc/4e0a64] process > stringtie [ 64%] 86 of 134
+
+executor >  local (135)
+[56/ba59b1] process > stringtie [ 64%] 87 of 135
+
+executor >  local (136)
+[49/f75d37] process > stringtie [ 65%] 88 of 136
+
+executor >  local (137)
+[6d/39fb06] process > stringtie [ 65%] 89 of 137
+
+executor >  local (138)
+[28/13863c] process > stringtie [ 64%] 89 of 138
+
+executor >  local (138)
+[1f/995f85] process > stringtie [ 65%] 90 of 138
+
+executor >  local (139)
+[84/b3d79e] process > stringtie [ 65%] 91 of 139
+
+executor >  local (140)
+[3b/d3d933] process > stringtie [ 66%] 92 of 140
+
+executor >  local (141)
+[51/d7703f] process > stringtie [ 66%] 93 of 141
+
+executor >  local (142)
+[87/06b4ee] process > stringtie [ 66%] 94 of 142
+
+executor >  local (143)
+[f0/398c17] process > stringtie [ 66%] 95 of 143
+
+executor >  local (144)
+[a2/8106d8] process > stringtie [ 67%] 96 of 144
+
+executor >  local (145)
+[3b/d3d933] process > stringtie [ 67%] 97 of 145
+
+executor >  local (146)
+[2b/f0beba] process > stringtie [ 67%] 98 of 146
+
+executor >  local (147)
+[b8/7f427a] process > stringtie [ 67%] 99 of 147
+
+executor >  local (148)
+[53/813c4c] process > stringtie [ 68%] 100 of 148
+
+executor >  local (149)
+[b8/450ff2] process > stringtie [ 68%] 101 of 149
+
+executor >  local (150)
+[c3/1cc294] process > stringtie [ 68%] 102 of 150
+
+executor >  local (151)
+[e5/a17f3e] process > stringtie [ 68%] 103 of 151
+
+executor >  local (152)
+[2d/528cd6] process > stringtie [ 68%] 104 of 152
+
+executor >  local (153)
+[08/6fd6ea] process > stringtie [ 69%] 105 of 153
+
+executor >  local (154)
+[4a/2fdbcf] process > stringtie [ 69%] 106 of 154
+
+executor >  local (155)
+[ea/2ec67a] process > stringtie [ 69%] 107 of 155
+
+executor >  local (156)
+[a0/c6dfc4] process > stringtie [ 69%] 108 of 156
+
+executor >  local (157)
+[34/ec0773] process > stringtie [ 69%] 109 of 157
+
+executor >  local (158)
+[0c/c103d9] process > stringtie [ 70%] 110 of 158
+
+executor >  local (159)
+[63/f4af6e] process > stringtie [ 70%] 111 of 159
+
+executor >  local (160)
+[51/a4d49e] process > stringtie [ 70%] 112 of 160
+
+executor >  local (161)
+[65/9404b5] process > stringtie [ 70%] 113 of 161
+
+executor >  local (162)
+[e9/61d957] process > stringtie [ 70%] 114 of 162
+
+executor >  local (163)
+[22/f7eeb6] process > stringtie [ 71%] 115 of 163
+
+executor >  local (164)
+[e0/2524e9] process > stringtie [ 71%] 116 of 164
+
+executor >  local (165)
+[1c/c680b7] process > stringtie [ 71%] 117 of 165
+
+executor >  local (166)
+[56/4cf0ea] process > stringtie [ 71%] 118 of 166
+
+executor >  local (167)
+[d1/37bcd3] process > stringtie [ 71%] 119 of 167
+
+executor >  local (168)
+[5c/af5d88] process > stringtie [ 71%] 120 of 168
+
+executor >  local (169)
+[fb/aead72] process > stringtie [ 72%] 121 of 169
+
+executor >  local (170)
+[78/090f16] process > stringtie [ 72%] 122 of 170
+
+executor >  local (171)
+[16/da0b6f] process > stringtie [ 72%] 123 of 171
+
+executor >  local (172)
+[fc/1fde21] process > stringtie [ 72%] 124 of 172
+
+executor >  local (173)
+[80/5683bc] process > stringtie [ 72%] 125 of 173
+
+executor >  local (174)
+[53/bf87fb] process > stringtie [ 72%] 126 of 174
+
+executor >  local (175)
+[eb/4d633e] process > stringtie [ 73%] 127 of 175
+
+executor >  local (176)
+[58/f44ec7] process > stringtie [ 73%] 128 of 176
+
+executor >  local (177)
+[1a/77b473] process > stringtie [ 73%] 129 of 177
+
+executor >  local (178)
+[28/13863c] process > stringtie [ 73%] 130 of 178
+
+executor >  local (179)
+[25/487a3b] process > stringtie [ 73%] 131 of 179
+
+executor >  local (181)
+[94/4646a2] process > stringtie [ 73%] 133 of 181
+
+executor >  local (182)
+[cc/6af9b9] process > stringtie [ 74%] 134 of 182
+
+executor >  local (183)
+[f0/398c17] process > stringtie [ 74%] 135 of 183
+
+executor >  local (184)
+[b9/7ad0cb] process > stringtie [ 74%] 136 of 184
+
+executor >  local (185)
+[89/ebb1ca] process > stringtie [ 74%] 137 of 185
+
+executor >  local (186)
+[ff/ec9a13] process > stringtie [ 74%] 138 of 186
+
+executor >  local (187)
+[44/8f4af7] process > stringtie [ 74%] 139 of 187
+
+executor >  local (188)
+[e4/c24542] process > stringtie [ 74%] 140 of 188
+
+executor >  local (189)
+[1c/c680b7] process > stringtie [ 75%] 141 of 189
+
+executor >  local (190)
+[f3/85290c] process > stringtie [ 75%] 142 of 190
+
+executor >  local (191)
+[a4/72b4f0] process > stringtie [ 75%] 143 of 191
+
+executor >  local (192)
+[42/2c14b4] process > stringtie [ 75%] 144 of 192
+
+executor >  local (193)
+[a3/e5b020] process > stringtie [ 75%] 145 of 193
+
+executor >  local (194)
+[fc/6bc12b] process > stringtie [ 75%] 146 of 194
+
+executor >  local (195)
+[ce/90c328] process > stringtie [ 75%] 147 of 195
+
+executor >  local (196)
+[6c/793da9] process > stringtie [ 76%] 148 of 196
+
+executor >  local (197)
+[5c/8275de] process > stringtie [ 76%] 149 of 197
+
+executor >  local (198)
+[f3/5ac98c] process > stringtie [ 76%] 150 of 198
+
+executor >  local (199)
+[ea/a4974a] process > stringtie [ 76%] 151 of 199
+
+executor >  local (200)
+[74/2adbcb] process > stringtie [ 76%] 152 of 200
+
+executor >  local (201)
+[f1/fe18b5] process > stringtie [ 76%] 153 of 201
+
+executor >  local (202)
+[4c/ef135a] process > stringtie [ 76%] 154 of 202
+
+executor >  local (203)
+[d6/50b5f0] process > stringtie [ 76%] 155 of 203
+
+executor >  local (204)
+[92/83d5a4] process > stringtie [ 76%] 156 of 204
+
+executor >  local (205)
+[b5/8368a1] process > stringtie [ 77%] 157 of 205
+
+executor >  local (206)
+[1b/f11d78] process > stringtie [ 77%] 158 of 206
+
+executor >  local (207)
+[2b/f0beba] process > stringtie [ 77%] 159 of 207
+
+executor >  local (207)
+[eb/4d633e] process > stringtie [ 77%] 160 of 207
+
+executor >  local (207)
+[94/4646a2] process > stringtie [ 78%] 161 of 207
+
+executor >  local (207)
+[fd/0d3850] process > stringtie [ 79%] 163 of 207
+
+executor >  local (207)
+[34/ec0773] process > stringtie [ 79%] 164 of 207
+
+executor >  local (207)
+[ff/b2679f] process > stringtie [ 80%] 165 of 207
+
+executor >  local (207)
+[ce/90c328] process > stringtie [ 80%] 166 of 207
+
+executor >  local (207)
+[a3/175d05] process > stringtie [ 81%] 167 of 207
+
+executor >  local (207)
+[4a/2fdbcf] process > stringtie [ 81%] 168 of 207
+
+executor >  local (207)
+[90/b2ca20] process > stringtie [ 82%] 169 of 207
+
+executor >  local (207)
+[ee/0bb266] process > stringtie [ 82%] 170 of 207
+
+executor >  local (207)
+[ea/2ec67a] process > stringtie [ 83%] 171 of 207
+
+executor >  local (207)
+[ea/f50eb1] process > stringtie [ 83%] 172 of 207
+
+executor >  local (207)
+[c1/38a58d] process > stringtie [ 84%] 174 of 207
+
+executor >  local (207)
+[37/15aaf9] process > stringtie [ 85%] 175 of 207
+
+executor >  local (207)
+[d6/50b5f0] process > stringtie [ 85%] 176 of 207
+
+executor >  local (207)
+[a8/9bda29] process > stringtie [ 86%] 177 of 207
+
+executor >  local (207)
+[5d/8baf52] process > stringtie [ 86%] 178 of 207
+
+executor >  local (207)
+[86/3fd57b] process > stringtie [ 86%] 179 of 207
+
+executor >  local (207)
+[39/f797d7] process > stringtie [ 87%] 180 of 207
+
+executor >  local (207)
+[32/fc941d] process > stringtie [ 87%] 181 of 207
+
+executor >  local (207)
+[4c/2d4be1] process > stringtie [ 88%] 182 of 207
+
+executor >  local (207)
+[5c/3fba19] process > stringtie [ 88%] 183 of 207
+
+executor >  local (207)
+[4b/d262ce] process > stringtie [ 89%] 184 of 207
+
+executor >  local (207)
+[49/2ef375] process > stringtie [ 89%] 185 of 207
+
+executor >  local (207)
+[44/8f4af7] process > stringtie [ 90%] 186 of 207
+
+executor >  local (207)
+[c4/296077] process > stringtie [ 90%] 187 of 207
+
+executor >  local (207)
+[7a/6c9f78] process > stringtie [ 91%] 188 of 207
+
+executor >  local (207)
+[ab/cd7e8b] process > stringtie [ 91%] 189 of 207
+
+executor >  local (207)
+[e4/c24542] process > stringtie [ 92%] 190 of 207
+
+executor >  local (207)
+[e4/cab75e] process > stringtie [ 92%] 191 of 207
+
+executor >  local (207)
+[6c/793da9] process > stringtie [ 93%] 192 of 207
+
+executor >  local (207)
+[ce/a313d6] process > stringtie [ 93%] 193 of 207
+
+executor >  local (207)
+[ad/5e2a49] process > stringtie [ 94%] 194 of 207
+
+executor >  local (207)
+[1d/749c33] process > stringtie [ 94%] 195 of 207
+
+executor >  local (207)
+[2c/074092] process > stringtie [ 95%] 196 of 207
+
+executor >  local (207)
+[1b/f11d78] process > stringtie [ 95%] 197 of 207
+
+executor >  local (207)
+[74/2adbcb] process > stringtie [ 96%] 198 of 207
+
+executor >  local (207)
+[02/7c9e3f] process > stringtie [ 96%] 199 of 207
+
+executor >  local (207)
+[ae/03b32f] process > stringtie [ 97%] 200 of 207
+
+executor >  local (207)
+[8d/347d14] process > stringtie [ 97%] 201 of 207
+
+executor >  local (207)
+[d9/3f5c06] process > stringtie [ 98%] 202 of 207
+
+executor >  local (207)
+[6c/3f7c96] process > stringtie [ 98%] 203 of 207
+
+executor >  local (207)
+[89/ebb1ca] process > stringtie [ 99%] 204 of 207
+
+executor >  local (207)
+[a4/72b4f0] process > stringtie [ 99%] 205 of 207
+
+executor >  local (207)
+[42/2c14b4] process > stringtie [100%] 206 of 207
+
+executor >  local (207)
+[f1/fe18b5] process > stringtie [100%] 207 of 207 ✔
+Done!
+
+executor >  local (207)
+[f1/fe18b5] process > stringtie [100%] 207 of 207 ✔
+Completed at: 19-Oct-2020 11:25:54
+Duration    : 12m 10s
+CPU hours   : 8.4
+Succeeded   : 207
+

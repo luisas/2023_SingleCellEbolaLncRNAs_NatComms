@@ -1,0 +1,41 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [nostalgic_faggin] - revision: 6accb38d2e
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[01_addsample, 02_wbni_30, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/01_addsample/02_wbni_30]
+[01_addsample, 01_wbni_20, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/01_addsample/01_wbni_20]
+[01_addsample, 00_wbni_10, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/inf-tissue-sample/01_addsample/00_wbni_10]
+executor >  local (3)
+[55/b9697b] process > StringTie_Merge_Reference_Guided [  0%] 0 of 3
+
+executor >  local (4)
+[d5/edf58f] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[21/103cbe] process > gffCompare2                      [  0%] 0 of 1
+
+executor >  local (4)
+[d5/edf58f] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[21/103cbe] process > gffCompare2                      [100%] 1 of 1
+
+executor >  local (5)
+[fb/8d45ea] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+[9b/ff438b] process > gffCompare2                      [ 50%] 1 of 2
+
+executor >  local (5)
+[fb/8d45ea] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+[9b/ff438b] process > gffCompare2                      [100%] 2 of 2
+
+executor >  local (6)
+[55/b9697b] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+[26/0dd110] process > gffCompare2                      [ 67%] 2 of 3
+
+executor >  local (6)
+[55/b9697b] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+[26/0dd110] process > gffCompare2                      [100%] 3 of 3 ✔
+Completed at: 23-Oct-2020 13:14:10
+Duration    : 2m 2s
+CPU hours   : 0.1
+Succeeded   : 6
+

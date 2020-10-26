@@ -1,0 +1,71 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_quantify_ours_onbroad.nf` [distracted_bartik] - revision: 96a9c91609
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+Done!
+Completed at: 19-Oct-2020 11:15:59
+Duration    : 8.3s
+CPU hours   : (a few seconds)
+Succeeded   : 0
+
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b57>
+Subject: Job 1933833: <NextflowannotationPipeline> in cluster <mn3> Done
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b57>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Mon Oct 19 11:15:34 2020
+Results reported on Mon Oct 19 11:16:00 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_quantify_ours_onbroad.nf \
+                  -w /gpfs/projects/bsc83/Data/Ebola/work/ \
+                  -c ../configs/nextflow.config.rnaseq
+
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               19.25 sec.
+    Max Memory :             621 MB
+    Average Memory :         73.00 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           1129.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          5
+    Max Threads :            38
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1933833.err> for stderr output of this job.
+

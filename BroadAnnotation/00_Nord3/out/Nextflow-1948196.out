@@ -1,0 +1,73 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/03_rerun_assembly.nf` [boring_miescher] - revision: 36b3320fe8
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `lnc_novel_compared_to_ref` -- Initialise it to a default value eg. `params.lnc_novel_compared_to_ref = some_value`
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+ERROR ~ Error executing process > 'StringTie_Merge_Reference_Guided'
+
+Caused by:
+  Process `StringTie_Merge_Reference_Guided` input file name collision -- There are multiple input files for each of the following file names: A0121_S163_L002_deduplicated.stringtie.gtf, A0253_S22_L001_deduplicated.stringtie.gtf, A0338_S89_L001_deduplicated.stringtie.gtf, RA0449_PBMC_D003_S8_deduplicated.stringtie.gtf, A0347_S80_L001_deduplicated.stringtie.gtf, A0037_S181_L002_deduplicated.stringtie.gtf, A0052_S177_L002_deduplicated.stringtie.gtf, A0297_S14_L001_deduplicated.stringtie.gtf, A0301_S189_L002_deduplicated.stringtie.gtf, A0359_S66_L001_deduplicated.stringtie.gtf, A0206_S144_L002_deduplicated.stringtie.gtf, A0211_S106_L002_deduplicated.stringtie.gtf, A0289_S125_L002_deduplicated.stringtie.gtf, A0349_S78_L001_deduplicated.stringtie.gtf, A0352_S75_L001_deduplicated.stringtie.gtf, A0022_S185_L002_deduplicated.stringtie.gtf, A0306_S11_L001_deduplicated.stringtie.gtf, A0341_S86_L001_deduplicated.stringtie.gtf, A0274_S129_L002_deduplicated.stringtie.gtf, H2O_QIA_S97_L002_deduplicated.stringtie.gtf, A0310_S46_L001_deduplicated.stringtie.gtf, A0373_S52_L001_deduplicated.stringtie.gtf, A0362_S63_L001_deduplicated.stringtie.gtf, A0321_S35_L001_deduplicated.stringtie.gtf, A0164_S153_L002_deduplicated.stringtie.gtf, A0319_S37_L001_deduplicated.stringtie.gtf, A0107_S166_L002_deduplicated.stringtie.gtf, A0246_S135_L002_deduplicated.stringtie.gtf, A0329_S27_L001_deduplicated.stringtie.gtf, A0303_S187_L002_deduplicated.stringtie.gtf, A0318_S38_L001_deduplicated.stringtie.gtf, H2O_KFF-190812_S14_deduplicated.stringtie.gtf, RA0700-Liver_S9_deduplicated.stringtie.gtf, NTC_H2O-G1_S25_L001_deduplicated.stringtie.gtf, A0260_S132_L002_deduplicated.stringtie.gtf, A0316_S40_L001_deduplicated.stringtie.gtf, A0351_S76_L001_deduplicated.stringtie.gtf, A0339_S88_L001_deduplicated.stringtie.gtf, RA1082-Blood-BL_S5_deduplicated.stringtie.gtf, RA1803-D006_S4_L001_deduplicated.stringtie.gtf, A0340_S87_L001_deduplicated.stringtie.gtf, RA0452_PBMC_D005_S10_deduplicated.stringtie.gtf, A0372_S53_L001_deduplicated.stringtie.gtf, A0361_S64_L001_deduplicated.stringtie.gtf, RA1779-Liver_S7_deduplicated.stringtie.gtf, RA1819_WB_D-28_S1_deduplicated.stringtie.gtf, A0162_S155_L002_deduplicated.stringtie.gtf, A0281_S20_L001_deduplicated.stringtie.gtf, A0307_S48_L001_deduplicated.stringtie.gtf, A0009_S139_L002_deduplicated.stringtie.gtf, RA0223-Liver_S8_deduplicated.stringtie.gtf, A0024_S183_L002_deduplicated.stringtie.gtf, A0248_S133_L002_deduplicated.stringtie.gtf, A0204_S146_L002_deduplicated.stringtie.gtf, A0092_S170_L002_deduplicated.stringtie.gtf, A0197_S107_L002_deduplicated.stringtie.gtf, A0134_S161_L002_deduplicated.stringtie.gtf, A0276_S127_L002_deduplicated.stringtie.gtf, A0336_S91_L001_deduplicated.stringtie.gtf, A0267_S21_L001_deduplicated.stringtie.gtf, A0312_S44_L001_deduplicated.stringtie.gtf, A0371_S54_L001_deduplicated.stringtie.gtf, A0360_S65_L001_deduplicated.stringtie.gtf, A0323_S33_L001_deduplicated.stringtie.gtf, A0001_S121_L002_deduplicated.stringtie.gtf, A0093_S169_L002_deduplicated.stringtie.gtf, A0191_S148_L002_deduplicated.stringtie.gtf, A0328_S28_L001_deduplicated.stringtie.gtf, A0298_S192_L002_deduplicated.stringtie.gtf, A0317_S39_L001_deduplicated.stringtie.gtf, A0305_S12_L001_deduplicated.stringtie.gtf, A0155_S110_L002_deduplicated.stringtie.gtf, A0320_S36_L001_deduplicated.stringtie.gtf, A0290_S124_L002_deduplicated.stringtie.gtf, A0008_S140_L002_deduplicated.stringtie.gtf, A0106_S167_L002_deduplicated.stringtie.gtf, A0239_S23_L001_deduplicated.stringtie.gtf, RA0452-D005_S7_L001_deduplicated.stringtie.gtf, A0335_S92_L001_deduplicated.stringtie.gtf, A0346_S81_L001_deduplicated.stringtie.gtf, A0192_S147_L002_deduplicated.stringtie.gtf, RA0700-Blood-D7-NEC_S2_deduplicated.stringtie.gtf, A0050_S179_L002_deduplicated.stringtie.gtf, A0332_S95_L001_deduplicated.stringtie.gtf, A0368_S57_L001_deduplicated.stringtie.gtf, RA1818-Blood-D6-NEC_S1_deduplicated.stringtie.gtf, A0326_S30_L001_deduplicated.stringtie.gtf, A0315_S41_L001_deduplicated.stringtie.gtf, A0357_S68_L001_deduplicated.stringtie.gtf, H2O_KFF_S3_L001_deduplicated.stringtie.gtf, A0219_S142_L002_deduplicated.stringtie.gtf, NTC_H2O-J2_S123_L002_deduplicated.stringtie.gtf, A0015_S120_L002_deduplicated.stringtie.gtf, RA0700-Blood-BL_S3_deduplicated.stringtie.gtf, A0348_S79_L001_deduplicated.stringtie.gtf, H2O_LC-190814_S15_deduplicated.stringtie.gtf, RA1819_WB_D000_S3_deduplicated.stringtie.gtf, A0085_S115_L002_deduplicated.stringtie.gtf, A0355_S70_L001_deduplicated.stringtie.gtf, A0218_S143_L002_deduplicated.stringtie.gtf, A0099_S114_L002_deduplicated.stringtie.gtf, A0094_S168_L002_deduplicated.stringtie.gtf, A0374_S51_L001_deduplicated.stringtie.gtf, H2O_LC_S98_L002_deduplicated.stringtie.gtf, A0363_S62_L001_deduplicated.stringtie.gtf, A0023_S184_L002_deduplicated.stringtie.gtf, NTC_H2O-M1_S122_L002_deduplicated.stringtie.gtf, RA0717-Liver_S10_deduplicated.stringtie.gtf, A0135_S160_L002_deduplicated.stringtie.gtf, A0071_S116_L002_deduplicated.stringtie.gtf, A0344_S83_L001_deduplicated.stringtie.gtf, A0354_S71_L001_deduplicated.stringtie.gtf, A0038_S180_L002_deduplicated.stringtie.gtf, A0365_S60_L001_deduplicated.stringtie.gtf, A0108_S165_L002_deduplicated.stringtie.gtf, A0275_S128_L002_deduplicated.stringtie.gtf, A0080_S171_L002_deduplicated.stringtie.gtf, A0327_S29_L001_deduplicated.stringtie.gtf, A0232_S138_L002_deduplicated.stringtie.gtf, A0122_S162_L002_deduplicated.stringtie.gtf, A0010_S19_L001_deduplicated.stringtie.gtf, NTC-H2O-H1_S73_L001_deduplicated.stringtie.gtf, A0302_S188_L002_deduplicated.stringtie.gtf, NTC_H2O-M2_S18_L001_deduplicated.stringtie.gtf, A0178_S150_L002_deduplicated.stringtie.gtf, A0150_S156_L002_deduplicated.stringtie.gtf, A0036_S182_L002_deduplicated.stringtie.gtf, A0183_S108_L002_deduplicated.stringtie.gtf, A0288_S126_L002_deduplicated.stringtie.gtf, A0370_S55_L001_deduplicated.stringtie.gtf, RA1325-D006_S5_L001_deduplicated.stringtie.gtf, RA1856_WB_D000_S6_deduplicated.stringtie.gtf, A0163_S154_L002_deduplicated.stringtie.gtf, A0079_S172_L002_deduplicated.stringtie.gtf, A0375_S50_L001_deduplicated.stringtie.gtf, RA1856_WB_D-14_S5_deduplicated.stringtie.gtf, A0364_S61_L001_deduplicated.stringtie.gtf, H2O_QIA-190813_S16_deduplicated.stringtie.gtf, A0141_S111_L002_deduplicated.stringtie.gtf, RA0717-D004_S104_L002_deduplicated.stringtie.gtf, A0051_S178_L002_deduplicated.stringtie.gtf, A0247_S134_L002_deduplicated.stringtie.gtf, A0313_S43_L001_deduplicated.stringtie.gtf, A0324_S32_L001_deduplicated.stringtie.gtf, A0029_S119_L002_deduplicated.stringtie.gtf, A0113_S113_L002_deduplicated.stringtie.gtf, NTC_H2O-B1_S17_L001_deduplicated.stringtie.gtf, A0367_S58_L001_deduplicated.stringtie.gtf, A0356_S69_L001_deduplicated.stringtie.gtf, A0299_S191_L002_deduplicated.stringtie.gtf, RA1325_PBMC_D006_S12_deduplicated.stringtie.gtf, A0190_S149_L002_deduplicated.stringtie.gtf, NTC_H2O-H2_S72_L001_deduplicated.stringtie.gtf, RA1074-D006_S6_L001_deduplicated.stringtie.gtf, RA1803-Liver_S12_deduplicated.stringtie.gtf, A0205_S145_L002_deduplicated.stringtie.gtf, A0043_S118_L002_deduplicated.stringtie.gtf, A0350_S77_L001_deduplicated.stringtie.gtf, RA1082-Blood-D0_S4_deduplicated.stringtie.gtf, A0057_S117_L002_deduplicated.stringtie.gtf, RA1074_PBMC_D006_S11_deduplicated.stringtie.gtf, A0261_S131_L002_deduplicated.stringtie.gtf, A0309_S10_L001_deduplicated.stringtie.gtf, A0169_S109_L002_deduplicated.stringtie.gtf, RA0449-D003_S105_L002_deduplicated.stringtie.gtf, A0064_S176_L002_deduplicated.stringtie.gtf, A0127_S112_L002_deduplicated.stringtie.gtf, RA1819_WB_D-14_S2_deduplicated.stringtie.gtf, A0148_S158_L002_deduplicated.stringtie.gtf, NTC_H2O-H3_S49_L001_deduplicated.stringtie.gtf, A0078_S173_L002_deduplicated.stringtie.gtf, NTC_H2O-I1_S186_L002_deduplicated.stringtie.gtf, RA0717_PBMC_D004_S9_deduplicated.stringtie.gtf, A0149_S157_L002_deduplicated.stringtie.gtf, A0262_S130_L002_deduplicated.stringtie.gtf, A0065_S175_L002_deduplicated.stringtie.gtf, A0233_S137_L002_deduplicated.stringtie.gtf, A0330_S26_L001_deduplicated.stringtie.gtf, RA0850-Liver_S11_deduplicated.stringtie.gtf, A0304_S13_L001_deduplicated.stringtie.gtf, A0300_S190_L002_deduplicated.stringtie.gtf, A0177_S151_L002_deduplicated.stringtie.gtf, A0369_S56_L001_deduplicated.stringtie.gtf, A0358_S67_L001_deduplicated.stringtie.gtf, A0308_S47_L001_deduplicated.stringtie.gtf, A0337_S90_L001_deduplicated.stringtie.gtf, RA0223_PBMC_D003_S7_deduplicated.stringtie.gtf, RA1856_WB_D-28_S4_deduplicated.stringtie.gtf, A0136_S159_L002_deduplicated.stringtie.gtf, A0334_S93_L001_deduplicated.stringtie.gtf, A0366_S59_L001_deduplicated.stringtie.gtf, A0225_S24_L001_deduplicated.stringtie.gtf, A0120_S164_L002_deduplicated.stringtie.gtf, A0345_S82_L001_deduplicated.stringtie.gtf, A0314_S42_L001_deduplicated.stringtie.gtf, A0066_S174_L002_deduplicated.stringtie.gtf, A0234_S136_L002_deduplicated.stringtie.gtf, A0331_S96_L001_deduplicated.stringtie.gtf, A0220_S141_L002_deduplicated.stringtie.gtf, A0325_S31_L001_deduplicated.stringtie.gtf, RA1803_PBMC_D006_S13_deduplicated.stringtie.gtf, A0353_S74_L001_deduplicated.stringtie.gtf, A0295_S16_L001_deduplicated.stringtie.gtf, A0342_S85_L001_deduplicated.stringtie.gtf, A0311_S45_L001_deduplicated.stringtie.gtf, A0176_S152_L002_deduplicated.stringtie.gtf, A0322_S34_L001_deduplicated.stringtie.gtf
+
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong
+Oops .. something went wrong
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b19>
+Subject: Job 1948196: <NextflowannotationPipeline> in cluster <mn3> Exited
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b19>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Wed Oct 21 13:00:57 2020
+Results reported on Wed Oct 21 13:01:42 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/03_rerun_assembly.nf                 -w /gpfs/projects/bsc83/Data/Ebola/work/                   -c ../configs/nextflow.filtering.config
+
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :               31.52 sec.
+    Max Memory :             859 MB
+    Average Memory :         358.00 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           891.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          5
+    Max Threads :            81
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1948196.err> for stderr output of this job.
+

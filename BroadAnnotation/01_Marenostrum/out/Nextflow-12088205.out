@@ -1,0 +1,11 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [fabulous_poisson] - revision: dd95eb0350
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+ERROR ~ No signature of method: sun.nio.fs.UnixPath.split() is applicable for argument types: (String) values: [/]
+Possible solutions: split(groovy.lang.Closure), plus(java.lang.String), wait(), init(), sort(), splitCsv()
+
+ -- Check script '04_benchmark_n_samples.nf' at line: 67 or see '.nextflow.log' file for more details

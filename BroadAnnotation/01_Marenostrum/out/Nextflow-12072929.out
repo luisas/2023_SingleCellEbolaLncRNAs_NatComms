@@ -1,0 +1,712 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/03_rerun_assembly.nf` [stoic_spence] - revision: 3e727564e4
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (31)
+[69/cab0be] process > DeNovoAssembly [  0%] 0 of 31
+
+executor >  local (48)
+[61/6aec90] process > DeNovoAssembly [  0%] 0 of 48
+
+executor >  local (49)
+[58/e3b9ee] process > DeNovoAssembly [  0%] 0 of 49
+
+executor >  local (49)
+[d0/2ed70d] process > DeNovoAssembly [  2%] 1 of 49
+
+executor >  local (50)
+[f2/8de4c3] process > DeNovoAssembly [  4%] 2 of 50
+
+executor >  local (51)
+[94/e13b6b] process > DeNovoAssembly [  6%] 3 of 51
+
+executor >  local (52)
+[fb/aff656] process > DeNovoAssembly [  8%] 4 of 52
+
+executor >  local (53)
+[e6/96eaa6] process > DeNovoAssembly [  9%] 5 of 53
+
+executor >  local (54)
+[b6/df1607] process > DeNovoAssembly [ 11%] 6 of 54
+
+executor >  local (55)
+[4f/71f671] process > DeNovoAssembly [ 13%] 7 of 55
+
+executor >  local (56)
+[bf/d958d1] process > DeNovoAssembly [ 14%] 8 of 56
+
+executor >  local (57)
+[f0/7a180f] process > DeNovoAssembly [ 16%] 9 of 57
+
+executor >  local (58)
+[cd/bbb035] process > DeNovoAssembly [ 17%] 10 of 58
+
+executor >  local (59)
+[74/e99235] process > DeNovoAssembly [ 19%] 11 of 59
+
+executor >  local (60)
+[e7/a75ce2] process > DeNovoAssembly [ 20%] 12 of 60
+
+executor >  local (61)
+[60/f97e41] process > DeNovoAssembly [ 21%] 13 of 61
+
+executor >  local (62)
+[08/fb7d5d] process > DeNovoAssembly [ 23%] 14 of 62
+
+executor >  local (63)
+[96/d4382e] process > DeNovoAssembly [ 24%] 15 of 63
+
+executor >  local (64)
+[08/fb7d5d] process > DeNovoAssembly [ 25%] 16 of 64
+
+executor >  local (65)
+[15/bdb689] process > DeNovoAssembly [ 26%] 17 of 65
+
+executor >  local (66)
+[a7/cdbe58] process > DeNovoAssembly [ 27%] 18 of 66
+
+executor >  local (67)
+[3a/1a21d8] process > DeNovoAssembly [ 28%] 19 of 67
+
+executor >  local (68)
+[9d/9dabc4] process > DeNovoAssembly [ 29%] 20 of 68
+
+executor >  local (69)
+[76/aa2450] process > DeNovoAssembly [ 30%] 21 of 69
+
+executor >  local (70)
+[13/09fbe4] process > DeNovoAssembly [ 31%] 22 of 70
+
+executor >  local (71)
+[9d/2df0f5] process > DeNovoAssembly [ 32%] 23 of 71
+
+executor >  local (72)
+[da/dac6fb] process > DeNovoAssembly [ 33%] 24 of 72
+
+executor >  local (73)
+[15/236689] process > DeNovoAssembly [ 34%] 25 of 73
+
+executor >  local (74)
+[57/3c38aa] process > DeNovoAssembly [ 35%] 26 of 74
+
+executor >  local (75)
+[86/afe3a2] process > DeNovoAssembly [ 36%] 27 of 75
+
+executor >  local (76)
+[4d/94b499] process > DeNovoAssembly [ 37%] 28 of 76
+
+executor >  local (77)
+[b6/59a919] process > DeNovoAssembly [ 38%] 29 of 77
+
+executor >  local (78)
+[a8/6beb5a] process > DeNovoAssembly [ 38%] 30 of 78
+
+executor >  local (79)
+[db/14736a] process > DeNovoAssembly [ 39%] 31 of 79
+
+executor >  local (80)
+[31/c94a97] process > DeNovoAssembly [ 40%] 32 of 80
+
+executor >  local (81)
+[56/07f8d4] process > DeNovoAssembly [ 41%] 33 of 81
+
+executor >  local (82)
+[5b/8ad4f2] process > DeNovoAssembly [ 41%] 34 of 82
+
+executor >  local (83)
+[5f/7a0150] process > DeNovoAssembly [ 42%] 35 of 83
+
+executor >  local (84)
+[f1/c27a3f] process > DeNovoAssembly [ 43%] 36 of 84
+
+executor >  local (85)
+[57/ad3f79] process > DeNovoAssembly [ 44%] 37 of 85
+
+executor >  local (86)
+[70/7cf533] process > DeNovoAssembly [ 44%] 38 of 86
+
+executor >  local (87)
+[27/a300b7] process > DeNovoAssembly [ 45%] 39 of 87
+
+executor >  local (88)
+[03/4f5478] process > DeNovoAssembly [ 45%] 40 of 88
+
+executor >  local (89)
+[16/15bfc4] process > DeNovoAssembly [ 46%] 41 of 89
+
+executor >  local (90)
+[3e/2c1232] process > DeNovoAssembly [ 47%] 42 of 90
+
+executor >  local (91)
+[f5/70d982] process > DeNovoAssembly [ 47%] 43 of 91
+
+executor >  local (93)
+[6d/2f12ba] process > DeNovoAssembly [ 48%] 45 of 93
+
+executor >  local (94)
+[43/0e4b06] process > DeNovoAssembly [ 49%] 46 of 94
+
+executor >  local (95)
+[a0/db94bc] process > DeNovoAssembly [ 49%] 47 of 95
+
+executor >  local (96)
+[0f/b7d108] process > DeNovoAssembly [ 50%] 48 of 96
+
+executor >  local (97)
+[86/91550b] process > DeNovoAssembly [ 51%] 49 of 97
+
+executor >  local (98)
+[84/fb904b] process > DeNovoAssembly [ 51%] 50 of 98
+
+executor >  local (99)
+[84/c53018] process > DeNovoAssembly [ 52%] 51 of 99
+
+executor >  local (100)
+[a4/3e4979] process > DeNovoAssembly [ 52%] 52 of 100
+
+executor >  local (101)
+[43/e195f7] process > DeNovoAssembly [ 52%] 53 of 101
+
+executor >  local (102)
+[55/7537c5] process > DeNovoAssembly [ 53%] 54 of 102
+
+executor >  local (103)
+[c3/f75f6d] process > DeNovoAssembly [ 53%] 55 of 103
+
+executor >  local (104)
+[78/c6f265] process > DeNovoAssembly [ 54%] 56 of 104
+
+executor >  local (104)
+[48/4fc62c] process > DeNovoAssembly [ 55%] 57 of 104
+
+executor >  local (105)
+[e7/8c5834] process > DeNovoAssembly [ 54%] 57 of 105
+
+executor >  local (106)
+[72/7eacb1] process > DeNovoAssembly [ 55%] 58 of 106
+
+executor >  local (107)
+[70/7ba8ff] process > DeNovoAssembly [ 55%] 59 of 107
+
+executor >  local (108)
+[22/1490bf] process > DeNovoAssembly [ 56%] 60 of 108
+
+executor >  local (109)
+[44/bc0c45] process > DeNovoAssembly [ 56%] 61 of 109
+
+executor >  local (110)
+[04/3e2153] process > DeNovoAssembly [ 56%] 62 of 110
+
+executor >  local (111)
+[52/3fcdd6] process > DeNovoAssembly [ 57%] 63 of 111
+
+executor >  local (112)
+[9d/c64510] process > DeNovoAssembly [ 57%] 64 of 112
+
+executor >  local (113)
+[65/5b96dd] process > DeNovoAssembly [ 58%] 65 of 113
+
+executor >  local (114)
+[7c/0930fa] process > DeNovoAssembly [ 58%] 66 of 114
+
+executor >  local (115)
+[f5/d078da] process > DeNovoAssembly [ 58%] 67 of 115
+
+executor >  local (116)
+[91/71d8e3] process > DeNovoAssembly [ 59%] 68 of 116
+
+executor >  local (117)
+[ca/2f47bc] process > DeNovoAssembly [ 59%] 69 of 117
+
+executor >  local (118)
+[4f/feb045] process > DeNovoAssembly [ 59%] 70 of 118
+
+executor >  local (119)
+[a5/fe17da] process > DeNovoAssembly [ 60%] 71 of 119
+
+executor >  local (120)
+[78/c4fdb9] process > DeNovoAssembly [ 60%] 72 of 120
+
+executor >  local (121)
+[40/5c5ce2] process > DeNovoAssembly [ 60%] 73 of 121
+
+executor >  local (122)
+[b8/c6ffc6] process > DeNovoAssembly [ 61%] 74 of 122
+
+executor >  local (123)
+[4d/562984] process > DeNovoAssembly [ 61%] 75 of 123
+
+executor >  local (124)
+[53/7b9543] process > DeNovoAssembly [ 61%] 76 of 124
+
+executor >  local (125)
+[96/dcd462] process > DeNovoAssembly [ 62%] 77 of 125
+
+executor >  local (126)
+[07/d0d1f1] process > DeNovoAssembly [ 62%] 78 of 126
+
+executor >  local (127)
+[27/a300b7] process > DeNovoAssembly [ 62%] 79 of 127
+
+executor >  local (128)
+[d2/c9ce13] process > DeNovoAssembly [ 63%] 80 of 128
+
+executor >  local (129)
+[43/1c41ee] process > DeNovoAssembly [ 63%] 81 of 129
+
+executor >  local (130)
+[b2/db0cdd] process > DeNovoAssembly [ 63%] 82 of 130
+
+executor >  local (131)
+[ad/92ad80] process > DeNovoAssembly [ 63%] 83 of 131
+
+executor >  local (132)
+[b5/561e55] process > DeNovoAssembly [ 64%] 84 of 132
+
+executor >  local (133)
+[6b/6b03bc] process > DeNovoAssembly [ 64%] 85 of 133
+
+executor >  local (134)
+[85/3f1dbf] process > DeNovoAssembly [ 64%] 86 of 134
+
+executor >  local (135)
+[17/8dc15f] process > DeNovoAssembly [ 64%] 87 of 135
+
+executor >  local (136)
+[17/0f17d5] process > DeNovoAssembly [ 65%] 88 of 136
+
+executor >  local (137)
+[80/560f24] process > DeNovoAssembly [ 65%] 89 of 137
+
+executor >  local (138)
+[f5/70d982] process > DeNovoAssembly [ 65%] 90 of 138
+
+executor >  local (139)
+[80/761cc2] process > DeNovoAssembly [ 65%] 91 of 139
+
+executor >  local (140)
+[39/40f2f7] process > DeNovoAssembly [ 66%] 92 of 140
+
+executor >  local (141)
+[ef/cd9b5f] process > DeNovoAssembly [ 66%] 93 of 141
+
+executor >  local (142)
+[6d/5a2117] process > DeNovoAssembly [ 66%] 94 of 142
+
+executor >  local (143)
+[43/ccc6f3] process > DeNovoAssembly [ 66%] 95 of 143
+
+executor >  local (144)
+[a1/e391a8] process > DeNovoAssembly [ 67%] 96 of 144
+
+executor >  local (145)
+[1c/b38d72] process > DeNovoAssembly [ 67%] 97 of 145
+
+executor >  local (146)
+[75/d22643] process > DeNovoAssembly [ 67%] 98 of 146
+
+executor >  local (147)
+[c7/1d3633] process > DeNovoAssembly [ 67%] 99 of 147
+
+executor >  local (148)
+[37/8066ec] process > DeNovoAssembly [ 68%] 100 of 148
+
+executor >  local (149)
+[2e/b0aeeb] process > DeNovoAssembly [ 68%] 101 of 149
+
+executor >  local (151)
+[29/d4235c] process > DeNovoAssembly [ 68%] 103 of 151
+
+executor >  local (152)
+[6e/d1c731] process > DeNovoAssembly [ 68%] 104 of 152
+
+executor >  local (153)
+[3c/3f9cc8] process > DeNovoAssembly [ 69%] 105 of 153
+
+executor >  local (154)
+[42/b82aa7] process > DeNovoAssembly [ 69%] 106 of 154
+
+executor >  local (155)
+[f1/cae29f] process > DeNovoAssembly [ 69%] 107 of 155
+
+executor >  local (156)
+[c2/607772] process > DeNovoAssembly [ 69%] 108 of 156
+
+executor >  local (157)
+[d9/48cd1c] process > DeNovoAssembly [ 69%] 109 of 157
+
+executor >  local (158)
+[23/c05de0] process > DeNovoAssembly [ 70%] 110 of 158
+
+executor >  local (159)
+[9a/82fe21] process > DeNovoAssembly [ 70%] 111 of 159
+
+executor >  local (160)
+[21/53c071] process > DeNovoAssembly [ 70%] 112 of 160
+
+executor >  local (161)
+[44/bc0c45] process > DeNovoAssembly [ 70%] 113 of 161
+
+executor >  local (162)
+[4d/24f698] process > DeNovoAssembly [ 70%] 114 of 162
+
+executor >  local (163)
+[11/a9c270] process > DeNovoAssembly [ 71%] 115 of 163
+
+executor >  local (164)
+[ee/73f982] process > DeNovoAssembly [ 71%] 116 of 164
+
+executor >  local (165)
+[e9/955f82] process > DeNovoAssembly [ 71%] 117 of 165
+
+executor >  local (166)
+[fc/71f5b4] process > DeNovoAssembly [ 71%] 118 of 166
+
+executor >  local (167)
+[4b/f8f1af] process > DeNovoAssembly [ 71%] 119 of 167
+
+executor >  local (168)
+[29/2cabb6] process > DeNovoAssembly [ 71%] 120 of 168
+
+executor >  local (169)
+[d1/061907] process > DeNovoAssembly [ 72%] 121 of 169
+
+executor >  local (170)
+[29/bb9f73] process > DeNovoAssembly [ 72%] 122 of 170
+
+executor >  local (171)
+[2b/12ff7c] process > DeNovoAssembly [ 72%] 123 of 171
+
+executor >  local (172)
+[49/a8c898] process > DeNovoAssembly [ 72%] 124 of 172
+
+executor >  local (173)
+[8e/6baa65] process > DeNovoAssembly [ 72%] 125 of 173
+
+executor >  local (174)
+[d1/875143] process > DeNovoAssembly [ 72%] 126 of 174
+
+executor >  local (175)
+[2d/89eba9] process > DeNovoAssembly [ 73%] 127 of 175
+
+executor >  local (176)
+[f8/89dcdd] process > DeNovoAssembly [ 73%] 128 of 176
+
+executor >  local (177)
+[85/f9d9ef] process > DeNovoAssembly [ 73%] 129 of 177
+
+executor >  local (178)
+[9e/1ff93c] process > DeNovoAssembly [ 73%] 130 of 178
+
+executor >  local (179)
+[5e/380807] process > DeNovoAssembly [ 73%] 131 of 179
+
+executor >  local (180)
+[12/d6666c] process > DeNovoAssembly [ 73%] 132 of 180
+
+executor >  local (181)
+[5e/380807] process > DeNovoAssembly [ 73%] 133 of 181
+
+executor >  local (182)
+[82/ae4a82] process > DeNovoAssembly [ 74%] 134 of 182
+
+executor >  local (183)
+[eb/d59949] process > DeNovoAssembly [ 74%] 135 of 183
+
+executor >  local (184)
+[88/a72389] process > DeNovoAssembly [ 74%] 136 of 184
+
+executor >  local (185)
+[1a/6a687f] process > DeNovoAssembly [ 74%] 137 of 185
+
+executor >  local (186)
+[36/dd7090] process > DeNovoAssembly [ 74%] 138 of 186
+
+executor >  local (187)
+[91/71d8e3] process > DeNovoAssembly [ 74%] 139 of 187
+
+executor >  local (188)
+[19/d40819] process > DeNovoAssembly [ 74%] 140 of 188
+
+executor >  local (189)
+[d1/717c05] process > DeNovoAssembly [ 75%] 141 of 189
+
+executor >  local (190)
+[89/90718f] process > DeNovoAssembly [ 75%] 142 of 190
+
+executor >  local (191)
+[18/c83ac7] process > DeNovoAssembly [ 75%] 143 of 191
+
+executor >  local (192)
+[f9/abc77b] process > DeNovoAssembly [ 75%] 144 of 192
+
+executor >  local (193)
+[8c/27e6a7] process > DeNovoAssembly [ 75%] 145 of 193
+
+executor >  local (194)
+[4c/61c84d] process > DeNovoAssembly [ 75%] 146 of 194
+
+executor >  local (195)
+[21/96fc9b] process > DeNovoAssembly [ 75%] 147 of 195
+
+executor >  local (196)
+[ff/7eb8ce] process > DeNovoAssembly [ 76%] 148 of 196
+
+executor >  local (197)
+[ff/caa776] process > DeNovoAssembly [ 76%] 149 of 197
+
+executor >  local (198)
+[50/07db8b] process > DeNovoAssembly [ 76%] 150 of 198
+
+executor >  local (199)
+[a2/e78669] process > DeNovoAssembly [ 76%] 151 of 199
+
+executor >  local (200)
+[c9/75ae6c] process > DeNovoAssembly [ 76%] 152 of 200
+
+executor >  local (201)
+[6e/b86fc5] process > DeNovoAssembly [ 76%] 153 of 201
+
+executor >  local (202)
+[88/5c7f8b] process > DeNovoAssembly [ 76%] 154 of 202
+
+executor >  local (203)
+[d9/48cd1c] process > DeNovoAssembly [ 76%] 155 of 203
+
+executor >  local (204)
+[7e/95dd37] process > DeNovoAssembly [ 76%] 156 of 204
+
+executor >  local (205)
+[46/f4ca77] process > DeNovoAssembly [ 77%] 157 of 205
+
+executor >  local (206)
+[66/749ac5] process > DeNovoAssembly [ 77%] 158 of 206
+
+executor >  local (207)
+[e5/ada6da] process > DeNovoAssembly [ 77%] 159 of 207
+
+executor >  local (207)
+[ff/caa776] process > DeNovoAssembly [ 77%] 160 of 207
+
+executor >  local (207)
+[7c/0930fa] process > DeNovoAssembly [ 78%] 161 of 207
+
+executor >  local (207)
+[6b/6b03bc] process > DeNovoAssembly [ 78%] 162 of 207
+
+executor >  local (207)
+[21/53c071] process > DeNovoAssembly [ 79%] 163 of 207
+
+executor >  local (207)
+[1c/b38d72] process > DeNovoAssembly [ 79%] 164 of 207
+
+executor >  local (207)
+[85/3f1dbf] process > DeNovoAssembly [ 80%] 165 of 207
+
+executor >  local (207)
+[29/bb9f73] process > DeNovoAssembly [ 80%] 166 of 207
+
+executor >  local (207)
+[3c/3f9cc8] process > DeNovoAssembly [ 81%] 167 of 207
+
+executor >  local (207)
+[12/d6666c] process > DeNovoAssembly [ 81%] 168 of 207
+
+executor >  local (207)
+[a1/e391a8] process > DeNovoAssembly [ 82%] 169 of 207
+
+executor >  local (207)
+[d1/061907] process > DeNovoAssembly [ 82%] 170 of 207
+
+executor >  local (207)
+[c2/607772] process > DeNovoAssembly [ 83%] 171 of 207
+
+executor >  local (207)
+[88/5c7f8b] process > DeNovoAssembly [ 83%] 172 of 207
+
+executor >  local (207)
+[8e/6baa65] process > DeNovoAssembly [ 84%] 173 of 207
+
+executor >  local (207)
+[19/d40819] process > DeNovoAssembly [ 84%] 174 of 207
+
+executor >  local (207)
+[2b/12ff7c] process > DeNovoAssembly [ 85%] 175 of 207
+
+executor >  local (207)
+[c7/1d3633] process > DeNovoAssembly [ 85%] 176 of 207
+
+executor >  local (207)
+[66/749ac5] process > DeNovoAssembly [ 86%] 177 of 207
+
+executor >  local (207)
+[7e/95dd37] process > DeNovoAssembly [ 86%] 178 of 207
+
+executor >  local (207)
+[ef/4fb670] process > DeNovoAssembly [ 86%] 179 of 207
+
+executor >  local (207)
+[42/b82aa7] process > DeNovoAssembly [ 87%] 180 of 207
+
+executor >  local (207)
+[29/d4235c] process > DeNovoAssembly [ 87%] 181 of 207
+
+executor >  local (207)
+[ee/73f982] process > DeNovoAssembly [ 88%] 182 of 207
+
+executor >  local (207)
+[23/c05de0] process > DeNovoAssembly [ 88%] 183 of 207
+
+executor >  local (207)
+[8c/27e6a7] process > DeNovoAssembly [ 89%] 184 of 207
+
+executor >  local (207)
+[88/a72389] process > DeNovoAssembly [ 89%] 185 of 207
+
+executor >  local (207)
+[ff/7eb8ce] process > DeNovoAssembly [ 90%] 186 of 207
+
+executor >  local (207)
+[eb/d59949] process > DeNovoAssembly [ 90%] 187 of 207
+
+executor >  local (207)
+[9e/1ff93c] process > DeNovoAssembly [ 91%] 188 of 207
+
+executor >  local (207)
+[36/dd7090] process > DeNovoAssembly [ 91%] 189 of 207
+
+executor >  local (207)
+[bb/947513] process > DeNovoAssembly [ 92%] 190 of 207
+
+executor >  local (207)
+[d1/717c05] process > DeNovoAssembly [ 92%] 191 of 207
+
+executor >  local (207)
+[4b/f8f1af] process > DeNovoAssembly [ 93%] 192 of 207
+
+executor >  local (207)
+[f8/89dcdd] process > DeNovoAssembly [ 93%] 193 of 207
+
+executor >  local (207)
+[a2/e78669] process > DeNovoAssembly [ 94%] 194 of 207
+
+executor >  local (207)
+[29/2cabb6] process > DeNovoAssembly [ 94%] 195 of 207
+
+executor >  local (207)
+[be/689d08] process > DeNovoAssembly [ 95%] 196 of 207
+
+executor >  local (207)
+[89/90718f] process > DeNovoAssembly [ 95%] 197 of 207
+
+executor >  local (207)
+[e5/ada6da] process > DeNovoAssembly [ 96%] 198 of 207
+
+executor >  local (207)
+[50/07db8b] process > DeNovoAssembly [ 96%] 199 of 207
+
+executor >  local (207)
+[82/ae4a82] process > DeNovoAssembly [ 97%] 200 of 207
+
+executor >  local (207)
+[1a/6a687f] process > DeNovoAssembly [ 97%] 201 of 207
+
+executor >  local (207)
+[c9/75ae6c] process > DeNovoAssembly [ 98%] 202 of 207
+
+executor >  local (207)
+[21/96fc9b] process > DeNovoAssembly [ 98%] 203 of 207
+
+executor >  local (207)
+[6e/b86fc5] process > DeNovoAssembly [ 99%] 204 of 207
+
+executor >  local (207)
+[18/c83ac7] process > DeNovoAssembly [ 99%] 205 of 207
+
+executor >  local (207)
+[4c/61c84d] process > DeNovoAssembly [100%] 206 of 207
+
+executor >  local (208)
+[46/f4ca77] process > DeNovoAssembly                   [100%] 207 of 207 ✔
+[47/da32b6] process > StringTie_Merge_Reference_Guided [  0%] 0 of 1
+
+executor >  local (209)
+[46/f4ca77] process > DeNovoAssembly                   [100%] 207 of 207 ✔
+[47/da32b6] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[cc/32c2ae] process > prefilter                        [  0%] 0 of 1
+Oops .. something went wrong
+Oops .. something went wrong
+
+executor >  local (209)
+[46/f4ca77] process > DeNovoAssembly                   [100%] 207 of 207 ✔
+[47/da32b6] process > StringTie_Merge_Reference_Guided [100%] 1 of 1 ✔
+[cc/32c2ae] process > prefilter                        [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'prefilter'
+
+Caused by:
+  Process `prefilter` terminated with an error exit status (1)
+
+Command executed:
+
+  Rscript 01_prefilter_script.R merged.annotated.gtf stringtie_merged_reference_guided.gtf rheMac10_EBOV-Kikwit_UCSC.gtf prefilter_candidates.gtf
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  Loading required package: GenomicRanges
+  Loading required package: stats4
+  Loading required package: BiocGenerics
+  Loading required package: parallel
+  
+  Attaching package: ‘BiocGenerics’
+  
+  The following objects are masked from ‘package:parallel’:
+  
+      clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+      clusterExport, clusterMap, parApply, parCapply, parLapply,
+      parLapplyLB, parRapply, parSapply, parSapplyLB
+  
+  The following objects are masked from ‘package:stats’:
+  
+      IQR, mad, sd, var, xtabs
+  
+  The following objects are masked from ‘package:base’:
+  
+      anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+      dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+      grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+      order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+      rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+      union, unique, unsplit, which, which.max, which.min
+  
+  Loading required package: S4Vectors
+  
+  Attaching package: ‘S4Vectors’
+  
+  The following object is masked from ‘package:base’:
+  
+      expand.grid
+  
+  Loading required package: IRanges
+  Loading required package: GenomeInfoDb
+  Error in open.connection(con, open) : cannot open the connection
+  Calls: import ... connection -> connectionForResource -> open -> open.connection
+  In addition: Warning message:
+  In open.connection(con, open) :
+    cannot open file 'merged.annotated.gtf': No such file or directory
+  Execution halted
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/cc/32c2aedbe2fca909b4a44a34aeb1c6
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details

@@ -1,0 +1,13 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [confident_feynman] - revision: f4e41f57a1
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[tissue_effect, 02_spleen_wholeblood_lymphnode, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/02_spleen_wholeblood_lymphnode]
+[tissue_effect, 01_spleen_wholeblood, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/01_spleen_wholeblood]
+[tissue_effect, 00_spleen, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/00_spleen]
+ERROR ~ No such variable: baseName
+
+ -- Check script '04_benchmark_n_samples.nf' at line: 62 or see '.nextflow.log' file for more details

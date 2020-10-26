@@ -1,0 +1,23 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [chaotic_cajal] - revision: d63935f813
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (3)
+[0c/93d7fa] process > StringTie_Merge_Reference_Guided [  0%] 0 of 3
+
+executor >  local (3)
+[0c/93d7fa] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+
+executor >  local (3)
+[17/2f0fdc] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+
+executor >  local (3)
+[31/eb5b99] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+Completed at: 22-Oct-2020 17:32:30
+Duration    : 4m 6s
+CPU hours   : 0.1
+Succeeded   : 3
+

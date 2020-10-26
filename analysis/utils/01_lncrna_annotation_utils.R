@@ -92,7 +92,7 @@ plot_expression <- function(max_expression, palette_expression = palette_express
     geom_boxplot(alpha = 0.6 )+
     scale_fill_manual(values =palette_expression)+
     scale_color_manual(values = palette_expression)+
-    labs(y = "logFPKM", x = "", title = title )+
+    labs(y = "logTPM", x = "", title = title )+
     theme(legend.title=element_blank())+
     theme(plot.title = element_text(hjust = 0.5))+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "darkgrey"))+
@@ -371,5 +371,28 @@ bed12_entry <- function(transcript){
   line <- data.frame(chrom, start, stop, name, score, strand, thickstart, thickend, rgb, blockcount, blocksizes, blockstarts)
   
   return(line)
+}
+
+
+plot_stats_benchmark <- function(pcvslnc){
+  data <- data.frame(table(pcvslnc[pcvslnc$type == "transcript",]$class_code))
+  colnames(data) <- c("group", "value")
+  data <- data[data$group %in% c("u", "i", "x"), ]
+  # Basic piechart
+  # Compute the position of labels
+  data <- data %>% 
+    arrange(desc(group)) %>%
+    mutate(prop = value / sum(data$value) *100) %>%
+    mutate(ypos = cumsum(prop)- 0.5*prop )
+  
+  # Basic piechart
+  plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
+    geom_bar(stat="identity", width=1, color="white") +
+    coord_polar("y", start=0) +
+    theme_void() + 
+    theme(legend.position="none") +
+    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
+    scale_fill_brewer(palette="Set1")
+  return(plotassembly)
 }
 

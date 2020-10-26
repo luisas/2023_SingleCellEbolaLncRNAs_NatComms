@@ -206,10 +206,9 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
 process sort_bam{
   cpus 16
   //cpus 1
-  memory '300 GB'
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$replicate/$exp/$preprocessing"
 
 
   input:
@@ -230,8 +229,7 @@ sorted_bams.into{sorted_bams1; sorted_bams2; }
 
 process runRSeQC{
 
-storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing/rseqc"
-
+  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$replicate/$exp/$preprocessing"
   input:
   set complete_id, animal_id, hpi, exp, replicate, preprocessing,
     file(bam),
@@ -253,8 +251,7 @@ process RevertSam{
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
-
+  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$replicate/$exp/$preprocessing"
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_3
 
@@ -277,12 +274,11 @@ unmapped_and_mapped_bams1.subscribe{ println "$it" }
 // // TODO: Missing orientation !
 process MergeBamAlignment{
 
-  cpus 16
+  cpus 32
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
-
+  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$replicate/$exp/$preprocessing"
   input:
   file assembly from ReferenceChannel2.collect()
   file(dict) from DictChannel4.collect()

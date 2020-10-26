@@ -1,0 +1,378 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad_htseq.nf` [hopeful_panini] - revision: e5c07f2b66
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+executor >  local (1)
+[81/316a7a] process > stringtie [  0%] 0 of 1
+
+executor >  local (2)
+[8c/383cb3] process > stringtie [  0%] 0 of 2
+
+executor >  local (4)
+[a9/05baf9] process > stringtie [  0%] 0 of 4
+
+executor >  local (5)
+[a1/dc3a32] process > stringtie [  0%] 0 of 5
+
+executor >  local (6)
+[ab/0fca83] process > stringtie [  0%] 0 of 6
+
+executor >  local (8)
+[06/42742b] process > stringtie [  0%] 0 of 8
+
+executor >  local (9)
+[65/7bc690] process > stringtie [  0%] 0 of 9
+
+executor >  local (10)
+[b2/2dfd18] process > stringtie [  0%] 0 of 10
+
+executor >  local (12)
+[f9/20792d] process > stringtie [  0%] 0 of 12
+
+executor >  local (13)
+[6e/4d8a82] process > stringtie [  0%] 0 of 13
+
+executor >  local (14)
+[2d/98d81e] process > stringtie [  0%] 0 of 14
+
+executor >  local (15)
+[8a/15bc78] process > stringtie [  0%] 0 of 15
+
+executor >  local (16)
+[81/316a7a] process > stringtie [  6%] 1 of 16, failed: 1
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong
+
+executor >  local (17)
+[a6/c8b50a] process > stringtie [  6%] 1 of 17, failed: 1
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[06/42742b] process > stringtie [ 47%] 8 of 17, failed: 8
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[73/2892d7] process > stringtie [ 53%] 9 of 17, failed: 9
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[b2/2dfd18] process > stringtie [ 65%] 11 of 17, failed: 11
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[3a/3b7011] process > stringtie [ 71%] 12 of 17, failed: 12
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[6e/4d8a82] process > stringtie [ 82%] 14 of 17, failed: 14
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[2d/98d81e] process > stringtie [ 88%] 15 of 17, failed: 15
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[2d/5943aa] process > stringtie [100%] 17 of 17, failed: 17
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (17)
+[a6/c8b50a] process > stringtie [106%] 18 of 17, failed: 18
+WARN: Killing pending tasks (16)
+ERROR ~ Error executing process > 'stringtie (15)'
+
+Caused by:
+  Process `stringtie (15)` terminated with an error exit status (127)
+
+Command executed:
+
+  htseq-count A0071_S116_L002_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  .command.sh: line 2: htseq-count: command not found
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/81/316a7a78506af78a75fc9bf10e1e3a
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b10>
+Subject: Job 1942080: <NextflowannotationPipeline> in cluster <mn3> Exited
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b10>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Tue Oct 20 12:12:56 2020
+Results reported on Tue Oct 20 12:14:10 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+module load python
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad_htseq.nf \
+                  -w /gpfs/projects/bsc83/Data/Ebola/work/
+
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :               23.09 sec.
+    Max Memory :             622 MB
+    Average Memory :         252.33 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           1128.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          5
+    Max Threads :            71
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1942080.err> for stderr output of this job.
+

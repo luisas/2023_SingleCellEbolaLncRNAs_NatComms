@@ -22,9 +22,8 @@ iterate_files <- function(inpath, pattern_string){
   return(files)
 } 
 
-#dir_counts_ref <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation_old/04_quantification"
-#novel_concordant <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation_old/03_novel_lncRNAs_list/00_all_novels/novel_rhemac10_concordant_ribodepleted.gtf")
-
+dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/01_quantification_for_filtering/"
+novel_concordant <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf")
 
 abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
 
@@ -33,7 +32,7 @@ abundances <- list()
 for(i in 1:length(abundance_files)) {
   file <- readr::read_tsv(abundance_files[i])
   # Sum up values for double entries (https://github.com/gpertea/stringtie/issues/192)
-  file <- file %>% group_by(`Gene ID`)%>% summarise(TPM = sum(TPM))
+  file <- file %>% dplyr::group_by(`Gene ID`)%>% dplyr::summarise(TPM = sum(TPM))
   abundances[[i]] <- data.frame(file$TPM, row.names =file$`Gene ID` )
 }
 
@@ -50,16 +49,29 @@ for(i in 2:length(abundances)) {
 #tx2gene <- tmp[,c("t_name", "gene_id")]
 #txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
 
+a <- novel_concordant[!(novel_concordant$gene_id %in% rownames(expression))]
+length(unique(a$gene_id))
 # ---------------------------
 #   Get the expressed ones from the concordant set
 # ---------------------------
 # Remove non expressed genes 
 #expression <- txi$abundance
 expression <- dat
-mask<- rowSums(as.data.frame((expression)) > 0.5) > 2
+expression_new <- expression[rownames(expression) %in% novel_concordant$gene_id,]
+nrow(expression_new)
+
+empty <- expression[rowSums(expression) == 0,]
+length(unique(rownames(empty)))
+mask<- rowSums(as.data.frame(expression > 0.0)) > 0
+table(mask)
 expression <- expression[mask,]
 novel_expressed_ribodepleted <- novel_concordant[novel_concordant$gene_id %in% rownames(expression)]
+length(unique(novel_expressed_ribodepleted$transcript_id))
 
+
+table(ref$transcript_biotype)
+a <- rownames(expression)
+test
 # Save 
 export(novel_expressed_ribodepleted,outfile)
 

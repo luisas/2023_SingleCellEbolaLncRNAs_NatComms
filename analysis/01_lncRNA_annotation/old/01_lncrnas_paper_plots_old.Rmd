@@ -379,7 +379,19 @@ df_samples_summary_counts[df_samples_summary_counts$tissue %in% tissues_availabl
 
 
 ```{r ribodepl-enrichment}
+test <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
 
+seqlevelsStyle(test) <- "UCSC"
+
+test <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
+export(test, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_UCSC.gtf")
+
+```
+
+
+
+
+```{r ribodepl-enrichment}
 ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/old/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
 
 # Check DE lncRNAs

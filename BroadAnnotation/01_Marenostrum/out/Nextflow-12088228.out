@@ -1,0 +1,29 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [confident_dijkstra] - revision: 78bde657c5
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[tissue_effect, 02_spleen_wholeblood_lymphnode, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/02_spleen_wholeblood_lymphnode]
+[tissue_effect, 01_spleen_wholeblood, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/01_spleen_wholeblood]
+[tissue_effect, 00_spleen, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/00_spleen]
+executor >  local (2)
+[7e/b5ef43] process > gffCompare2 [  0%] 0 of 2
+
+executor >  local (3)
+[bc/ce2efc] process > gffCompare2 [  0%] 0 of 3
+
+executor >  local (3)
+[7e/b5ef43] process > gffCompare2 [ 33%] 1 of 3
+
+executor >  local (3)
+[bc/ce2efc] process > gffCompare2 [ 67%] 2 of 3
+
+executor >  local (3)
+[c4/5e0762] process > gffCompare2 [100%] 3 of 3 ✔
+Completed at: 22-Oct-2020 17:48:51
+Duration    : 25.3s
+CPU hours   : (a few seconds)
+Succeeded   : 3
+

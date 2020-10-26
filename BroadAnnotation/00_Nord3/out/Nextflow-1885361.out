@@ -1,0 +1,1070 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [cheeky_khorana] - revision: 8e318132a7
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[f2/1f34c1] process > expression_stringtie [  0%] 0 of 1
+
+executor >  local (4)
+[9b/0307d1] process > expression_stringtie [  0%] 0 of 4
+
+executor >  local (5)
+[a1/f939dd] process > expression_stringtie [  0%] 0 of 5
+
+executor >  local (6)
+[b3/19690e] process > expression_stringtie [  0%] 0 of 6
+
+executor >  local (7)
+[c0/cdd2ad] process > expression_stringtie [  0%] 0 of 7
+
+executor >  local (8)
+[4f/17f8fc] process > expression_stringtie [  0%] 0 of 8
+
+executor >  local (9)
+[21/fc779d] process > expression_stringtie [  0%] 0 of 9
+
+executor >  local (10)
+[0d/138b8b] process > expression_stringtie [  0%] 0 of 10
+
+executor >  local (12)
+[16/02ef4b] process > expression_stringtie [  0%] 0 of 12
+
+executor >  local (13)
+[35/00af29] process > expression_stringtie [  0%] 0 of 13
+
+executor >  local (14)
+[aa/5d0a70] process > expression_stringtie [  0%] 0 of 14
+
+executor >  local (15)
+[73/1b2b9e] process > expression_stringtie [  0%] 0 of 15
+
+executor >  local (16)
+[82/2dc352] process > expression_stringtie [  0%] 0 of 16
+
+executor >  local (17)
+[0e/4bfcba] process > expression_stringtie [  6%] 1 of 17
+
+executor >  local (18)
+[2d/77c1f6] process > expression_stringtie [ 11%] 2 of 18
+
+executor >  local (18)
+[be/026c22] process > expression_stringtie [ 17%] 3 of 18
+
+executor >  local (19)
+[9d/cf88e5] process > expression_stringtie [ 16%] 3 of 19
+
+executor >  local (20)
+[47/4ed6f2] process > expression_stringtie [ 20%] 4 of 20
+
+executor >  local (21)
+[b7/b5c59e] process > expression_stringtie [ 24%] 5 of 21
+
+executor >  local (22)
+[0c/bd43bb] process > expression_stringtie [ 27%] 6 of 22
+
+executor >  local (23)
+[27/d7cc1a] process > expression_stringtie [ 30%] 7 of 23
+
+executor >  local (24)
+[aa/e2789b] process > expression_stringtie [ 29%] 7 of 24
+
+executor >  local (24)
+[9d/cf88e5] process > expression_stringtie [ 33%] 8 of 24
+
+executor >  local (25)
+[2d/77c1f6] process > expression_stringtie [ 36%] 9 of 25
+
+executor >  local (26)
+[18/d49775] process > expression_stringtie [ 35%] 9 of 26
+
+executor >  local (26)
+[03/b88b7f] process > expression_stringtie [ 38%] 10 of 26
+
+executor >  local (27)
+[6f/89c61e] process > expression_stringtie [ 41%] 11 of 27
+
+executor >  local (28)
+[77/c9c308] process > expression_stringtie [ 43%] 12 of 28
+
+executor >  local (29)
+[93/79598c] process > expression_stringtie [ 45%] 13 of 29
+
+executor >  local (30)
+[24/4a56b8] process > expression_stringtie [ 47%] 14 of 30
+
+executor >  local (31)
+[72/e570b7] process > expression_stringtie [ 48%] 15 of 31
+
+executor >  local (32)
+[4c/0adf08] process > expression_stringtie [ 50%] 16 of 32
+
+executor >  local (33)
+[7e/06d485] process > expression_stringtie [ 52%] 17 of 33
+
+executor >  local (34)
+[2b/8e0de8] process > expression_stringtie [ 53%] 18 of 34
+
+executor >  local (35)
+[c1/81a0cb] process > expression_stringtie [ 54%] 19 of 35
+
+executor >  local (36)
+[25/5416ae] process > expression_stringtie [ 53%] 19 of 36
+
+executor >  local (36)
+[72/e570b7] process > expression_stringtie [ 56%] 20 of 36
+
+executor >  local (37)
+[b7/b5c59e] process > expression_stringtie [ 57%] 21 of 37
+
+executor >  local (38)
+[e2/d87df3] process > expression_stringtie [ 58%] 22 of 38
+
+executor >  local (39)
+[52/f11f21] process > expression_stringtie [ 59%] 23 of 39
+
+executor >  local (40)
+[61/d9a4c2] process > expression_stringtie [ 60%] 24 of 40
+
+executor >  local (41)
+[7e/525aff] process > expression_stringtie [ 61%] 25 of 41
+
+executor >  local (42)
+[02/0abd9a] process > expression_stringtie [ 62%] 26 of 42
+
+executor >  local (43)
+[dd/a725b6] process > expression_stringtie [ 60%] 26 of 43
+
+executor >  local (43)
+[02/0abd9a] process > expression_stringtie [ 63%] 27 of 43
+
+executor >  local (44)
+[84/6ccef8] process > expression_stringtie [ 61%] 27 of 44
+
+executor >  local (44)
+[27/d7cc1a] process > expression_stringtie [ 64%] 28 of 44
+
+executor >  local (45)
+[43/b98252] process > expression_stringtie [ 62%] 28 of 45
+
+executor >  local (45)
+[18/d49775] process > expression_stringtie [ 64%] 29 of 45
+
+executor >  local (46)
+[c5/c0934c] process > expression_stringtie [ 65%] 30 of 46
+
+executor >  local (47)
+[47/4ed6f2] process > expression_stringtie [ 66%] 31 of 47
+
+executor >  local (48)
+[26/830d38] process > expression_stringtie [ 67%] 32 of 48
+
+executor >  local (49)
+[92/2acfe1] process > expression_stringtie [ 65%] 32 of 49
+
+executor >  local (49)
+[77/c9c308] process > expression_stringtie [ 67%] 33 of 49
+
+executor >  local (50)
+[08/153b05] process > expression_stringtie [ 66%] 33 of 50
+
+executor >  local (50)
+[61/d9a4c2] process > expression_stringtie [ 68%] 34 of 50
+
+executor >  local (51)
+[dc/60b12c] process > expression_stringtie [ 67%] 34 of 51
+
+executor >  local (51)
+[2b/8e0de8] process > expression_stringtie [ 69%] 35 of 51
+
+executor >  local (52)
+[37/4db0e5] process > expression_stringtie [ 69%] 36 of 52
+
+executor >  local (53)
+[23/bd9c0a] process > expression_stringtie [ 70%] 37 of 53
+
+executor >  local (54)
+[3b/275c22] process > expression_stringtie [ 69%] 37 of 54
+
+executor >  local (54)
+[05/2502c1] process > expression_stringtie [ 70%] 38 of 54
+
+executor >  local (55)
+[53/26ffc1] process > expression_stringtie [ 71%] 39 of 55
+
+executor >  local (56)
+[bb/6bcdd9] process > expression_stringtie [ 71%] 40 of 56
+
+executor >  local (56)
+[c1/81a0cb] process > expression_stringtie [ 73%] 41 of 56
+
+executor >  local (57)
+[6c/4aff4a] process > expression_stringtie [ 72%] 41 of 57
+
+executor >  local (58)
+[d0/9b1d4b] process > expression_stringtie [ 71%] 41 of 58
+
+executor >  local (58)
+[7e/06d485] process > expression_stringtie [ 72%] 42 of 58
+
+executor >  local (59)
+[34/e162c1] process > expression_stringtie [ 73%] 43 of 59
+
+executor >  local (60)
+[f6/c3fc12] process > expression_stringtie [ 72%] 43 of 60
+
+executor >  local (60)
+[24/4a56b8] process > expression_stringtie [ 73%] 44 of 60
+
+executor >  local (61)
+[04/8c633d] process > expression_stringtie [ 72%] 44 of 61
+
+executor >  local (61)
+[53/26ffc1] process > expression_stringtie [ 74%] 45 of 61
+
+executor >  local (61)
+[c5/c0934c] process > expression_stringtie [ 75%] 46 of 61
+
+executor >  local (62)
+[66/5151bc] process > expression_stringtie [ 74%] 46 of 62
+
+executor >  local (63)
+[1f/268064] process > expression_stringtie [ 73%] 46 of 63
+
+executor >  local (63)
+[52/f11f21] process > expression_stringtie [ 75%] 47 of 63
+
+executor >  local (64)
+[39/e4f67b] process > expression_stringtie [ 73%] 47 of 64
+
+executor >  local (64)
+[e2/d87df3] process > expression_stringtie [ 75%] 48 of 64
+
+executor >  local (65)
+[a3/81b6c4] process > expression_stringtie [ 74%] 48 of 65
+
+executor >  local (65)
+[7e/525aff] process > expression_stringtie [ 75%] 49 of 65
+
+executor >  local (65)
+[26/830d38] process > expression_stringtie [ 77%] 50 of 65
+
+executor >  local (66)
+[84/430de0] process > expression_stringtie [ 76%] 50 of 66
+
+executor >  local (67)
+[e5/d650a2] process > expression_stringtie [ 76%] 51 of 67
+
+executor >  local (68)
+[e5/481c33] process > expression_stringtie [ 75%] 51 of 68
+
+executor >  local (68)
+[77/15bd6a] process > expression_stringtie [ 76%] 52 of 68
+
+executor >  local (69)
+[66/7b4f69] process > expression_stringtie [ 75%] 52 of 69
+
+executor >  local (69)
+[37/4db0e5] process > expression_stringtie [ 77%] 53 of 69
+
+executor >  local (70)
+[e2/9a9e21] process > expression_stringtie [ 77%] 54 of 70
+
+executor >  local (71)
+[7a/de7956] process > expression_stringtie [ 76%] 54 of 71
+
+executor >  local (71)
+[f6/c3fc12] process > expression_stringtie [ 77%] 55 of 71
+
+executor >  local (72)
+[04/8c633d] process > expression_stringtie [ 78%] 56 of 72
+
+executor >  local (73)
+[84/6ccef8] process > expression_stringtie [ 78%] 57 of 73
+
+executor >  local (74)
+[35/280fb0] process > expression_stringtie [ 78%] 58 of 74
+
+executor >  local (75)
+[23/bd9c0a] process > expression_stringtie [ 79%] 59 of 75
+
+executor >  local (76)
+[61/2da207] process > expression_stringtie [ 78%] 59 of 76
+
+executor >  local (76)
+[6c/4aff4a] process > expression_stringtie [ 79%] 60 of 76
+
+executor >  local (77)
+[7e/b2a3de] process > expression_stringtie [ 79%] 61 of 77
+
+executor >  local (78)
+[35/40d6e5] process > expression_stringtie [ 79%] 62 of 78
+
+executor >  local (79)
+[6e/bc0226] process > expression_stringtie [ 80%] 63 of 79
+
+executor >  local (80)
+[32/f53571] process > expression_stringtie [ 80%] 64 of 80
+
+executor >  local (81)
+[8f/54b11c] process > expression_stringtie [ 79%] 64 of 81
+
+executor >  local (81)
+[34/e162c1] process > expression_stringtie [ 80%] 65 of 81
+
+executor >  local (82)
+[3f/5bfa42] process > expression_stringtie [ 79%] 65 of 82
+
+executor >  local (82)
+[84/430de0] process > expression_stringtie [ 80%] 66 of 82
+
+executor >  local (83)
+[e2/9a9e21] process > expression_stringtie [ 81%] 67 of 83
+
+executor >  local (84)
+[28/104d75] process > expression_stringtie [ 81%] 68 of 84
+
+executor >  local (85)
+[de/ba0803] process > expression_stringtie [ 81%] 69 of 85
+
+executor >  local (86)
+[05/d9a42e] process > expression_stringtie [ 81%] 70 of 86
+
+executor >  local (87)
+[98/08b92f] process > expression_stringtie [ 82%] 71 of 87
+
+executor >  local (88)
+[e5/481c33] process > expression_stringtie [ 82%] 72 of 88
+
+executor >  local (89)
+[61/2da207] process > expression_stringtie [ 82%] 73 of 89
+
+executor >  local (89)
+[8f/54b11c] process > expression_stringtie [ 83%] 74 of 89
+
+executor >  local (90)
+[f6/642e48] process > expression_stringtie [ 82%] 74 of 90
+
+executor >  local (91)
+[b2/070bb9] process > expression_stringtie [ 82%] 75 of 91
+
+executor >  local (91)
+[35/40d6e5] process > expression_stringtie [ 84%] 76 of 91
+
+executor >  local (92)
+[95/2c14f6] process > expression_stringtie [ 83%] 76 of 92
+
+executor >  local (92)
+[32/f53571] process > expression_stringtie [ 84%] 77 of 92
+
+executor >  local (93)
+[fd/c9289a] process > expression_stringtie [ 83%] 77 of 93
+
+executor >  local (94)
+[95/92b4f9] process > expression_stringtie [ 83%] 78 of 94
+
+executor >  local (94)
+[7e/b2a3de] process > expression_stringtie [ 84%] 79 of 94
+
+executor >  local (95)
+[96/bdc665] process > expression_stringtie [ 83%] 79 of 95
+
+executor >  local (96)
+[72/157f48] process > expression_stringtie [ 83%] 80 of 96
+
+executor >  local (97)
+[ab/e6eee6] process > expression_stringtie [ 82%] 80 of 97
+
+executor >  local (97)
+[fd/c9289a] process > expression_stringtie [ 84%] 81 of 97
+
+executor >  local (98)
+[c6/1f229b] process > expression_stringtie [ 83%] 81 of 98
+
+executor >  local (98)
+[7a/de7956] process > expression_stringtie [ 84%] 82 of 98
+
+executor >  local (99)
+[e5/404795] process > expression_stringtie [ 84%] 83 of 99
+
+executor >  local (100)
+[09/587454] process > expression_stringtie [ 83%] 83 of 100
+
+executor >  local (100)
+[98/08b92f] process > expression_stringtie [ 84%] 84 of 100
+
+executor >  local (101)
+[62/7f8e4c] process > expression_stringtie [ 84%] 85 of 101
+
+executor >  local (101)
+[72/157f48] process > expression_stringtie [ 85%] 86 of 101
+
+executor >  local (102)
+[df/d85ed0] process > expression_stringtie [ 84%] 86 of 102
+
+executor >  local (103)
+[b2/070bb9] process > expression_stringtie [ 84%] 87 of 103
+
+executor >  local (103)
+[73/51f811] process > expression_stringtie [ 85%] 88 of 103
+
+executor >  local (104)
+[32/789cbf] process > expression_stringtie [ 85%] 88 of 104
+
+executor >  local (105)
+[8d/ccc0a1] process > expression_stringtie [ 84%] 88 of 105
+
+executor >  local (105)
+[6e/bc0226] process > expression_stringtie [ 85%] 89 of 105
+
+executor >  local (106)
+[29/e535d8] process > expression_stringtie [ 85%] 90 of 106
+
+executor >  local (106)
+[de/ba0803] process > expression_stringtie [ 86%] 91 of 106
+
+executor >  local (107)
+[7f/7f4e3d] process > expression_stringtie [ 85%] 91 of 107
+
+executor >  local (108)
+[50/808dbc] process > expression_stringtie [ 85%] 92 of 108
+
+executor >  local (109)
+[5d/5e10d0] process > expression_stringtie [ 85%] 93 of 109
+
+executor >  local (110)
+[4e/538bda] process > expression_stringtie [ 85%] 93 of 110
+
+executor >  local (110)
+[96/bdc665] process > expression_stringtie [ 85%] 94 of 110
+
+executor >  local (110)
+[4e/538bda] process > expression_stringtie [ 86%] 95 of 110
+
+executor >  local (111)
+[30/257e25] process > expression_stringtie [ 86%] 95 of 111
+
+executor >  local (112)
+[fd/b6fe25] process > expression_stringtie [ 86%] 96 of 112
+
+executor >  local (113)
+[ea/b97ef7] process > expression_stringtie [ 86%] 97 of 113
+
+executor >  local (114)
+[09/587454] process > expression_stringtie [ 86%] 98 of 114
+
+executor >  local (114)
+[05/d9a42e] process > expression_stringtie [ 87%] 99 of 114
+
+executor >  local (115)
+[76/20c3ad] process > expression_stringtie [ 86%] 99 of 115
+
+executor >  local (115)
+[fd/b6fe25] process > expression_stringtie [ 87%] 100 of 115
+
+executor >  local (116)
+[d4/e87ed5] process > expression_stringtie [ 86%] 100 of 116
+
+executor >  local (117)
+[27/4596b6] process > expression_stringtie [ 86%] 101 of 117
+
+executor >  local (117)
+[c6/1f229b] process > expression_stringtie [ 87%] 102 of 117
+
+executor >  local (118)
+[21/889445] process > expression_stringtie [ 86%] 102 of 118
+
+executor >  local (118)
+[8d/ccc0a1] process > expression_stringtie [ 87%] 103 of 118
+
+executor >  local (119)
+[bb/e214b7] process > expression_stringtie [ 87%] 103 of 119
+
+executor >  local (120)
+[30/257e25] process > expression_stringtie [ 87%] 104 of 120
+
+executor >  local (121)
+[32/1c6680] process > expression_stringtie [ 86%] 104 of 121
+
+executor >  local (121)
+[75/39b566] process > expression_stringtie [ 87%] 105 of 121
+
+executor >  local (122)
+[cf/d8ade5] process > expression_stringtie [ 86%] 105 of 122
+
+executor >  local (122)
+[62/7f8e4c] process > expression_stringtie [ 87%] 106 of 122
+
+executor >  local (123)
+[4f/581a2b] process > expression_stringtie [ 87%] 107 of 123
+
+executor >  local (123)
+[df/d85ed0] process > expression_stringtie [ 88%] 108 of 123
+
+executor >  local (124)
+[fb/5208d0] process > expression_stringtie [ 87%] 108 of 124
+
+executor >  local (125)
+[06/2c28fa] process > expression_stringtie [ 86%] 108 of 125
+
+executor >  local (125)
+[df/f44926] process > expression_stringtie [ 87%] 109 of 125
+
+executor >  local (126)
+[d4/e87ed5] process > expression_stringtie [ 87%] 110 of 126
+
+executor >  local (126)
+[83/35b219] process > expression_stringtie [ 88%] 111 of 126
+
+executor >  local (127)
+[ca/bf7d83] process > expression_stringtie [ 87%] 111 of 127
+
+executor >  local (128)
+[54/0dc04f] process > expression_stringtie [ 88%] 112 of 128
+
+executor >  local (128)
+[18/e7c1a6] process > expression_stringtie [ 88%] 113 of 128
+
+executor >  local (129)
+[a6/dab41a] process > expression_stringtie [ 88%] 113 of 129
+
+executor >  local (130)
+[a3/1cffa1] process > expression_stringtie [ 87%] 113 of 130
+
+executor >  local (130)
+[4f/581a2b] process > expression_stringtie [ 88%] 114 of 130
+
+executor >  local (131)
+[5d/5e10d0] process > expression_stringtie [ 88%] 115 of 131
+
+executor >  local (132)
+[7f/7f4e3d] process > expression_stringtie [ 88%] 116 of 132
+
+executor >  local (133)
+[ed/5321f4] process > expression_stringtie [ 88%] 117 of 133
+
+executor >  local (134)
+[f9/a3d219] process > expression_stringtie [ 88%] 118 of 134
+
+executor >  local (134)
+[cf/d8ade5] process > expression_stringtie [ 89%] 119 of 134
+
+executor >  local (135)
+[2e/2c5741] process > expression_stringtie [ 88%] 119 of 135
+
+executor >  local (136)
+[b1/567ecc] process > expression_stringtie [ 88%] 120 of 136
+
+executor >  local (137)
+[16/64c5d5] process > expression_stringtie [ 88%] 120 of 137
+
+executor >  local (137)
+[32/1c6680] process > expression_stringtie [ 88%] 121 of 137
+
+executor >  local (138)
+[16/10a455] process > expression_stringtie [ 88%] 121 of 138
+
+executor >  local (138)
+[50/808dbc] process > expression_stringtie [ 88%] 122 of 138
+
+executor >  local (139)
+[34/beafef] process > expression_stringtie [ 88%] 122 of 139
+
+executor >  local (139)
+[76/20c3ad] process > expression_stringtie [ 88%] 123 of 139
+
+executor >  local (139)
+[bb/e214b7] process > expression_stringtie [ 89%] 124 of 139
+
+executor >  local (140)
+[8e/32dd2e] process > expression_stringtie [ 89%] 124 of 140
+
+executor >  local (141)
+[a4/c27769] process > expression_stringtie [ 89%] 125 of 141
+
+executor >  local (142)
+[9c/22bd82] process > expression_stringtie [ 88%] 125 of 142
+
+executor >  local (142)
+[21/889445] process > expression_stringtie [ 89%] 126 of 142
+
+executor >  local (143)
+[8f/d3d3c4] process > expression_stringtie [ 88%] 126 of 143
+
+executor >  local (143)
+[06/2c28fa] process > expression_stringtie [ 89%] 127 of 143
+
+executor >  local (144)
+[cb/58d162] process > expression_stringtie [ 88%] 127 of 144
+
+executor >  local (144)
+[ca/bf7d83] process > expression_stringtie [ 89%] 128 of 144
+
+executor >  local (145)
+[19/bd7a6d] process > expression_stringtie [ 88%] 128 of 145
+
+executor >  local (145)
+[54/0dc04f] process > expression_stringtie [ 89%] 129 of 145
+
+executor >  local (146)
+[a6/dab41a] process > expression_stringtie [ 89%] 130 of 146
+
+executor >  local (147)
+[86/b2e124] process > expression_stringtie [ 88%] 130 of 147
+
+executor >  local (147)
+[16/64c5d5] process > expression_stringtie [ 89%] 131 of 147
+
+executor >  local (148)
+[06/d27a3f] process > expression_stringtie [ 89%] 131 of 148
+
+executor >  local (148)
+[fb/5208d0] process > expression_stringtie [ 89%] 132 of 148
+
+executor >  local (148)
+[d7/7db7c0] process > expression_stringtie [ 90%] 133 of 148
+
+executor >  local (149)
+[f2/3ea9db] process > expression_stringtie [ 89%] 133 of 149
+
+executor >  local (149)
+[f9/a3d219] process > expression_stringtie [ 90%] 134 of 149
+
+executor >  local (150)
+[3e/52210d] process > expression_stringtie [ 89%] 134 of 150
+
+executor >  local (150)
+[8f/d3d3c4] process > expression_stringtie [ 90%] 135 of 150
+
+executor >  local (151)
+[56/052df5] process > expression_stringtie [ 89%] 135 of 151
+
+executor >  local (151)
+[9c/22bd82] process > expression_stringtie [ 90%] 136 of 151
+
+executor >  local (152)
+[f0/2611e6] process > expression_stringtie [ 89%] 136 of 152
+
+executor >  local (152)
+[8e/32dd2e] process > expression_stringtie [ 90%] 137 of 152
+
+executor >  local (153)
+[55/e6be97] process > expression_stringtie [ 90%] 137 of 153
+
+executor >  local (154)
+[0e/30531d] process > expression_stringtie [ 89%] 137 of 154
+
+executor >  local (154)
+[a4/c27769] process > expression_stringtie [ 90%] 138 of 154
+
+executor >  local (155)
+[b1/567ecc] process > expression_stringtie [ 90%] 139 of 155
+
+executor >  local (156)
+[b8/48b408] process > expression_stringtie [ 89%] 139 of 156
+
+executor >  local (156)
+[2e/2c5741] process > expression_stringtie [ 90%] 140 of 156
+
+executor >  local (157)
+[9d/3203e5] process > expression_stringtie [ 90%] 141 of 157
+
+executor >  local (158)
+[7f/725fd6] process > expression_stringtie [ 90%] 142 of 158
+
+executor >  local (159)
+[f9/d0b9b0] process > expression_stringtie [ 90%] 143 of 159
+
+executor >  local (160)
+[26/d24849] process > expression_stringtie [ 89%] 143 of 160
+
+executor >  local (160)
+[cb/58d162] process > expression_stringtie [ 90%] 144 of 160
+
+executor >  local (161)
+[4a/0a0a4e] process > expression_stringtie [ 90%] 145 of 161
+
+executor >  local (162)
+[02/5f6f46] process > expression_stringtie [ 90%] 146 of 162
+
+executor >  local (163)
+[ea/618127] process > expression_stringtie [ 90%] 146 of 163
+
+executor >  local (163)
+[7f/725fd6] process > expression_stringtie [ 90%] 147 of 163
+
+executor >  local (164)
+[95/2830dc] process > expression_stringtie [ 90%] 147 of 164
+
+executor >  local (164)
+[02/5f6f46] process > expression_stringtie [ 90%] 148 of 164
+
+executor >  local (165)
+[5f/688e63] process > expression_stringtie [ 90%] 149 of 165
+
+executor >  local (166)
+[13/b7dad8] process > expression_stringtie [ 90%] 150 of 166
+
+executor >  local (167)
+[5c/75959a] process > expression_stringtie [ 90%] 151 of 167
+
+executor >  local (168)
+[ec/328a91] process > expression_stringtie [ 90%] 151 of 168
+
+executor >  local (168)
+[06/d27a3f] process > expression_stringtie [ 90%] 152 of 168
+
+executor >  local (169)
+[87/3b361c] process > expression_stringtie [ 90%] 152 of 169
+
+executor >  local (169)
+[ec/328a91] process > expression_stringtie [ 91%] 153 of 169
+
+executor >  local (170)
+[4a/bb5f64] process > expression_stringtie [ 91%] 154 of 170
+
+executor >  local (171)
+[98/0dcdb5] process > expression_stringtie [ 91%] 155 of 171
+
+executor >  local (172)
+[55/e6be97] process > expression_stringtie [ 91%] 156 of 172
+
+executor >  local (173)
+[ef/4a3654] process > expression_stringtie [ 90%] 156 of 173
+
+executor >  local (173)
+[19/bd7a6d] process > expression_stringtie [ 91%] 157 of 173
+
+executor >  local (174)
+[0e/30531d] process > expression_stringtie [ 91%] 158 of 174
+
+executor >  local (175)
+[5c/c3dadd] process > expression_stringtie [ 90%] 158 of 175
+
+executor >  local (175)
+[86/b2e124] process > expression_stringtie [ 91%] 159 of 175
+
+executor >  local (176)
+[3e/52210d] process > expression_stringtie [ 91%] 160 of 176
+
+executor >  local (176)
+[b8/48b408] process > expression_stringtie [ 91%] 161 of 176
+
+executor >  local (177)
+[d7/18799c] process > expression_stringtie [ 91%] 161 of 177
+
+executor >  local (177)
+[4a/0a0a4e] process > expression_stringtie [ 92%] 162 of 177
+
+executor >  local (179)
+[43/c31caf] process > expression_stringtie [ 91%] 163 of 179
+
+executor >  local (179)
+[82/39d4cc] process > expression_stringtie [ 92%] 164 of 179
+
+executor >  local (180)
+[92/3d60b9] process > expression_stringtie [ 91%] 164 of 180
+
+executor >  local (180)
+[92/3d60b9] process > expression_stringtie [ 92%] 165 of 180
+
+executor >  local (181)
+[bf/458898] process > expression_stringtie [ 91%] 165 of 181
+
+executor >  local (182)
+[e8/4ee44a] process > expression_stringtie [ 91%] 166 of 182
+
+executor >  local (182)
+[5f/688e63] process > expression_stringtie [ 92%] 167 of 182
+
+executor >  local (183)
+[9e/36e308] process > expression_stringtie [ 91%] 167 of 183
+
+executor >  local (184)
+[d0/2f9470] process > expression_stringtie [ 91%] 168 of 184
+
+executor >  local (185)
+[8d/9d73b4] process > expression_stringtie [ 91%] 169 of 185
+
+executor >  local (186)
+[d7/18799c] process > expression_stringtie [ 91%] 170 of 186
+
+executor >  local (187)
+[a3/0b2f87] process > expression_stringtie [ 91%] 170 of 187
+
+executor >  local (187)
+[4a/bb5f64] process > expression_stringtie [ 91%] 171 of 187
+
+executor >  local (188)
+[13/b7dad8] process > expression_stringtie [ 91%] 172 of 188
+
+executor >  local (188)
+[ea/618127] process > expression_stringtie [ 92%] 173 of 188
+
+executor >  local (189)
+[91/6c31d8] process > expression_stringtie [ 92%] 173 of 189
+
+executor >  local (189)
+[47/c19aeb] process > expression_stringtie [ 92%] 174 of 189
+
+executor >  local (190)
+[fc/1a4970] process > expression_stringtie [ 92%] 174 of 190
+
+executor >  local (191)
+[06/8453d2] process > expression_stringtie [ 92%] 175 of 191
+
+executor >  local (192)
+[ef/4a3654] process > expression_stringtie [ 92%] 176 of 192
+
+executor >  local (192)
+[06/8453d2] process > expression_stringtie [ 92%] 177 of 192
+
+executor >  local (193)
+[fd/bad15f] process > expression_stringtie [ 92%] 177 of 193
+
+executor >  local (194)
+[16/6ab280] process > expression_stringtie [ 91%] 177 of 194
+
+executor >  local (194)
+[87/3b361c] process > expression_stringtie [ 92%] 178 of 194
+
+executor >  local (195)
+[13/9e5884] process > expression_stringtie [ 91%] 178 of 195
+
+executor >  local (195)
+[bf/458898] process > expression_stringtie [ 92%] 179 of 195
+
+executor >  local (196)
+[cf/09c4be] process > expression_stringtie [ 91%] 179 of 196
+
+executor >  local (196)
+[5c/c3dadd] process > expression_stringtie [ 92%] 180 of 196
+
+executor >  local (197)
+[f7/d68be8] process > expression_stringtie [ 91%] 180 of 197
+
+executor >  local (197)
+[c1/bc9b3e] process > expression_stringtie [ 92%] 181 of 197
+
+executor >  local (198)
+[8d/9d73b4] process > expression_stringtie [ 92%] 182 of 198
+
+executor >  local (198)
+[f7/d68be8] process > expression_stringtie [ 92%] 183 of 198
+
+executor >  local (199)
+[d7/c32eee] process > expression_stringtie [ 92%] 183 of 199
+
+executor >  local (200)
+[d0/2f9470] process > expression_stringtie [ 92%] 184 of 200
+
+executor >  local (200)
+[ec/886a58] process > expression_stringtie [ 93%] 185 of 200
+
+executor >  local (201)
+[e0/c5aa96] process > expression_stringtie [ 92%] 185 of 201
+
+executor >  local (202)
+[00/451ddc] process > expression_stringtie [ 92%] 186 of 202
+
+executor >  local (202)
+[e8/4ee44a] process > expression_stringtie [ 93%] 187 of 202
+
+executor >  local (203)
+[b9/1a6fc1] process > expression_stringtie [ 92%] 187 of 203
+
+executor >  local (203)
+[43/c31caf] process > expression_stringtie [ 93%] 188 of 203
+
+executor >  local (204)
+[d8/0b8f70] process > expression_stringtie [ 92%] 188 of 204
+
+executor >  local (204)
+[fc/1a4970] process > expression_stringtie [ 93%] 189 of 204
+
+executor >  local (205)
+[07/9e04a1] process > expression_stringtie [ 92%] 189 of 205
+
+executor >  local (206)
+[c7/45a457] process > expression_stringtie [ 92%] 189 of 206
+
+executor >  local (206)
+[d0/b1a3b9] process > expression_stringtie [ 92%] 190 of 206
+
+executor >  local (207)
+[fd/671391] process > expression_stringtie [ 92%] 190 of 207
+
+executor >  local (207)
+[9e/36e308] process > expression_stringtie [ 92%] 191 of 207
+
+executor >  local (207)
+[13/9e5884] process > expression_stringtie [ 93%] 192 of 207
+
+executor >  local (207)
+[e0/c5aa96] process > expression_stringtie [ 93%] 193 of 207
+
+executor >  local (207)
+[16/6ab280] process > expression_stringtie [ 94%] 194 of 207
+
+executor >  local (207)
+[cf/09c4be] process > expression_stringtie [ 94%] 195 of 207
+
+executor >  local (207)
+[fd/671391] process > expression_stringtie [ 95%] 196 of 207
+
+executor >  local (207)
+[a3/0b2f87] process > expression_stringtie [ 95%] 197 of 207
+
+executor >  local (207)
+[16/e127e1] process > expression_stringtie [ 96%] 198 of 207
+
+executor >  local (207)
+[fd/bad15f] process > expression_stringtie [ 96%] 199 of 207
+
+executor >  local (207)
+[d7/c32eee] process > expression_stringtie [ 97%] 200 of 207
+
+executor >  local (207)
+[91/6c31d8] process > expression_stringtie [ 97%] 201 of 207
+
+executor >  local (207)
+[26/6d3877] process > expression_stringtie [ 98%] 202 of 207
+
+executor >  local (207)
+[c7/45a457] process > expression_stringtie [ 98%] 203 of 207
+
+executor >  local (207)
+[d8/0b8f70] process > expression_stringtie [ 99%] 204 of 207
+
+executor >  local (207)
+[b9/1a6fc1] process > expression_stringtie [ 99%] 205 of 207
+
+executor >  local (207)
+[15/3e0995] process > expression_stringtie [100%] 206 of 207
+
+executor >  local (207)
+[07/9e04a1] process > expression_stringtie [100%] 207 of 207 ✔
+
+executor >  local (208)
+[07/9e04a1] process > expression_stringtie [100%] 207 of 207 ✔
+[22/21a23f] process > filterExpression     [  0%] 0 of 1
+
+executor >  local (208)
+[07/9e04a1] process > expression_stringtie [100%] 207 of 207 ✔
+[22/21a23f] process > filterExpression     [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'filterExpression'
+
+Caused by:
+  Process `filterExpression` terminated with an error exit status (127)
+
+Command executed:
+
+  mkdir expression_dir
+  mv NTC_H2O-M2_S18_L001_deduplicated.gene_abundances.tsv H2O_LC_S98_L002_deduplicated.gene_abundances.tsv NTC_H2O-M1_S122_L002_deduplicated.gene_abundances.tsv A0364_S61_L001_deduplicated.gene_abundances.tsv A0366_S59_L001_deduplicated.gene_abundances.tsv RA1818-Blood-D6-NEC_S1_deduplicated.gene_abundances.tsv NTC_H2O-I1_S186_L002_deduplicated.gene_abundances.tsv A0190_S149_L002_deduplicated.gene_abundances.tsv A0358_S67_L001_deduplicated.gene_abundances.tsv RA0717-D004_S104_L002_deduplicated.gene_abundances.tsv A0363_S62_L001_deduplicated.gene_abundances.tsv A0314_S42_L001_deduplicated.gene_abundances.tsv A0321_S35_L001_deduplicated.gene_abundances.tsv RA0452_PBMC_D005_S10_deduplicated.gene_abundances.tsv H2O_QIA-190813_S16_deduplicated.gene_abundances.tsv A0038_S180_L002_deduplicated.gene_abundances.tsv A0262_S130_L002_deduplicated.gene_abundances.tsv A0071_S116_L002_deduplicated.gene_abundances.tsv A0246_S135_L002_deduplicated.gene_abundances.tsv RA1325-D006_S5_L001_deduplicated.gene_abundances.tsv A0330_S26_L001_deduplicated.gene_abundances.tsv A0078_S173_L002_deduplicated.gene_abundances.tsv A0085_S115_L002_deduplicated.gene_abundances.tsv A0350_S77_L001_deduplicated.gene_abundances.tsv RA0700-Liver_S9_deduplicated.gene_abundances.tsv A0274_S129_L002_deduplicated.gene_abundances.tsv NTC_H2O-B1_S17_L001_deduplicated.gene_abundances.tsv A0113_S113_L002_deduplicated.gene_abundances.tsv A0316_S40_L001_deduplicated.gene_abundances.tsv NTC_H2O-H2_S72_L001_deduplicated.gene_abundances.tsv A0010_S19_L001_deduplicated.gene_abundances.tsv A0354_S71_L001_deduplicated.gene_abundances.tsv A0312_S44_L001_deduplicated.gene_abundances.tsv RA1856_WB_D000_S6_deduplicated.gene_abundances.tsv A0169_S109_L002_deduplicated.gene_abundances.tsv RA1325_PBMC_D006_S12_deduplicated.gene_abundances.tsv A0372_S53_L001_deduplicated.gene_abundances.tsv RA1819_WB_D-28_S1_deduplicated.gene_abundances.tsv A0043_S118_L002_deduplicated.gene_abundances.tsv A0220_S141_L002_deduplicated.gene_abundances.tsv A0029_S119_L002_deduplicated.gene_abundances.tsv A0148_S158_L002_deduplicated.gene_abundances.tsv RA0717-Liver_S10_deduplicated.gene_abundances.tsv A0009_S139_L002_deduplicated.gene_abundances.tsv RA1803-D006_S4_L001_deduplicated.gene_abundances.tsv A0325_S31_L001_deduplicated.gene_abundances.tsv A0162_S155_L002_deduplicated.gene_abundances.tsv A0135_S160_L002_deduplicated.gene_abundances.tsv A0052_S177_L002_deduplicated.gene_abundances.tsv A0155_S110_L002_deduplicated.gene_abundances.tsv A0303_S187_L002_deduplicated.gene_abundances.tsv RA0700-Blood-D7-NEC_S2_deduplicated.gene_abundances.tsv RA0850-Liver_S11_deduplicated.gene_abundances.tsv A0353_S74_L001_deduplicated.gene_abundances.tsv RA1819_WB_D-14_S2_deduplicated.gene_abundances.tsv A0342_S85_L001_deduplicated.gene_abundances.tsv A0289_S125_L002_deduplicated.gene_abundances.tsv RA0449-D003_S105_L002_deduplicated.gene_abundances.tsv RA1819_WB_D000_S3_deduplicated.gene_abundances.tsv A0360_S65_L001_deduplicated.gene_abundances.tsv A0319_S37_L001_deduplicated.gene_abundances.tsv A0248_S133_L002_deduplicated.gene_abundances.tsv A0288_S126_L002_deduplicated.gene_abundances.tsv A0234_S136_L002_deduplicated.gene_abundances.tsv A0247_S134_L002_deduplicated.gene_abundances.tsv A0080_S171_L002_deduplicated.gene_abundances.tsv A0315_S41_L001_deduplicated.gene_abundances.tsv A0349_S78_L001_deduplicated.gene_abundances.tsv A0108_S165_L002_deduplicated.gene_abundances.tsv A0295_S16_L001_deduplicated.gene_abundances.tsv A0204_S146_L002_deduplicated.gene_abundances.tsv A0177_S151_L002_deduplicated.gene_abundances.tsv A0300_S190_L002_deduplicated.gene_abundances.tsv A0307_S48_L001_deduplicated.gene_abundances.tsv A0150_S156_L002_deduplicated.gene_abundances.tsv RA0700-Blood-BL_S3_deduplicated.gene_abundances.tsv A0304_S13_L001_deduplicated.gene_abundances.tsv A0107_S166_L002_deduplicated.gene_abundances.tsv RA1856_WB_D-28_S4_deduplicated.gene_abundances.tsv NTC_H2O-G1_S25_L001_deduplicated.gene_abundances.tsv RA1074_PBMC_D006_S11_deduplicated.gene_abundances.tsv A0037_S181_L002_deduplicated.gene_abundances.tsv A0375_S50_L001_deduplicated.gene_abundances.tsv RA0223-Liver_S8_deduplicated.gene_abundances.tsv A0297_S14_L001_deduplicated.gene_abundances.tsv RA1803_PBMC_D006_S13_deduplicated.gene_abundances.tsv A0340_S87_L001_deduplicated.gene_abundances.tsv A0232_S138_L002_deduplicated.gene_abundances.tsv A0120_S164_L002_deduplicated.gene_abundances.tsv A0183_S108_L002_deduplicated.gene_abundances.tsv A0127_S112_L002_deduplicated.gene_abundances.tsv A0345_S82_L001_deduplicated.gene_abundances.tsv A0141_S111_L002_deduplicated.gene_abundances.tsv A0367_S58_L001_deduplicated.gene_abundances.tsv RA0223_PBMC_D003_S7_deduplicated.gene_abundances.tsv A0302_S188_L002_deduplicated.gene_abundances.tsv A0015_S120_L002_deduplicated.gene_abundances.tsv A0306_S11_L001_deduplicated.gene_abundances.tsv A0219_S142_L002_deduplicated.gene_abundances.tsv A0334_S93_L001_deduplicated.gene_abundances.tsv A0023_S184_L002_deduplicated.gene_abundances.tsv A0051_S178_L002_deduplicated.gene_abundances.tsv A0356_S69_L001_deduplicated.gene_abundances.tsv A0346_S81_L001_deduplicated.gene_abundances.tsv A0121_S163_L002_deduplicated.gene_abundances.tsv A0008_S140_L002_deduplicated.gene_abundances.tsv A0205_S145_L002_deduplicated.gene_abundances.tsv A0001_S121_L002_deduplicated.gene_abundances.tsv A0149_S157_L002_deduplicated.gene_abundances.tsv A0326_S30_L001_deduplicated.gene_abundances.tsv RA1856_WB_D-14_S5_deduplicated.gene_abundances.tsv A0362_S63_L001_deduplicated.gene_abundances.tsv A0310_S46_L001_deduplicated.gene_abundances.tsv RA0449_PBMC_D003_S8_deduplicated.gene_abundances.tsv A0253_S22_L001_deduplicated.gene_abundances.tsv A0022_S185_L002_deduplicated.gene_abundances.tsv NTC_H2O-H3_S49_L001_deduplicated.gene_abundances.tsv A0327_S29_L001_deduplicated.gene_abundances.tsv A0299_S191_L002_deduplicated.gene_abundances.tsv A0305_S12_L001_deduplicated.gene_abundances.tsv A0324_S32_L001_deduplicated.gene_abundances.tsv A0064_S176_L002_deduplicated.gene_abundances.tsv A0092_S170_L002_deduplicated.gene_abundances.tsv A0079_S172_L002_deduplicated.gene_abundances.tsv A0331_S96_L001_deduplicated.gene_abundances.tsv A0099_S114_L002_deduplicated.gene_abundances.tsv A0267_S21_L001_deduplicated.gene_abundances.tsv A0373_S52_L001_deduplicated.gene_abundances.tsv A0318_S38_L001_deduplicated.gene_abundances.tsv A0371_S54_L001_deduplicated.gene_abundances.tsv A0317_S39_L001_deduplicated.gene_abundances.tsv A0276_S127_L002_deduplicated.gene_abundances.tsv A0050_S179_L002_deduplicated.gene_abundances.tsv A0136_S159_L002_deduplicated.gene_abundances.tsv A0336_S91_L001_deduplicated.gene_abundances.tsv A0322_S34_L001_deduplicated.gene_abundances.tsv A0323_S33_L001_deduplicated.gene_abundances.tsv A0357_S68_L001_deduplicated.gene_abundances.tsv A0176_S152_L002_deduplicated.gene_abundances.tsv A0094_S168_L002_deduplicated.gene_abundances.tsv A0106_S167_L002_deduplicated.gene_abundances.tsv H2O_KFF_S3_L001_deduplicated.gene_abundances.tsv A0218_S143_L002_deduplicated.gene_abundances.tsv A0290_S124_L002_deduplicated.gene_abundances.tsv RA0717_PBMC_D004_S9_deduplicated.gene_abundances.tsv A0281_S20_L001_deduplicated.gene_abundances.tsv RA0452-D005_S7_L001_deduplicated.gene_abundances.tsv A0197_S107_L002_deduplicated.gene_abundances.tsv H2O_KFF-190812_S14_deduplicated.gene_abundances.tsv A0339_S88_L001_deduplicated.gene_abundances.tsv A0332_S95_L001_deduplicated.gene_abundances.tsv A0206_S144_L002_deduplicated.gene_abundances.tsv H2O_LC-190814_S15_deduplicated.gene_abundances.tsv A0178_S150_L002_deduplicated.gene_abundances.tsv RA1803-Liver_S12_deduplicated.gene_abundances.tsv A0359_S66_L001_deduplicated.gene_abundances.tsv A0225_S24_L001_deduplicated.gene_abundances.tsv A0298_S192_L002_deduplicated.gene_abundances.tsv A0134_S161_L002_deduplicated.gene_abundances.tsv A0122_S162_L002_deduplicated.gene_abundances.tsv A0361_S64_L001_deduplicated.gene_abundances.tsv A0335_S92_L001_deduplicated.gene_abundances.tsv A0211_S106_L002_deduplicated.gene_abundances.tsv H2O_QIA_S97_L002_deduplicated.gene_abundances.tsv NTC_H2O-J2_S123_L002_deduplicated.gene_abundances.tsv A0239_S23_L001_deduplicated.gene_abundances.tsv A0344_S83_L001_deduplicated.gene_abundances.tsv A0351_S76_L001_deduplicated.gene_abundances.tsv A0329_S27_L001_deduplicated.gene_abundances.tsv A0191_S148_L002_deduplicated.gene_abundances.tsv A0320_S36_L001_deduplicated.gene_abundances.tsv A0355_S70_L001_deduplicated.gene_abundances.tsv RA1779-Liver_S7_deduplicated.gene_abundances.tsv A0301_S189_L002_deduplicated.gene_abundances.tsv A0328_S28_L001_deduplicated.gene_abundances.tsv A0313_S43_L001_deduplicated.gene_abundances.tsv RA1074-D006_S6_L001_deduplicated.gene_abundances.tsv A0024_S183_L002_deduplicated.gene_abundances.tsv A0309_S10_L001_deduplicated.gene_abundances.tsv A0311_S45_L001_deduplicated.gene_abundances.tsv RA1082-Blood-BL_S5_deduplicated.gene_abundances.tsv A0365_S60_L001_deduplicated.gene_abundances.tsv NTC-H2O-H1_S73_L001_deduplicated.gene_abundances.tsv A0338_S89_L001_deduplicated.gene_abundances.tsv A0337_S90_L001_deduplicated.gene_abundances.tsv A0352_S75_L001_deduplicated.gene_abundances.tsv A0036_S182_L002_deduplicated.gene_abundances.tsv A0093_S169_L002_deduplicated.gene_abundances.tsv A0066_S174_L002_deduplicated.gene_abundances.tsv A0341_S86_L001_deduplicated.gene_abundances.tsv A0261_S131_L002_deduplicated.gene_abundances.tsv RA1082-Blood-D0_S4_deduplicated.gene_abundances.tsv A0369_S56_L001_deduplicated.gene_abundances.tsv A0192_S147_L002_deduplicated.gene_abundances.tsv A0368_S57_L001_deduplicated.gene_abundances.tsv A0348_S79_L001_deduplicated.gene_abundances.tsv A0275_S128_L002_deduplicated.gene_abundances.tsv A0374_S51_L001_deduplicated.gene_abundances.tsv A0163_S154_L002_deduplicated.gene_abundances.tsv A0164_S153_L002_deduplicated.gene_abundances.tsv A0233_S137_L002_deduplicated.gene_abundances.tsv A0308_S47_L001_deduplicated.gene_abundances.tsv A0347_S80_L001_deduplicated.gene_abundances.tsv A0370_S55_L001_deduplicated.gene_abundances.tsv A0057_S117_L002_deduplicated.gene_abundances.tsv A0065_S175_L002_deduplicated.gene_abundances.tsv A0260_S132_L002_deduplicated.gene_abundances.tsv expression_dir
+  Rscript 02_filterExpressed.R expression_dir prefilter_candidates.gtf candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  FATAL: kernel too old
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/22/21a23fcf89f0e1b3e39a6cb9a6211c
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+Oops .. something went wrong
+
+executor >  local (208)
+[07/9e04a1] process > expression_stringtie [100%] 207 of 207 ✔
+[22/21a23f] process > filterExpression     [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'filterExpression'
+
+Caused by:
+  Process `filterExpression` terminated with an error exit status (127)
+
+Command executed:
+
+  mkdir expression_dir
+  mv NTC_H2O-M2_S18_L001_deduplicated.gene_abundances.tsv H2O_LC_S98_L002_deduplicated.gene_abundances.tsv NTC_H2O-M1_S122_L002_deduplicated.gene_abundances.tsv A0364_S61_L001_deduplicated.gene_abundances.tsv A0366_S59_L001_deduplicated.gene_abundances.tsv RA1818-Blood-D6-NEC_S1_deduplicated.gene_abundances.tsv NTC_H2O-I1_S186_L002_deduplicated.gene_abundances.tsv A0190_S149_L002_deduplicated.gene_abundances.tsv A0358_S67_L001_deduplicated.gene_abundances.tsv RA0717-D004_S104_L002_deduplicated.gene_abundances.tsv A0363_S62_L001_deduplicated.gene_abundances.tsv A0314_S42_L001_deduplicated.gene_abundances.tsv A0321_S35_L001_deduplicated.gene_abundances.tsv RA0452_PBMC_D005_S10_deduplicated.gene_abundances.tsv H2O_QIA-190813_S16_deduplicated.gene_abundances.tsv A0038_S180_L002_deduplicated.gene_abundances.tsv A0262_S130_L002_deduplicated.gene_abundances.tsv A0071_S116_L002_deduplicated.gene_abundances.tsv A0246_S135_L002_deduplicated.gene_abundances.tsv RA1325-D006_S5_L001_deduplicated.gene_abundances.tsv A0330_S26_L001_deduplicated.gene_abundances.tsv A0078_S173_L002_deduplicated.gene_abundances.tsv A0085_S115_L002_deduplicated.gene_abundances.tsv A0350_S77_L001_deduplicated.gene_abundances.tsv RA0700-Liver_S9_deduplicated.gene_abundances.tsv A0274_S129_L002_deduplicated.gene_abundances.tsv NTC_H2O-B1_S17_L001_deduplicated.gene_abundances.tsv A0113_S113_L002_deduplicated.gene_abundances.tsv A0316_S40_L001_deduplicated.gene_abundances.tsv NTC_H2O-H2_S72_L001_deduplicated.gene_abundances.tsv A0010_S19_L001_deduplicated.gene_abundances.tsv A0354_S71_L001_deduplicated.gene_abundances.tsv A0312_S44_L001_deduplicated.gene_abundances.tsv RA1856_WB_D000_S6_deduplicated.gene_abundances.tsv A0169_S109_L002_deduplicated.gene_abundances.tsv RA1325_PBMC_D006_S12_deduplicated.gene_abundances.tsv A0372_S53_L001_deduplicated.gene_abundances.tsv RA1819_WB_D-28_S1_deduplicated.gene_abundances.tsv A0043_S118_L002_deduplicated.gene_abundances.tsv A0220_S141_L002_deduplicated.gene_abundances.tsv A0029_S119_L002_deduplicated.gene_abundances.tsv A0148_S158_L002_deduplicated.gene_abundances.tsv RA0717-Liver_S10_deduplicated.gene_abundances.tsv A0009_S139_L002_deduplicated.gene_abundances.tsv RA1803-D006_S4_L001_deduplicated.gene_abundances.tsv A0325_S31_L001_deduplicated.gene_abundances.tsv A0162_S155_L002_deduplicated.gene_abundances.tsv A0135_S160_L002_deduplicated.gene_abundances.tsv A0052_S177_L002_deduplicated.gene_abundances.tsv A0155_S110_L002_deduplicated.gene_abundances.tsv A0303_S187_L002_deduplicated.gene_abundances.tsv RA0700-Blood-D7-NEC_S2_deduplicated.gene_abundances.tsv RA0850-Liver_S11_deduplicated.gene_abundances.tsv A0353_S74_L001_deduplicated.gene_abundances.tsv RA1819_WB_D-14_S2_deduplicated.gene_abundances.tsv A0342_S85_L001_deduplicated.gene_abundances.tsv A0289_S125_L002_deduplicated.gene_abundances.tsv RA0449-D003_S105_L002_deduplicated.gene_abundances.tsv RA1819_WB_D000_S3_deduplicated.gene_abundances.tsv A0360_S65_L001_deduplicated.gene_abundances.tsv A0319_S37_L001_deduplicated.gene_abundances.tsv A0248_S133_L002_deduplicated.gene_abundances.tsv A0288_S126_L002_deduplicated.gene_abundances.tsv A0234_S136_L002_deduplicated.gene_abundances.tsv A0247_S134_L002_deduplicated.gene_abundances.tsv A0080_S171_L002_deduplicated.gene_abundances.tsv A0315_S41_L001_deduplicated.gene_abundances.tsv A0349_S78_L001_deduplicated.gene_abundances.tsv A0108_S165_L002_deduplicated.gene_abundances.tsv A0295_S16_L001_deduplicated.gene_abundances.tsv A0204_S146_L002_deduplicated.gene_abundances.tsv A0177_S151_L002_deduplicated.gene_abundances.tsv A0300_S190_L002_deduplicated.gene_abundances.tsv A0307_S48_L001_deduplicated.gene_abundances.tsv A0150_S156_L002_deduplicated.gene_abundances.tsv RA0700-Blood-BL_S3_deduplicated.gene_abundances.tsv A0304_S13_L001_deduplicated.gene_abundances.tsv A0107_S166_L002_deduplicated.gene_abundances.tsv RA1856_WB_D-28_S4_deduplicated.gene_abundances.tsv NTC_H2O-G1_S25_L001_deduplicated.gene_abundances.tsv RA1074_PBMC_D006_S11_deduplicated.gene_abundances.tsv A0037_S181_L002_deduplicated.gene_abundances.tsv A0375_S50_L001_deduplicated.gene_abundances.tsv RA0223-Liver_S8_deduplicated.gene_abundances.tsv A0297_S14_L001_deduplicated.gene_abundances.tsv RA1803_PBMC_D006_S13_deduplicated.gene_abundances.tsv A0340_S87_L001_deduplicated.gene_abundances.tsv A0232_S138_L002_deduplicated.gene_abundances.tsv A0120_S164_L002_deduplicated.gene_abundances.tsv A0183_S108_L002_deduplicated.gene_abundances.tsv A0127_S112_L002_deduplicated.gene_abundances.tsv A0345_S82_L001_deduplicated.gene_abundances.tsv A0141_S111_L002_deduplicated.gene_abundances.tsv A0367_S58_L001_deduplicated.gene_abundances.tsv RA0223_PBMC_D003_S7_deduplicated.gene_abundances.tsv A0302_S188_L002_deduplicated.gene_abundances.tsv A0015_S120_L002_deduplicated.gene_abundances.tsv A0306_S11_L001_deduplicated.gene_abundances.tsv A0219_S142_L002_deduplicated.gene_abundances.tsv A0334_S93_L001_deduplicated.gene_abundances.tsv A0023_S184_L002_deduplicated.gene_abundances.tsv A0051_S178_L002_deduplicated.gene_abundances.tsv A0356_S69_L001_deduplicated.gene_abundances.tsv A0346_S81_L001_deduplicated.gene_abundances.tsv A0121_S163_L002_deduplicated.gene_abundances.tsv A0008_S140_L002_deduplicated.gene_abundances.tsv A0205_S145_L002_deduplicated.gene_abundances.tsv A0001_S121_L002_deduplicated.gene_abundances.tsv A0149_S157_L002_deduplicated.gene_abundances.tsv A0326_S30_L001_deduplicated.gene_abundances.tsv RA1856_WB_D-14_S5_deduplicated.gene_abundances.tsv A0362_S63_L001_deduplicated.gene_abundances.tsv A0310_S46_L001_deduplicated.gene_abundances.tsv RA0449_PBMC_D003_S8_deduplicated.gene_abundances.tsv A0253_S22_L001_deduplicated.gene_abundances.tsv A0022_S185_L002_deduplicated.gene_abundances.tsv NTC_H2O-H3_S49_L001_deduplicated.gene_abundances.tsv A0327_S29_L001_deduplicated.gene_abundances.tsv A0299_S191_L002_deduplicated.gene_abundances.tsv A0305_S12_L001_deduplicated.gene_abundances.tsv A0324_S32_L001_deduplicated.gene_abundances.tsv A0064_S176_L002_deduplicated.gene_abundances.tsv A0092_S170_L002_deduplicated.gene_abundances.tsv A0079_S172_L002_deduplicated.gene_abundances.tsv A0331_S96_L001_deduplicated.gene_abundances.tsv A0099_S114_L002_deduplicated.gene_abundances.tsv A0267_S21_L001_deduplicated.gene_abundances.tsv A0373_S52_L001_deduplicated.gene_abundances.tsv A0318_S38_L001_deduplicated.gene_abundances.tsv A0371_S54_L001_deduplicated.gene_abundances.tsv A0317_S39_L001_deduplicated.gene_abundances.tsv A0276_S127_L002_deduplicated.gene_abundances.tsv A0050_S179_L002_deduplicated.gene_abundances.tsv A0136_S159_L002_deduplicated.gene_abundances.tsv A0336_S91_L001_deduplicated.gene_abundances.tsv A0322_S34_L001_deduplicated.gene_abundances.tsv A0323_S33_L001_deduplicated.gene_abundances.tsv A0357_S68_L001_deduplicated.gene_abundances.tsv A0176_S152_L002_deduplicated.gene_abundances.tsv A0094_S168_L002_deduplicated.gene_abundances.tsv A0106_S167_L002_deduplicated.gene_abundances.tsv H2O_KFF_S3_L001_deduplicated.gene_abundances.tsv A0218_S143_L002_deduplicated.gene_abundances.tsv A0290_S124_L002_deduplicated.gene_abundances.tsv RA0717_PBMC_D004_S9_deduplicated.gene_abundances.tsv A0281_S20_L001_deduplicated.gene_abundances.tsv RA0452-D005_S7_L001_deduplicated.gene_abundances.tsv A0197_S107_L002_deduplicated.gene_abundances.tsv H2O_KFF-190812_S14_deduplicated.gene_abundances.tsv A0339_S88_L001_deduplicated.gene_abundances.tsv A0332_S95_L001_deduplicated.gene_abundances.tsv A0206_S144_L002_deduplicated.gene_abundances.tsv H2O_LC-190814_S15_deduplicated.gene_abundances.tsv A0178_S150_L002_deduplicated.gene_abundances.tsv RA1803-Liver_S12_deduplicated.gene_abundances.tsv A0359_S66_L001_deduplicated.gene_abundances.tsv A0225_S24_L001_deduplicated.gene_abundances.tsv A0298_S192_L002_deduplicated.gene_abundances.tsv A0134_S161_L002_deduplicated.gene_abundances.tsv A0122_S162_L002_deduplicated.gene_abundances.tsv A0361_S64_L001_deduplicated.gene_abundances.tsv A0335_S92_L001_deduplicated.gene_abundances.tsv A0211_S106_L002_deduplicated.gene_abundances.tsv H2O_QIA_S97_L002_deduplicated.gene_abundances.tsv NTC_H2O-J2_S123_L002_deduplicated.gene_abundances.tsv A0239_S23_L001_deduplicated.gene_abundances.tsv A0344_S83_L001_deduplicated.gene_abundances.tsv A0351_S76_L001_deduplicated.gene_abundances.tsv A0329_S27_L001_deduplicated.gene_abundances.tsv A0191_S148_L002_deduplicated.gene_abundances.tsv A0320_S36_L001_deduplicated.gene_abundances.tsv A0355_S70_L001_deduplicated.gene_abundances.tsv RA1779-Liver_S7_deduplicated.gene_abundances.tsv A0301_S189_L002_deduplicated.gene_abundances.tsv A0328_S28_L001_deduplicated.gene_abundances.tsv A0313_S43_L001_deduplicated.gene_abundances.tsv RA1074-D006_S6_L001_deduplicated.gene_abundances.tsv A0024_S183_L002_deduplicated.gene_abundances.tsv A0309_S10_L001_deduplicated.gene_abundances.tsv A0311_S45_L001_deduplicated.gene_abundances.tsv RA1082-Blood-BL_S5_deduplicated.gene_abundances.tsv A0365_S60_L001_deduplicated.gene_abundances.tsv NTC-H2O-H1_S73_L001_deduplicated.gene_abundances.tsv A0338_S89_L001_deduplicated.gene_abundances.tsv A0337_S90_L001_deduplicated.gene_abundances.tsv A0352_S75_L001_deduplicated.gene_abundances.tsv A0036_S182_L002_deduplicated.gene_abundances.tsv A0093_S169_L002_deduplicated.gene_abundances.tsv A0066_S174_L002_deduplicated.gene_abundances.tsv A0341_S86_L001_deduplicated.gene_abundances.tsv A0261_S131_L002_deduplicated.gene_abundances.tsv RA1082-Blood-D0_S4_deduplicated.gene_abundances.tsv A0369_S56_L001_deduplicated.gene_abundances.tsv A0192_S147_L002_deduplicated.gene_abundances.tsv A0368_S57_L001_deduplicated.gene_abundances.tsv A0348_S79_L001_deduplicated.gene_abundances.tsv A0275_S128_L002_deduplicated.gene_abundances.tsv A0374_S51_L001_deduplicated.gene_abundances.tsv A0163_S154_L002_deduplicated.gene_abundances.tsv A0164_S153_L002_deduplicated.gene_abundances.tsv A0233_S137_L002_deduplicated.gene_abundances.tsv A0308_S47_L001_deduplicated.gene_abundances.tsv A0347_S80_L001_deduplicated.gene_abundances.tsv A0370_S55_L001_deduplicated.gene_abundances.tsv A0057_S117_L002_deduplicated.gene_abundances.tsv A0065_S175_L002_deduplicated.gene_abundances.tsv A0260_S132_L002_deduplicated.gene_abundances.tsv expression_dir
+  Rscript 02_filterExpressed.R expression_dir prefilter_candidates.gtf candidates.gtf
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  FATAL: kernel too old
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/22/21a23fcf89f0e1b3e39a6cb9a6211c
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+------------------------------------------------------------
+Sender: LSF System <perf@s01r1b11>
+Subject: Job 1885361: <NextflowannotationPipeline> in cluster <mn3> Exited
+
+Job <NextflowannotationPipeline> was submitted from host <login1> by user <bsc83024> in cluster <mn3>.
+Job was executed on host(s) <s01r1b11>, in queue <sequential>, as user <bsc83024> in cluster <mn3>.
+</home/bsc83/bsc83024> was used as the home directory.
+</gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/00_Nord3/.> was used as the working directory.
+Started at Sun Oct 11 10:10:18 2020
+Results reported on Sun Oct 11 12:19:24 2020
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf                 -w /gpfs/projects/bsc83/Data/Ebola/work/                   -c ../configs/nextflow.config.01b_filter.config
+
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time :               7901.59 sec.
+    Max Memory :             1783 MB
+    Average Memory :         1286.15 MB
+    Total Requested Memory : 1750.00 MB
+    Delta Memory :           -33.00 MB
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          148
+    Max Threads :            333
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file <err/Nextflow-1885361.err> for stderr output of this job.
+

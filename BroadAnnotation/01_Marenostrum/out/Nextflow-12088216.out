@@ -1,0 +1,33 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/04_benchmark_n_samples.nf` [cheeky_hypatia] - revision: 5c94fe228e
+WARN: There's no process matching config selector: stringtie
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+[tissue_effect, 02_spleen_wholeblood_lymphnode, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/02_spleen_wholeblood_lymphnode]
+[tissue_effect, 01_spleen_wholeblood, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/01_spleen_wholeblood]
+[tissue_effect, 00_spleen, /gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/benchmark_subsets/tissue_effect/00_spleen]
+executor >  local (3)
+[52/33a57d] process > StringTie_Merge_Reference_Guided [  0%] 0 of 3
+
+executor >  local (4)
+[52/33a57d] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[dd/b6b319] process > gffCompare2                      [  0%] 0 of 1
+
+executor >  local (4)
+[52/33a57d] process > StringTie_Merge_Reference_Guided [ 33%] 1 of 3
+[dd/b6b319] process > gffCompare2                      [100%] 1 of 1
+
+executor >  local (4)
+[eb/d85448] process > StringTie_Merge_Reference_Guided [ 67%] 2 of 3
+[dd/b6b319] process > gffCompare2                      [100%] 1 of 1
+
+executor >  local (4)
+[57/2de8f6] process > StringTie_Merge_Reference_Guided [100%] 3 of 3 ✔
+[dd/b6b319] process > gffCompare2                      [100%] 1 of 1 ✔
+Completed at: 22-Oct-2020 17:44:40
+Duration    : 4m 5s
+CPU hours   : 0.1
+Succeeded   : 4
+

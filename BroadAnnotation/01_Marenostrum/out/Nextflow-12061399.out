@@ -1,0 +1,43 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad_htseq.nf` [elegant_lalande] - revision: e5c07f2b66
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+executor >  local (2)
+[a0/9409ab] process > stringtie [  0%] 0 of 2
+
+executor >  local (48)
+[24/5ae65a] process > stringtie [  0%] 0 of 48
+Oops .. something went wrong
+
+executor >  local (49)
+[e8/623a5a] process > stringtie [100%] 49 of 49, failed: 49
+WARN: Killing pending tasks (40)
+ERROR ~ Error executing process > 'stringtie (38)'
+
+Caused by:
+  Process `stringtie (38)` terminated with an error exit status (1)
+
+Command executed:
+
+  htseq-count RA1819_WB_D-28_S1_deduplicated.bam prefilter_candidates.gtf
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  Error occured when processing GFF file (line 5 of file prefilter_candidates.gtf):
+    Feature MSTRG.5 at chr1:[603,1530)/. does not have strand information but you are running htseq-count in stranded mode. Use '--stranded=no'.
+    [Exception type: ValueError, raised in count.py:81]
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/79/722f544c6f53e976e8c03bb39601ea
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details

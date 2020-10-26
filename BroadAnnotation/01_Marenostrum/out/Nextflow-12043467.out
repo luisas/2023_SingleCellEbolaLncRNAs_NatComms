@@ -1,0 +1,225 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/05_requantify_broad.nf` [soggy_heisenberg] - revision: d74104da58
+WARN: There's no process matching config selector: runRSeQC
+==============================================
+Merge stringtie assemblies and perform prediction
+==============================================
+WARN: The `into` operator should be used to connect two or more target channels -- consider to replace it with `.set { bams }`
+WARN: Input `set` must define at least two component -- Check process `stringtie`
+executor >  local (23)
+[f6/3e666b] process > stringtie [  0%] 0 of 23
+
+executor >  local (48)
+[94/8ec10f] process > stringtie [  0%] 0 of 48
+
+executor >  local (49)
+[e6/212404] process > stringtie [  0%] 0 of 49
+
+executor >  local (49)
+[21/16fdbb] process > stringtie [  2%] 1 of 49
+
+executor >  local (51)
+[fd/2affdd] process > stringtie [  6%] 3 of 51
+
+executor >  local (52)
+[18/a8f9f1] process > stringtie [  8%] 4 of 52
+
+executor >  local (53)
+[ad/6dd32f] process > stringtie [  9%] 5 of 53
+
+executor >  local (54)
+[ad/40833a] process > stringtie [ 11%] 6 of 54
+
+executor >  local (55)
+[04/21d204] process > stringtie [ 13%] 7 of 55
+
+executor >  local (56)
+[4f/a97364] process > stringtie [ 14%] 8 of 56
+
+executor >  local (57)
+[ad/6dd32f] process > stringtie [ 16%] 9 of 57
+
+executor >  local (58)
+[04/0f6565] process > stringtie [ 17%] 10 of 58
+
+executor >  local (59)
+[fd/2affdd] process > stringtie [ 19%] 11 of 59
+
+executor >  local (60)
+[d9/d734ec] process > stringtie [ 20%] 12 of 60
+
+executor >  local (61)
+[4b/04083a] process > stringtie [ 21%] 13 of 61
+
+executor >  local (62)
+[2a/737b48] process > stringtie [ 23%] 14 of 62
+
+executor >  local (63)
+[59/b1596e] process > stringtie [ 24%] 15 of 63
+
+executor >  local (64)
+[59/b1596e] process > stringtie [ 25%] 16 of 64
+
+executor >  local (65)
+[47/564394] process > stringtie [ 26%] 17 of 65
+Oops .. something went wrong
+
+executor >  local (66)
+[5a/8c292c] process > stringtie [ 32%] 21 of 66, failed: 4
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'stringtie (56)'
+
+Caused by:
+  Process `stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G prefilter_candidates.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/b1/fc733141bc5b5b3041e63264ff9d07
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (66)
+[c5/93f04c] process > stringtie [ 56%] 37 of 66, failed: 20
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'stringtie (56)'
+
+Caused by:
+  Process `stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G prefilter_candidates.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/b1/fc733141bc5b5b3041e63264ff9d07
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (66)
+[1a/a0bff6] process > stringtie [ 82%] 54 of 66, failed: 37
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'stringtie (56)'
+
+Caused by:
+  Process `stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G prefilter_candidates.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/b1/fc733141bc5b5b3041e63264ff9d07
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (66)
+[37/254248] process > stringtie [ 92%] 61 of 66, failed: 44
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'stringtie (56)'
+
+Caused by:
+  Process `stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G prefilter_candidates.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/b1/fc733141bc5b5b3041e63264ff9d07
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details
+
+executor >  local (66)
+[cd/2b1136] process > stringtie [100%] 66 of 66, failed: 49
+WARN: Killing pending tasks (48)
+ERROR ~ Error executing process > 'stringtie (56)'
+
+Caused by:
+  Process `stringtie (56)` terminated with an error exit status (1)
+
+Command executed:
+
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G prefilter_candidates.gtf A0134_S161_L002_deduplicated.bam.bai -A A0134_S161_L002_deduplicated.bam.gene_abundances.tsv
+  mv t_data.ctab A0134_S161_L002_deduplicated.bam_t_data.ctab
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: seccomp requested but not enabled, seccomp library is missing or too old
+  [samopen] no @SQ lines in the header.
+  [sam_read1] missing header? Abort!
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/b1/fc733141bc5b5b3041e63264ff9d07
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+
+ -- Check '.nextflow.log' file for details

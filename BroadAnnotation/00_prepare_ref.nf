@@ -76,7 +76,7 @@ process merge_annotations{
 * Convert GTF to BED
 */
 process convert_gtf_to_bed12{
-  storeDir "${params.output_dir_preliminary}/gene_annotations"
+  storeDir "${params.output_dir_preliminary}/gene_annotations/UCSC"
 
   input:
   file merged_annotation from merged_annotation_ch

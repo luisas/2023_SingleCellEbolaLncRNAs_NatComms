@@ -63,7 +63,7 @@ outfile <- args[4]
 
 #assembly <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
 #lnc_novel_compared_to_ref_file <- ("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
-#ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit_UCSC.gtf")
+#ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/gene_annotations/UCSC/rheMac10_EBOV-Kikwit_UCSC.gtf")
 #outfile <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list_CPC2/"
 # ------------------------------- INSPECT ----------------------------------
 assembly_stringtie <- assembly[assembly$source == "StringTie",]
@@ -126,6 +126,7 @@ print("After 3 ")
 transcript_length <- calc_transcript_length(assembly_stringtie_multiple_exons)
 short_transcripts_ids <- transcript_length[transcript_length$range < 200,]$transcript_id
 assembly_filtered <- assembly_stringtie_multiple_exons[!(assembly_stringtie_multiple_exons$transcript_id %in% short_transcripts_ids),]
+
 print("After filter 2:")
 length(unique(assembly_filtered$gene_id))
 length(unique(assembly_filtered$transcript_id))

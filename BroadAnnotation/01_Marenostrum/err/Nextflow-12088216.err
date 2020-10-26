@@ -1,0 +1,9 @@
+remove java/8u131 (PATH, MANPATH, JAVA_HOME, JAVA_ROOT, JAVA_BINDIR, SDK_HOME,
+JDK_HOME, JRE_HOME) 
+load java/8u131 (PATH, MANPATH, JAVA_HOME, JAVA_ROOT, JAVA_BINDIR, SDK_HOME,
+JDK_HOME, JRE_HOME) 
+Set INTEL compilers as MPI wrappers backend 
+remove nextflow/19.03.0 (PATH) 
+load nextflow/19.03.0 (PATH) 
+unload SINGULARITY/3.2.0 (PATH) 
+load SINGULARITY/3.2.0 (PATH) 

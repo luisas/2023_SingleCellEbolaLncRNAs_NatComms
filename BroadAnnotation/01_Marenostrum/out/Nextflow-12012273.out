@@ -1,0 +1,1244 @@
+N E X T F L O W  ~  version 19.03.0-edge
+Launching `/gpfs/projects/bsc83/Projects/Ebola/code/ebola/BroadAnnotation/99_cpc2.nf` [stoic_austin] - revision: 15338e8b12
+WARN: There's no process matching config selector: gffCompare
+==============================================
+Quantification and Filtering
+==============================================
+WARN: Access to undefined parameter `mrnas_predicted` -- Initialise it to a default value eg. `params.mrnas_predicted = some_value`
+executor >  local (1)
+[e2/e1fe62] process > prefilter [  0%] 0 of 1
+
+executor >  local (2)
+[e2/e1fe62] process > prefilter           [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation [  0%] 0 of 1
+
+executor >  local (6)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[37/4be488] process > expression_stringtie [  0%] 0 of 4
+
+executor >  local (50)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0c/3b8f70] process > expression_stringtie [  0%] 0 of 48
+
+executor >  local (51)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[03/d8b4f8] process > expression_stringtie [  2%] 1 of 49
+
+executor >  local (52)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[97/63300e] process > expression_stringtie [  4%] 2 of 50
+
+executor >  local (53)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[99/520f8e] process > expression_stringtie [  6%] 3 of 51
+
+executor >  local (53)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a5/f074db] process > expression_stringtie [  8%] 4 of 51
+
+executor >  local (54)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5f/f88b29] process > expression_stringtie [  8%] 4 of 52
+
+executor >  local (55)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[4e/d6ac1c] process > expression_stringtie [  9%] 5 of 53
+
+executor >  local (56)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[04/f32230] process > expression_stringtie [ 11%] 6 of 54
+
+executor >  local (57)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e6/aceb6b] process > expression_stringtie [ 13%] 7 of 55
+
+executor >  local (58)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[b7/96cd76] process > expression_stringtie [ 14%] 8 of 56
+
+executor >  local (59)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f3/57657b] process > expression_stringtie [ 16%] 9 of 57
+
+executor >  local (60)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ad/50d535] process > expression_stringtie [ 17%] 10 of 58
+
+executor >  local (61)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[99/fc7925] process > expression_stringtie [ 19%] 11 of 59
+
+executor >  local (62)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e0/27f002] process > expression_stringtie [ 20%] 12 of 60
+
+executor >  local (63)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[23/a89f4a] process > expression_stringtie [ 21%] 13 of 61
+
+executor >  local (64)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ad/50d535] process > expression_stringtie [ 23%] 14 of 62
+
+executor >  local (65)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1e/dda1b0] process > expression_stringtie [ 24%] 15 of 63
+
+executor >  local (66)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[b3/4c6f6d] process > expression_stringtie [ 25%] 16 of 64
+
+executor >  local (67)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5e/7c798a] process > expression_stringtie [ 26%] 17 of 65
+
+executor >  local (68)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d3/828071] process > expression_stringtie [ 27%] 18 of 66
+
+executor >  local (69)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[45/2d1a5b] process > expression_stringtie [ 28%] 19 of 67
+
+executor >  local (70)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e3/d7a55a] process > expression_stringtie [ 29%] 20 of 68
+
+executor >  local (71)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[29/432225] process > expression_stringtie [ 30%] 21 of 69
+
+executor >  local (72)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[80/e8e791] process > expression_stringtie [ 31%] 22 of 70
+
+executor >  local (73)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2b/5e5283] process > expression_stringtie [ 32%] 23 of 71
+
+executor >  local (75)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[47/9829e5] process > expression_stringtie [ 34%] 25 of 73
+
+executor >  local (76)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[85/bf3ddf] process > expression_stringtie [ 35%] 26 of 74
+
+executor >  local (77)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[b8/a3f4d6] process > expression_stringtie [ 36%] 27 of 75
+
+executor >  local (78)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e1/12252b] process > expression_stringtie [ 37%] 28 of 76
+
+executor >  local (79)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[29/aabd5c] process > expression_stringtie [ 38%] 29 of 77
+
+executor >  local (81)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[22/7887e0] process > expression_stringtie [ 39%] 31 of 79
+
+executor >  local (82)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[34/2450b3] process > expression_stringtie [ 40%] 32 of 80
+
+executor >  local (83)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5b/16b459] process > expression_stringtie [ 41%] 33 of 81
+
+executor >  local (84)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[52/5c24e9] process > expression_stringtie [ 41%] 34 of 82
+
+executor >  local (86)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e1/956da5] process > expression_stringtie [ 43%] 36 of 84
+
+executor >  local (87)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[79/09ce4a] process > expression_stringtie [ 44%] 37 of 85
+
+executor >  local (88)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[81/0a1995] process > expression_stringtie [ 44%] 38 of 86
+
+executor >  local (89)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d1/cbe86b] process > expression_stringtie [ 45%] 39 of 87
+
+executor >  local (90)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[63/7a3fc0] process > expression_stringtie [ 45%] 40 of 88
+
+executor >  local (90)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[08/424099] process > expression_stringtie [ 47%] 41 of 88
+
+executor >  local (91)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d7/a8870c] process > expression_stringtie [ 46%] 41 of 89
+
+executor >  local (92)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[89/71bc76] process > expression_stringtie [ 47%] 42 of 90
+
+executor >  local (93)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[95/34b8c1] process > expression_stringtie [ 47%] 43 of 91
+
+executor >  local (94)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[69/f01dde] process > expression_stringtie [ 48%] 44 of 92
+
+executor >  local (95)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[69/d9bc81] process > expression_stringtie [ 48%] 45 of 93
+
+executor >  local (96)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a5/fe0979] process > expression_stringtie [ 49%] 46 of 94
+
+executor >  local (97)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[34/b2f59c] process > expression_stringtie [ 49%] 47 of 95
+
+executor >  local (98)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[03/112bd8] process > expression_stringtie [ 50%] 48 of 96
+
+executor >  local (99)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ab/6eda49] process > expression_stringtie [ 51%] 49 of 97
+
+executor >  local (100)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fb/53a19a] process > expression_stringtie [ 51%] 50 of 98
+
+executor >  local (101)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[41/21ea87] process > expression_stringtie [ 52%] 51 of 99
+
+executor >  local (102)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[cc/5caa5e] process > expression_stringtie [ 52%] 52 of 100
+
+executor >  local (103)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[64/5ddd09] process > expression_stringtie [ 52%] 53 of 101
+
+executor >  local (104)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0d/fbbb1b] process > expression_stringtie [ 53%] 54 of 102
+
+executor >  local (105)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[c6/959a6e] process > expression_stringtie [ 53%] 55 of 103
+
+executor >  local (106)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[64/a643cc] process > expression_stringtie [ 54%] 56 of 104
+
+executor >  local (107)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2f/57f57e] process > expression_stringtie [ 54%] 57 of 105
+
+executor >  local (108)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[58/6c42e0] process > expression_stringtie [ 55%] 58 of 106
+
+executor >  local (109)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[7d/c4ba63] process > expression_stringtie [ 55%] 59 of 107
+
+executor >  local (110)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[cc/f53692] process > expression_stringtie [ 56%] 60 of 108
+
+executor >  local (111)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[76/19c0db] process > expression_stringtie [ 56%] 61 of 109
+
+executor >  local (112)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ed/d7f734] process > expression_stringtie [ 56%] 62 of 110
+
+executor >  local (113)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[6d/e10fc8] process > expression_stringtie [ 57%] 63 of 111
+
+executor >  local (114)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[45/ded5cb] process > expression_stringtie [ 57%] 64 of 112
+
+executor >  local (115)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[78/e9dde8] process > expression_stringtie [ 58%] 65 of 113
+
+executor >  local (116)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[73/8e1bb9] process > expression_stringtie [ 58%] 66 of 114
+
+executor >  local (117)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f3/541b54] process > expression_stringtie [ 58%] 67 of 115
+
+executor >  local (118)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[19/a3415d] process > expression_stringtie [ 59%] 68 of 116
+
+executor >  local (119)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[78/68c4a6] process > expression_stringtie [ 59%] 69 of 117
+
+executor >  local (120)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e4/bb4af8] process > expression_stringtie [ 59%] 70 of 118
+
+executor >  local (121)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ab/a32e24] process > expression_stringtie [ 60%] 71 of 119
+
+executor >  local (122)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[77/04da68] process > expression_stringtie [ 60%] 72 of 120
+
+executor >  local (123)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[02/c403fe] process > expression_stringtie [ 60%] 73 of 121
+
+executor >  local (124)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f4/e9b887] process > expression_stringtie [ 61%] 74 of 122
+
+executor >  local (125)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[cb/23dbd5] process > expression_stringtie [ 61%] 75 of 123
+
+executor >  local (126)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[20/65f4fe] process > expression_stringtie [ 61%] 76 of 124
+
+executor >  local (127)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0a/23e626] process > expression_stringtie [ 62%] 77 of 125
+
+executor >  local (128)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[b4/7850c2] process > expression_stringtie [ 62%] 78 of 126
+
+executor >  local (129)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[da/c9d034] process > expression_stringtie [ 62%] 79 of 127
+
+executor >  local (130)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a8/fd54cd] process > expression_stringtie [ 63%] 80 of 128
+
+executor >  local (131)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ca/0d8531] process > expression_stringtie [ 63%] 81 of 129
+
+executor >  local (132)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[16/7793f9] process > expression_stringtie [ 63%] 82 of 130
+
+executor >  local (133)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[18/151c5f] process > expression_stringtie [ 63%] 83 of 131
+
+executor >  local (134)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[69/7f4a51] process > expression_stringtie [ 64%] 84 of 132
+
+executor >  local (135)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[23/9e1e61] process > expression_stringtie [ 64%] 85 of 133
+
+executor >  local (136)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[8b/8147e9] process > expression_stringtie [ 64%] 86 of 134
+
+executor >  local (137)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[8b/76c5b3] process > expression_stringtie [ 64%] 87 of 135
+
+executor >  local (138)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[17/81aca7] process > expression_stringtie [ 65%] 88 of 136
+
+executor >  local (139)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1f/6e3c90] process > expression_stringtie [ 65%] 89 of 137
+
+executor >  local (140)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[bb/bed3ea] process > expression_stringtie [ 65%] 90 of 138
+
+executor >  local (141)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[4d/a17b3c] process > expression_stringtie [ 65%] 91 of 139
+
+executor >  local (142)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a4/0bb99f] process > expression_stringtie [ 66%] 92 of 140
+
+executor >  local (143)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[cb/f3f901] process > expression_stringtie [ 66%] 93 of 141
+
+executor >  local (144)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[04/02acfe] process > expression_stringtie [ 66%] 94 of 142
+
+executor >  local (145)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[76/bed15e] process > expression_stringtie [ 66%] 95 of 143
+
+executor >  local (146)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f1/4a0ef8] process > expression_stringtie [ 67%] 96 of 144
+
+executor >  local (147)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[98/2a75ba] process > expression_stringtie [ 67%] 97 of 145
+
+executor >  local (148)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f5/06ce74] process > expression_stringtie [ 67%] 98 of 146
+
+executor >  local (149)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[16/9713aa] process > expression_stringtie [ 67%] 99 of 147
+
+executor >  local (149)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e4/bb4af8] process > expression_stringtie [ 68%] 100 of 147
+
+executor >  local (150)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[48/e58dd8] process > expression_stringtie [ 68%] 100 of 148
+
+executor >  local (151)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[75/7f6916] process > expression_stringtie [ 68%] 101 of 149
+
+executor >  local (152)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a8/7fc014] process > expression_stringtie [ 68%] 102 of 150
+
+executor >  local (153)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2b/6b22f2] process > expression_stringtie [ 68%] 103 of 151
+
+executor >  local (155)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[56/af3b53] process > expression_stringtie [ 69%] 105 of 153
+
+executor >  local (156)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[73/126b98] process > expression_stringtie [ 69%] 106 of 154
+
+executor >  local (157)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ed/ce5e40] process > expression_stringtie [ 69%] 107 of 155
+
+executor >  local (158)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[28/9729c3] process > expression_stringtie [ 69%] 108 of 156
+
+executor >  local (158)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[63/7a3fc0] process > expression_stringtie [ 70%] 109 of 156
+
+executor >  local (159)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[7c/4c0a06] process > expression_stringtie [ 69%] 109 of 157
+
+executor >  local (160)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[04/5d7a37] process > expression_stringtie [ 70%] 110 of 158
+
+executor >  local (161)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[4a/c81daf] process > expression_stringtie [ 70%] 111 of 159
+
+executor >  local (162)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d5/9fbc50] process > expression_stringtie [ 70%] 112 of 160
+
+executor >  local (163)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[39/d708b6] process > expression_stringtie [ 70%] 113 of 161
+
+executor >  local (164)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[e0/2702d5] process > expression_stringtie [ 70%] 114 of 162
+
+executor >  local (165)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d5/ca41d0] process > expression_stringtie [ 71%] 115 of 163
+
+executor >  local (166)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[f1/6a36f1] process > expression_stringtie [ 71%] 116 of 164
+
+executor >  local (167)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[34/7c226a] process > expression_stringtie [ 71%] 117 of 165
+
+executor >  local (168)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[be/dfb667] process > expression_stringtie [ 71%] 118 of 166
+
+executor >  local (169)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[05/9e5f38] process > expression_stringtie [ 71%] 119 of 167
+
+executor >  local (170)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[6e/d0eeeb] process > expression_stringtie [ 71%] 120 of 168
+
+executor >  local (171)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[51/276de1] process > expression_stringtie [ 72%] 121 of 169
+
+executor >  local (172)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[11/f04a30] process > expression_stringtie [ 72%] 122 of 170
+
+executor >  local (173)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[9a/575200] process > expression_stringtie [ 72%] 123 of 171
+
+executor >  local (174)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5c/c1655d] process > expression_stringtie [ 72%] 124 of 172
+
+executor >  local (175)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5d/4b2b84] process > expression_stringtie [ 72%] 125 of 173
+
+executor >  local (176)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d4/bab66c] process > expression_stringtie [ 72%] 126 of 174
+
+executor >  local (177)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0f/b61d3e] process > expression_stringtie [ 73%] 127 of 175
+
+executor >  local (178)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[57/25205f] process > expression_stringtie [ 73%] 128 of 176
+
+executor >  local (179)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[72/dd660f] process > expression_stringtie [ 73%] 129 of 177
+
+executor >  local (180)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[72/3d3ec9] process > expression_stringtie [ 73%] 130 of 178
+
+executor >  local (181)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[27/878450] process > expression_stringtie [ 73%] 131 of 179
+
+executor >  local (182)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[23/9e1e61] process > expression_stringtie [ 73%] 132 of 180
+
+executor >  local (183)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[55/6fedaa] process > expression_stringtie [ 73%] 133 of 181
+
+executor >  local (184)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[92/b434ca] process > expression_stringtie [ 74%] 134 of 182
+
+executor >  local (185)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0b/aeb0be] process > expression_stringtie [ 74%] 135 of 183
+
+executor >  local (187)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[56/7acf52] process > expression_stringtie [ 74%] 137 of 185
+
+executor >  local (188)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[c7/c77faa] process > expression_stringtie [ 74%] 138 of 186
+
+executor >  local (189)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[36/bdccd6] process > expression_stringtie [ 74%] 139 of 187
+
+executor >  local (190)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[30/24c83b] process > expression_stringtie [ 74%] 140 of 188
+
+executor >  local (191)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[44/d276d5] process > expression_stringtie [ 75%] 141 of 189
+
+executor >  local (192)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d9/f1f40b] process > expression_stringtie [ 75%] 142 of 190
+
+executor >  local (194)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1d/deca58] process > expression_stringtie [ 75%] 144 of 192
+
+executor >  local (195)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d0/9e8834] process > expression_stringtie [ 75%] 145 of 193
+
+executor >  local (196)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[07/39073d] process > expression_stringtie [ 75%] 146 of 194
+
+executor >  local (197)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[07/15e99f] process > expression_stringtie [ 75%] 147 of 195
+
+executor >  local (198)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1d/a0cc24] process > expression_stringtie [ 76%] 148 of 196
+
+executor >  local (198)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[05/9e5f38] process > expression_stringtie [ 76%] 149 of 196
+
+executor >  local (199)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ff/1eb6ac] process > expression_stringtie [ 76%] 149 of 197
+
+executor >  local (200)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[31/b08682] process > expression_stringtie [ 76%] 150 of 198
+
+executor >  local (201)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a0/09cef2] process > expression_stringtie [ 76%] 151 of 199
+
+executor >  local (202)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[9e/2cb20b] process > expression_stringtie [ 76%] 152 of 200
+
+executor >  local (203)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[09/55846e] process > expression_stringtie [ 76%] 153 of 201
+
+executor >  local (204)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ae/0ee523] process > expression_stringtie [ 76%] 154 of 202
+
+executor >  local (205)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[46/3f43d3] process > expression_stringtie [ 76%] 155 of 203
+
+executor >  local (206)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[12/a3ac17] process > expression_stringtie [ 76%] 156 of 204
+
+executor >  local (207)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a3/62a60a] process > expression_stringtie [ 77%] 157 of 205
+
+executor >  local (208)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[3e/6f500f] process > expression_stringtie [ 77%] 158 of 206
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [ 77%] 159 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[72/3d3ec9] process > expression_stringtie [ 77%] 160 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2b/6b22f2] process > expression_stringtie [ 78%] 161 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[16/7793f9] process > expression_stringtie [ 78%] 162 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1f/6e3c90] process > expression_stringtie [ 79%] 163 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[12/a3ac17] process > expression_stringtie [ 79%] 164 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[48/e58dd8] process > expression_stringtie [ 80%] 165 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[76/bed15e] process > expression_stringtie [ 80%] 166 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5c/c1655d] process > expression_stringtie [ 81%] 167 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[75/7f6916] process > expression_stringtie [ 81%] 168 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0f/b61d3e] process > expression_stringtie [ 82%] 169 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[6e/d0eeeb] process > expression_stringtie [ 82%] 170 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[56/af3b53] process > expression_stringtie [ 83%] 171 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[04/02acfe] process > expression_stringtie [ 83%] 172 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[04/5d7a37] process > expression_stringtie [ 84%] 173 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d5/9fbc50] process > expression_stringtie [ 84%] 174 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[36/bdccd6] process > expression_stringtie [ 85%] 175 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ae/0ee523] process > expression_stringtie [ 85%] 176 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[46/3f43d3] process > expression_stringtie [ 86%] 177 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[11/f04a30] process > expression_stringtie [ 86%] 178 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[be/dfb667] process > expression_stringtie [ 86%] 179 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d5/ca41d0] process > expression_stringtie [ 87%] 180 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[5d/4b2b84] process > expression_stringtie [ 87%] 181 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[39/d708b6] process > expression_stringtie [ 88%] 182 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[2e/762668] process > expression_stringtie [ 88%] 183 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d9/f1f40b] process > expression_stringtie [ 89%] 184 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a9/3ab4c6] process > expression_stringtie [ 89%] 185 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[55/6fedaa] process > expression_stringtie [ 90%] 186 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[9a/575200] process > expression_stringtie [ 91%] 188 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[09/55846e] process > expression_stringtie [ 91%] 189 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[c7/c77faa] process > expression_stringtie [ 92%] 190 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[51/276de1] process > expression_stringtie [ 92%] 191 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[31/b08682] process > expression_stringtie [ 93%] 192 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[07/15e99f] process > expression_stringtie [ 93%] 193 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[07/39073d] process > expression_stringtie [ 94%] 194 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a3/62a60a] process > expression_stringtie [ 94%] 195 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[30/24c83b] process > expression_stringtie [ 95%] 196 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[3e/6f500f] process > expression_stringtie [ 95%] 197 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[9e/2cb20b] process > expression_stringtie [ 96%] 198 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[7c/4c0a06] process > expression_stringtie [ 97%] 200 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[ff/1eb6ac] process > expression_stringtie [ 97%] 201 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[0b/aeb0be] process > expression_stringtie [ 98%] 202 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[44/d276d5] process > expression_stringtie [ 98%] 203 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[d0/9e8834] process > expression_stringtie [ 99%] 204 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[1d/a0cc24] process > expression_stringtie [ 99%] 205 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[a0/09cef2] process > expression_stringtie [100%] 206 of 207
+
+executor >  local (209)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+
+executor >  local (210)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [  0%] 0 of 1
+
+executor >  local (211)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [  0%] 0 of 1
+
+executor >  local (212)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [  0%] 0 of 1
+
+executor >  local (215)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [100%] 1 of 1 ✔
+[f6/a339d1] process > CNIT                 [  0%] 0 of 1
+[8f/5f4dfe] process > CPAT                 [  0%] 0 of 1
+[ee/84f324] process > CPC2                 [  0%] 0 of 1
+
+executor >  local (215)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [100%] 1 of 1 ✔
+[f6/a339d1] process > CNIT                 [  0%] 0 of 1
+[8f/5f4dfe] process > CPAT                 [  0%] 0 of 1
+[ee/84f324] process > CPC2                 [100%] 1 of 1 ✔
+
+executor >  local (215)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [100%] 1 of 1 ✔
+[f6/a339d1] process > CNIT                 [  0%] 0 of 1
+[8f/5f4dfe] process > CPAT                 [100%] 1 of 1 ✔
+[ee/84f324] process > CPC2                 [100%] 1 of 1 ✔
+
+executor >  local (216)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [100%] 1 of 1 ✔
+[f6/a339d1] process > CNIT                 [100%] 1 of 1 ✔
+[8f/5f4dfe] process > CPAT                 [100%] 1 of 1 ✔
+[ee/84f324] process > CPC2                 [100%] 1 of 1 ✔
+[5d/bef3fe] process > getFinalAnnotation   [  0%] 0 of 1
+Oops .. something went wrong
+
+executor >  local (216)
+[e2/e1fe62] process > prefilter            [100%] 1 of 1 ✔
+[0e/20ba44] process > mergeWithAnnotation  [100%] 1 of 1 ✔
+[fa/a6b2be] process > expression_stringtie [100%] 207 of 207 ✔
+[e3/6dafd5] process > filterExpression     [100%] 1 of 1 ✔
+[a1/f9a015] process > gtf2bed              [100%] 1 of 1 ✔
+[2f/417a0f] process > getFasta             [100%] 1 of 1 ✔
+[f6/a339d1] process > CNIT                 [100%] 1 of 1 ✔
+[8f/5f4dfe] process > CPAT                 [100%] 1 of 1 ✔
+[ee/84f324] process > CPC2                 [100%] 1 of 1 ✔
+[5d/bef3fe] process > getFinalAnnotation   [100%] 1 of 1, failed: 1 ✘
+ERROR ~ Error executing process > 'getFinalAnnotation (1)'
+
+Caused by:
+  Process `getFinalAnnotation (1)` terminated with an error exit status (1)
+
+Command executed:
+
+  Rscript 03_concordant_and_merge.R cpc2_pred.txt cpat_pred.ORF_prob.tsv CNCI2.index candidates.gtf rheMac10_EBOV-Kikwit_UCSC.gtf rheMac10_EBOV_and_novel.gtf rheMac10_EBOV_and_novel_genenames.gtf
+
+Command exit status:
+  1
+
+Command output:
+  [99856] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99859] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99862] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99865] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99868] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99871] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99874] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99877] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99880] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99883] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99886] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99889] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000008967.4"
+  [99892] "ENSMMUG00000008967.4" "ENSMMUG00000008967.4" "ENSMMUG00000063853.1"
+  [99895] "ENSMMUG00000063853.1" "ENSMMUG00000063853.1" "ENSMMUG00000058261.1"
+  [99898] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99901] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99904] "ENSMMUG00000058261.1" "ENSMMUG00000058261.1" "ENSMMUG00000058261.1"
+  [99907] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99910] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99913] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99916] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99919] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99922] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99925] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99928] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99931] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99934] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99937] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99940] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99943] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99946] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99949] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99952] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99955] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99958] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99961] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99964] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99967] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000017674.4"
+  [99970] "ENSMMUG00000017674.4" "ENSMMUG00000017674.4" "ENSMMUG00000051252.1"
+  [99973] "ENSMMUG00000051252.1" "ENSMMUG00000026815.3" "ENSMMUG00000026815.3"
+  [99976] "ENSMMUG00000050852.1" "ENSMMUG00000050852.1" "ENSMMUG00000021535.4"
+  [99979] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99982] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99985] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99988] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99991] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99994] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+  [99997] "ENSMMUG00000021535.4" "ENSMMUG00000021535.4" "ENSMMUG00000021535.4"
+   [ reached getOption("max.print") -- omitted 1300912 entries ]
+  [1] "---1 "
+
+Command error:
+      union, unique, unsplit, which, which.max, which.min
+  
+  Loading required package: S4Vectors
+  
+  Attaching package: ‘S4Vectors’
+  
+  The following object is masked from ‘package:base’:
+  
+      expand.grid
+  
+  Loading required package: IRanges
+  Loading required package: GenomeInfoDb
+  
+  Attaching package: ‘dplyr’
+  
+  The following objects are masked from ‘package:GenomicRanges’:
+  
+      intersect, setdiff, union
+  
+  The following object is masked from ‘package:GenomeInfoDb’:
+  
+      intersect
+  
+  The following objects are masked from ‘package:IRanges’:
+  
+      collapse, desc, intersect, setdiff, slice, union
+  
+  The following objects are masked from ‘package:S4Vectors’:
+  
+      first, intersect, rename, setdiff, setequal, union
+  
+  The following objects are masked from ‘package:BiocGenerics’:
+  
+      combine, intersect, setdiff, union
+  
+  The following objects are masked from ‘package:stats’:
+  
+      filter, lag
+  
+  The following objects are masked from ‘package:base’:
+  
+      intersect, setdiff, setequal, union
+  
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  `summarise()` ungrouping output (override with `.groups` argument)
+  Error in `[[<-`(`*tmp*`, name, value = "-unknown") : 
+    1 elements in value to replace 0 elements
+  Calls: $<- -> $<- -> [[<- -> [[<-
+  Execution halted
+
+Work dir:
+  /gpfs/projects/bsc83/Data/Ebola/work/5d/bef3fe8d01a2f76447b9129610c262
+
+Tip: when you have fixed the problem you can continue the execution appending to the nextflow command line the option `-resume`
+
+ -- Check '.nextflow.log' file for details

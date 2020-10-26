@@ -28,9 +28,7 @@ bed12_entry <- function(transcript){
   line <- data.frame(chrom, start, stop, name, score, strand, thickstart, thickend, rgb, blockcount, blocksizes, blockstarts)
   
   return(line)
-}
-
-# Read command line
+}# Read command line
 args = commandArgs(trailingOnly=TRUE)
 gtf <- args[1]
 output <- args[2]

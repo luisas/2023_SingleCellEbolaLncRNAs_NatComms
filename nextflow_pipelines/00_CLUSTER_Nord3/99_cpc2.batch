@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -J NextflowannotationPipeline
 #BSUB -cwd .
-#BSUB -W 48:01
+#BSUB -W 200:01
 #BSUB -e err/Nextflow-%J.err
 #BSUB -o out/Nextflow-%J.out
 
