@@ -42,9 +42,9 @@ mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
 
 ```{r cars}
 assembly_notstranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
-assembly_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
+assembly_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly_old//01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
 lnc_novel_compared_to_ref_notstranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
-lnc_novel_compared_to_ref_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
+lnc_novel_compared_to_ref_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly_old/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
 
 
 
@@ -73,9 +73,12 @@ df_classes_plot <- df_classes[df_classes$classcode %in% c("u", "x", "i"),]
 
 df_classes_plot_summarized <- df_classes_plot %>% group_by(stranded,classcode) %>% tally()
 
-ggplot(df_classes_plot_summarized, aes(x = stranded, y = n, fill = classcode))+geom_bar(stat="identity", color="black", position=position_dodge())+
+df_classes_plot_summarized <- df_classes_plot_summarized[df_classes_plot_summarized$classcode != "i",]
+
+
+ggplot(df_classes_plot_summarized, aes(x = stranded, y = n, fill = classcode))+geom_bar(stat="identity", position=position_dodge())+
       theme_paper+
-      scale_fill_brewer(palette="Set1")+
+      scale_fill_manual(values=c("orange","#994C00"),labels = c("Intergenic", "Antisense"))+
       xlab("")+ylab("")
 
 # How many more novel transcripts we identify 
@@ -99,6 +102,14 @@ df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon
 number_exons_stranded <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
 plot_assembly_stats(number_exons_stranded)
 
+
+df_number_exons_stranded <- data.frame(
+    group=c("1", "2", "3+"),
+    value=c(sum(number_exons_stranded$max_exon == 1),sum(number_exons_stranded$max_exon == 2),sum(number_exons_stranded$max_exon > 2))
+  )
+df_number_exons_stranded$source <- "Stranded"
+
+
 # How many monoexonic: NOT STRANDED
 mask_ux_notstranded <- lnc_novel_compared_to_ref_notstranded$class_code == "u" | lnc_novel_compared_to_ref_notstranded$class_code == "x" ;
 mask_ux_notstranded[is.na(mask_ux_notstranded)] <- FALSE
@@ -109,7 +120,11 @@ df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon
 number_exons_notstranded <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
 plot_assembly_stats(number_exons_notstranded)
 
-
+df_number_exons_Notstranded <- data.frame(
+    group=c("1", "2", "3+"),
+    value=c(sum(number_exons_notstranded$max_exon == 1),sum(number_exons_notstranded$max_exon == 2),sum(number_exons_notstranded$max_exon > 2))
+  )
+df_number_exons_Notstranded$source <- "Not Stranded"
 
 # Check how many we have
 
@@ -129,6 +144,16 @@ length(unique(monoexonic_ids))
 multiexonic <- our_novel[!(our_novel$transcript_id %in% monoexonic_ids),]
 length(unique(multiexonic$transcript_id))
 plot_assembly_stats(number_exons)
+
+
+df <- rbind(df_number_exons_Notstranded, df_number_exons_stranded)
+ggplot(df, aes(x = source, y = value, fill = group, colur = group))+geom_bar(stat="identity", 
+                                                                             position=position_dodge())+
+      theme_paper+
+      scale_fill_manual(name = "#Exons",values=viridis(3))+
+      xlab("")+ylab("")+theme(legend.title = element_text(size =14))
+
+
 ```
 
 

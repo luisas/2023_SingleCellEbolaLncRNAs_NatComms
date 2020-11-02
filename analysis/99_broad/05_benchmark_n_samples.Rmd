@@ -1,0 +1,408 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+```{r  a }
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer)
+library(dplyr)
+library(ggplot2)
+library(plyr)
+library(ggpubr)
+library(purrr)
+library(viridis)
+library(stringr)
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
+get_novel <- function(dir){
+  name <- rev(unlist(lapply(str_split(dir, "/")[[1]],function(x) x[nchar(x) >= 1])))[1]
+  assembly <- import(file.path(dir, "stringtie_merged_reference_guided.gtf"))
+  assembly_stringtie <- assembly[assembly$source == "Stringtie",]
+  gffcompare <- import(file.path(dir, "01_gffcompare/merged.annotated.gtf"))
+  novel_u <- gffcompare[gffcompare$class_code %in% c("u"), ]
+  novel_x <- gffcompare[gffcompare$class_code %in% c("x"), ]
+  type <- c("intergenic","antisense", "all")
+  n <- c(length(unique(novel_u$transcript_id)), length(unique(novel_x$transcript_id)), length(unique(novel_u$transcript_id))+length(unique(novel_x$transcript_id)))
+  df <- data.frame(name = name ,n =n,  type = type )
+  return(df)
+}
+
+```
+
+
+
+
+
+# Check effect of adding samples
+
+```{r effect }
+main <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/all")
+
+all_sample_effect <- do.call(rbind,(lapply(c(list.dirs(main, recursive = F)), function(x) get_novel(x))))
+all_sample_effect_red <-all_sample_effect
+all_sample_effect_red$name <- as.double(as.character(all_sample_effect$name))
+all_sample_effect_red$nsamples <- all_sample_effect_red$name * 10
+
+#saveRDS(all_sample_effect_red, "/home/luisas/Desktop/cluster/data/RObjects/all_sample_effect_red.rds")
+```
+
+```{r effect }
+ggplot(data=all_sample_effect_red, aes(x=nsamples, y=n, group=type, color=type)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+  scale_color_viridis(discrete = TRUE, option = "D")+
+  scale_fill_viridis(discrete = TRUE) 
+
+```
+
+# --------------------------------
+##     Tissue effect  
+# --------------------------------
+```{r cpc2}
+tissue <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/Tissue/")
+
+tissue_effect <- do.call(rbind,(lapply(c(list.dirs(tissue, recursive = F)), function(x) get_novel(x))))
+
+#saveRDS(tissue_effect, "/home/luisas/Desktop/cluster/data/RObjects/tissue_effect.rds")
+
+tissue_effect$name <- as.character(tissue_effect$name)
+
+x <- "00_aa_bb_12"
+
+
+tissue_effect$group <- unlist(lapply(tissue_effect$name, function(x) paste(str_split(x, "_")[[1]][1:(length(str_split(x, "_")[[1]])-1)], collapse = "_")))
+tissue_effect_all <- tissue_effect[tissue_effect$type == "all",]
+tissue_effect_all$nsamples<- unlist(lapply(tissue_effect_all$name, function(x) rev(str_split(x, "_")[[1]])[1]))
+tissue_effect_all$nsamples <- as.double(as.character(tissue_effect_all$nsamples))
+
+table(tissue_effect_all$group)
+
+
+
+palette <- c("#ecc6ec", "purple", "#602060", "#ff4d4d", "#cc0000", "#800000", "#0066ff")
+
+# Only one tissue
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00", "01", "02"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette)
+
+
+# All 
+
+ggplot(data=tissue_effect_all, aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette)
+
+# ------------------------------------
+# LymphNode
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("02"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(3,5,6,7)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("02", "04", "05"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(3,5,6,7)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("02", "04", "05","06"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(3,5,6,7)])+ylim(0,30000)+xlim(0,125)
+
+
+# ------------------------------------
+
+
+# ------------------------------------
+# wholeblood
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5,7)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00", "03", "04"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5,7)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00", "03", "04","06"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5,7)])+ylim(0,30000)+xlim(0,125)
+
+
+# ------------------------------------
+
+
+
+# ------------------------------------
+# spleen
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("01"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(2,5,6,8)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("01", "03", "05"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(2,4,6,8)])+ylim(0,30000)+xlim(0,125)
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("01",  "03", "05", "06"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(2,4,6,7)])+ylim(0,30000)+xlim(0,125)
+
+
+# ------------------------------------
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00", "03", "04", "06"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5,7)])
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00", "03", "04"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5)])
+
+
+ggplot(data=tissue_effect_all[substr(tissue_effect_all$name, 1,2) %in% c("00"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",3),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = palette[c(1,4,5)])
+
+
+```
+
+
+
+# --------------------------------
+##     Infection effect  
+# --------------------------------
+```{r cpc2}
+infection <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/Infection/")
+
+infection_effect <- do.call(rbind,(lapply(c(list.dirs(infection, recursive = F)), function(x) get_novel(x))))
+
+#saveRDS(infection_effect, "/home/luisas/Desktop/cluster/data/RObjects/infection.rds")
+infection_effect <- readRDS("/home/luisas/Desktop/cluster/data/RObjects/infection.rds")
+
+infection_effect$name <- as.character(infection_effect$name)
+infection_effect$group <- unlist(lapply(infection_effect$name, function(x) paste(str_split(x, "_")[[1]][1:(length(str_split(x, "_")[[1]])-1)], collapse = "_")))
+infection_effect_all <- infection_effect[infection_effect$type == "all",]
+infection_effect_all$nsamples<- unlist(lapply(infection_effect_all$name, function(x) rev(str_split(x, "_")[[1]])[1]))
+infection_effect_all$nsamples <- as.double(as.character(infection_effect_all$nsamples))
+infection_effect_all
+
+
+ggplot(data=infection_effect_all, aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",5),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = c(palette, "green", "green"))
+
+ggplot(data=infection_effect_all[substr(infection_effect_all$name, 1,2) %in% c("00", "01", "02"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",5),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = c(palette, "green", "green"))
+
+
+ggplot(data=infection_effect_all[substr(infection_effect_all$name, 1,2) %in% c("03", "04", "05"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",5),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))
+
+
+
+ggplot(data=infection_effect_all[substr(infection_effect_all$name, 1,2) %in% c("06", "07", "08"),], aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",5),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = c(palette[7], "navy", "black"))
+```
+
+
+# --------------------------------
+##     Infection AND Tissue effect  
+# --------------------------------
+
+```{r cpc2}
+infection_and_tissue <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/InfectionANDTissue/")
+
+infection_and_tissue_effect <- do.call(rbind,(lapply(c(list.dirs(infection_and_tissue, recursive = F)), function(x) get_novel(x))))
+
+#saveRDS(infection_and_tissue_effect, "/home/luisas/Desktop/cluster/data/RObjects/infection_and_tissue.rds")
+
+infection_and_tissue_effect
+
+
+infection_and_tissue_effect$name <- as.character(infection_and_tissue_effect$name)
+infection_and_tissue_effect$group <- unlist(lapply(infection_and_tissue_effect$name, function(x) paste(str_split(x, "_")[[1]][1:(length(str_split(x, "_")[[1]])-1)], collapse = "_")))
+infection_and_tissue_effect_all <- infection_and_tissue_effect[infection_and_tissue_effect$type == "all",]
+infection_and_tissue_effect_all$nsamples<- unlist(lapply(infection_and_tissue_effect_all$name, function(x) rev(str_split(x, "_")[[1]])[1]))
+infection_and_tissue_effect_all$nsamples <- as.double(as.character(infection_and_tissue_effect_all$nsamples))
+infection_effect_all
+
+ggplot(data=infection_and_tissue_effect_all, aes(x=nsamples, y=n, group=group, color=group, linetype = group)) +
+  geom_line() + geom_point()+
+  theme_paper+
+  scale_linetype_manual(values=c(rep("solid",5),rep("twodash",3), "dotted"))+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+
+  scale_color_manual(values = c(palette, "green", "green"))
+
+```
+
+# ------------- OLD -------
+## Check tissue effect 
+
+```{r cpc2}
+
+
+spleen <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/tissue_effect/00_spleen/")
+wholeblood <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/tissue_effect/01_spleen_wholeblood/")
+lymphnode <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/tissue_effect/02_spleen_wholeblood_lymphnode/")
+
+
+
+tissue_effect <- do.call(rbind,(lapply(c(spleen,wholeblood, lymphnode), function(x) get_novel(x))))
+
+tissue_effect$name <- c(rep("spleen: 21",3), rep("spleen+wb: 42",3), rep("spleen+wb+ln: 63",3))
+
+library(viridis)
+# Check tissue effect 
+
+ggplot(data=tissue_effect, aes(x=name, y=n, group=type, color=type)) +
+  geom_line() + geom_point()+
+  scale_color_brewer(palette="Paired")+
+  theme_paper+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+  scale_color_viridis(discrete = TRUE, option = "D")+
+  scale_fill_viridis(discrete = TRUE) 
+
+```
+
+
+
+```{r effect }
+wbni_10 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/01_addsample/00_wbni_10/")
+wbni_20 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/01_addsample/01_wbni_20/")
+wbni_30 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/01_addsample/02_wbni_30/")
+
+wbMIXinf_10 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/02_add_sampleMIXinf/00_wbni_10/")
+wbMIXinf_20 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/02_add_sampleMIXinf/01_wbMIXinf_20/")
+wbMIXinf_30 <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/02_add_sampleMIXinf/02_wbMINinf_30/")
+
+wbsp <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/01_addsample/00_wbni_10/")
+wbspleen <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/03_add_tissueNI/01_wbspleen/")
+wbspleenln <- ("/home/luisas/Desktop/cluster/data/99_Broad_benchmark_13/03_add_tissueNI/02_wbspleenln/")
+
+
+sample_effect <- do.call(rbind,(lapply(c(wbni_10,wbni_20, wbni_30, wbMIXinf_10, wbMIXinf_20, wbMIXinf_30,wbsp, wbspleen, wbspleenln ), function(x) get_novel(x))))
+
+sample_effect_red <- sample_effect[sample_effect$type == "all", ]
+
+sample_effect_red$stage <- unlist(lapply(sample_effect_red$name, function(x) str_split(x, "_")[[1]][1]))
+
+sample_effect_red$stage <- (as.double(sample_effect_red$stage)+1)*10
+sample_effect_red$test <- c(rep("sample",3), rep("sampleinfectionmix",3), rep("tissue",3))
+
+ggplot(data=sample_effect_red, aes(x=stage, y=n, group=test, color=test)) +
+  geom_line() + geom_point()+
+  scale_color_brewer(palette="Paired")+
+  theme_paper+
+  ylab("#Novel transcript")+xlab("")+
+  theme(axis.text.x = element_text(angle=45, hjust = 1, size = 10))+  scale_color_viridis(discrete = TRUE, option = "D")+
+  scale_fill_viridis(discrete = TRUE) 
+
+
+```
+
+
+
+
+
+
+
+
+
+
+

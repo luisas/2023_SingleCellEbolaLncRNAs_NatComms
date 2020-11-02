@@ -14,6 +14,6 @@ module load singularity/3.2.0
 nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/05_SC_analysis.nf \
                   --strandness "FR" \
                   --output_dir_name "00_scRNA-Seq_exVivo_rhemac10" \
-                  --dataset_bam_dir "/gpfs/projects/bsc83/Data/Ebola/00_RawData/scRNAseq_exvivo_alin_bams" \
+                  --dataset_bam_dir "/gpfs/projects/bsc83/Data/Ebola/00_RawData/ExVivo_Raw_Fastqs" \
                   -w /gpfs/projects/bsc83/Data/Ebola/work/ \
                   -c ../configs/nextflow.config.sc
