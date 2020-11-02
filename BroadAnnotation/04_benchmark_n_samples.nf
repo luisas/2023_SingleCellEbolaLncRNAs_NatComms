@@ -14,7 +14,7 @@ log.info "=============================================="
 // ------------------------------------------------------------
 
 params.prefix_data = "/gpfs/projects/bsc83/Data"
-params.output_dir = "${params.prefix_data}/Ebola/99_Broad_benchmark/"
+params.output_dir = "${params.prefix_data}/Ebola/99_Broad_benchmark_13/"
 params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
 // Create 2 different batch files
 //params.htseqsense="yes"

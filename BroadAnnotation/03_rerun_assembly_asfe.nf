@@ -14,8 +14,7 @@ log.info "=============================================="
 // ------------------------------------------------------------
 
 params.prefix_data = "/gpfs/projects/bsc83/Data/Ebola"
-params.output_dir_name = "99_BroadAnnotation_stringtie2.1.4"
-params.output_dir = "${params.prefix_data}/${params.output_dir_name}/"
+params.output_dir = "${params.prefix_data}/99_BroadAnnotation_rerunningassemly_local/"
 params.output_dir_preliminary = "${params.prefix_data}/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
 // Create 2 different batch files
 //params.htseqsense="yes"
@@ -65,8 +64,8 @@ output_dir_sub= "${params.output_dir_sub}"
 
 process DeNovoAssembly{
 
-  cpus 16
-  publishDir "${params.output_dir}/00_stringtie/", mode: 'copy'
+  cpus 1
+  storeDir "${params.output_dir}/00_stringtie/"
 
 
   input:
@@ -82,6 +81,8 @@ process DeNovoAssembly{
   stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --fr -p ${task.cpus}
   """
 }
+
+a.subscribe{ println "$it" }
 process StringTie_Merge_Reference_Guided{
 
   cpus 1
@@ -89,7 +90,7 @@ process StringTie_Merge_Reference_Guided{
 
 
   input:
-  file stringtie_gtfs from stringtiech
+  file stringtie_gtfs from stringtiech.collect()
   file reference_gtf from ref2.collect()
 
   output:
@@ -126,8 +127,8 @@ process prefilter{
 
    input:
    file prefilter_script
-   file assembly from merged_de_novo_assembly_2
-   file lnc_novel_compared_to_ref from gff_compare_output_channel2
+   file assembly from merged_de_novo_assembly_2.collect()
+   file lnc_novel_compared_to_ref from gff_compare_output_channel2.collect()
    file ref
 
    output:
@@ -167,7 +168,7 @@ process mergeWithAnnotation {
    storeDir "${params.output_dir}/${output_dir_sub}/01_quantification_for_filtering/stringtie"
 
    input:
-   file gtf from novel_and_reference
+   file gtf from novel_and_reference.collect()
    set complete_id,
        file(bampair) from filtered_merged_bams_4
 
@@ -287,7 +288,7 @@ process CPAT{
 
 
 process CNIT{
-    publishDir "${params.output_dir}/${output_dir_sub}/03_predictions/CNIT", mode: 'copy'
+    storeDir "${params.output_dir}/${output_dir_sub}/03_predictions/CNIT"
 
     input:
     file candidates from candidatesfa3
@@ -311,7 +312,7 @@ process getFinalAnnotation {
      file cpc2pred from cpc2
      file gtf_ref_2
      file extractNovel_script
-     file candidates from novel_expressed3
+     file candidates from novel_expressed
      output:
      set file("rheMac10_EBOV_and_novel.gtf"), file("rheMac10_EBOV_and_novel_genenames.gtf") into (novel_final)
 
@@ -328,7 +329,7 @@ process stringtie{
    storeDir "${params.output_dir}/${output_dir_sub}/04_quantification/"
 
    input:
-   set file(gtf), file(gtf_names) from novel_final
+   set file(gtf), file(gtf_names) from novel_final.collect()
    set complete_id,
        file(bampair) from filtered_merged_bams_5
 
