@@ -4,7 +4,6 @@ MAINTAINER Luisa Santus <luisa.santus95@gmail.com>
 
 RUN apt-get update && apt-get install -y wget &&\
                       apt-get install -y software-properties-common &&\
-                      apt-get install -y openjdk-8-jre &&\
                       apt-get install -y unzip &&\
                       apt-get install -y openjdk-8-jdk
 

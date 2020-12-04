@@ -14,13 +14,15 @@ Channel.fromPath("${params.dirData}/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_
        .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
 
 
-Channel.fromPath("${params.output_dir}/02_star/*/*/*/*/*/*merged.bam")
+params.bam_name="*merged.bam"
+
+Channel.fromPath("${params.output_dir}/02_star_NEW/*/*/*/*/*/${params.bam_name}")
               .ifEmpty('bam files directory is empty')
               .map { tuple(it.baseName.split('_')[0],
                            it.baseName.split('_')[2],
                            it.baseName.split('_')[1],
                            it.baseName.split('_')[3].split("\\.")[0],
-                           "std",
+                           it.baseName.split('_')[4],
                            it.baseName.split('_')[0]+ "_" + it.baseName.split('_')[1] + "_" + it.baseName.split('_')[2] + "_" + it.baseName.split('_')[3],
                            it ) }.into{ bams_1; bams_2; bams_3;  }
 

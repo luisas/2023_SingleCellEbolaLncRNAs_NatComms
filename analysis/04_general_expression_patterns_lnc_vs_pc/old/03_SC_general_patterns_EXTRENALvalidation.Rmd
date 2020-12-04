@@ -1,0 +1,109 @@
+---
+title: "sc test analyses"
+author: "Luisa Santus"
+date: "3/16/2020"
+output: html_document
+---
+
+# Replicate in vivo 
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects_old//"
+source("utils/sc_utils.R")
+source("utils/de_utils.R")
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq"
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/02_final_catalogue/rheMac10_EBOV-Kikivit_and_novelcatalogue_with_names.gtf"))
+ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/results")
+mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
+
+#----------------------------------------------------------------
+#      Read in file and preprocess
+# ---------------------------------------------------------------
+
+library(dplyr)
+library(Seurat)
+
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/v2_ut.rds")
+
+# Load the PBMC dataset
+pbmc.data <- Read10X(data.dir = "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/filtered_gene_bc_matrices/hg19/")
+# Initialize the Seurat object with the raw (non-normalized data).
+pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+pbmc <- NormalizeData(pbmc)
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+all.genes <- rownames(pbmc)
+pbmc <- ScaleData(pbmc, features = all.genes)
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+pbmc <- RunUMAP(pbmc, dims = 1:10)
+new.cluster.ids <- c("Naive CD4 T", "Memory CD4 T", "CD14+ Mono", "B", "CD8 T", "FCGR3A+ Mono", 
+    "NK", "DC", "Platelet")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+#saveRDS(pbmc, file = "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/pbmc_tutorial.rds")
+immune.combined <- pbmc
+dim(immune.combined)
+DefaultAssay(immune.combined) <- "RNA"
+```
+
+
+```{r quartiles}
+df_celltype <- data.frame( gene_id = c(),meanexpr = c(), not_na_cells = c(), maxexpr = c(), medianexpr = c(), var = c(), var = c())
+invisible(lapply(as.vector(unique(Idents(immune.combined))), function(x) calc_mean_and_percentage_cell(immune.combined, x, df_celltype)))
+
+# Only retain lines for which we have  a reference correspondence
+df_celltype <- df_celltype[df_celltype$gene_id %in% ref$gene_name,]
+# Extract lnc and pc
+pc_names <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]$gene_name
+lnc_names <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "lncRNA",]$gene_name
+
+df_mrna <- df_celltype[df_celltype$gene_id %in% pc_names, ]
+df_lnc <- df_celltype[df_celltype$gene_id %in% lnc_names, ]
+length(unique(df_lnc))
+
+table(substr(rownames(immune.combined),1,3) == "ENS")
+```
+
+# Expression across Quartiles
+```{r quartiles}
+# Only select genes expressed in at least 50 cells
+library(ggpubr)
+df_lnc <- df_lnc[df_lnc$gene_id != "ribodepl-MSTRG.72510-unkown",]
+
+df_filtered_mrna <- df_mrna[df_mrna$n_cells > 150, ]
+df_filtered_lnc <- df_lnc[df_lnc$n_cells > 150, ]
+
+df_lnc$gene_id
+df_lnc$type <- NA
+df_mrna$type <- NA
+
+plot_quartiles(df_lnc, df_mrna, "proportion")+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())
+
+# Density plots about percentage of cells
+df_lnc$type <- "lncRNAs"
+df_mrna$type <- "mRNAs"
+df_complete <- rbind(df_lnc, df_mrna)
+
+plot_perc <- ggplot(df_complete, aes(x =perc_cells_expressing , color = type, fill = type))
+cum_distr_perc <- plot_perc+stat_ecdf()+
+          stat_ecdf(geom="step", size = 1.5)+
+          theme_pubclean()+
+          scale_color_brewer(palette = "Set1")+
+          scale_fill_brewer(palette = "Set1")+
+          labs(x = "%Cells expressing", y  = "Cumulative Density")+theme(legend.title = element_blank(), legend.position = "top")+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+cum_distr_perc
+
+```
+
+
+
+

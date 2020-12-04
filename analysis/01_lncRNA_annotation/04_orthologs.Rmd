@@ -122,7 +122,7 @@ df <- data.frame(table(seqnames(all[all$transcript_id %in% orthologs_novel$lnc,]
 ggplot(df[df$Freq > 0 , ], aes(x = Var1, y = Freq, fill = "orange"))+geom_bar(stat="identity")+theme_paper+theme(legend.position = "", axis.text.x = element_text( size =12))+labs(x = "", y = "")
 
 
-orthologs
+saveRDS(orthologs, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
 
 ```
 

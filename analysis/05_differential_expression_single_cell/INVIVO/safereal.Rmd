@@ -1,0 +1,960 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+
+source("../../utils/02_sc_utils.R")
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# Output paths
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+
+# LncRNAs
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+print("--")
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+
+table(immune.combined$group)
+
+print("a")
+```
+
+# --------------------------------------------------
+# Read In differential expression analysis results 
+# --------------------------------------------------
+
+```{r a}
+
+celltype <- "Myeloid"
+mast_myeloid_late <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","late",".rds")))
+mast_myeloid_middle <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","middle",".rds")))
+mast_myeloid_early <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","middle",".rds")))
+
+celltype <- "B"
+mast_B_late <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","late",".rds")))
+mast_B_middle <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","middle",".rds")))
+mast_B_early <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","early",".rds")))
+
+celltype <- "T"
+mast_T_late <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","late",".rds")))
+mast_T_middle <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","middle",".rds")))
+mast_T_early <- readRDS(file.path(robjectsdir, paste0("MAST_invivo_model_", celltype,"_","early",".rds")))
+
+```
+
+
+# -----------------------------------------------
+#       Prepare table of significantly DE genes 
+# -----------------------------------------------
+
+```{r heatmap}
+
+set.seed(123)
+
+# -------------------------------------------------------------------------
+# Gather all information about changes of each gene in each comparison per celltype
+# -------------------------------------------------------------------------
+
+# ------- Myeloid
+celltype <- "myeloid"
+mast_myeloid_late$comparison <- paste0(celltype,"_late")
+mast_myeloid_middle$comparison <- paste0(celltype,"_middle")
+mast_myeloid_early$comparison <- paste0(celltype,"_early")
+myeloids_de <- rbind(mast_myeloid_late, mast_myeloid_middle, mast_myeloid_early)
+
+# ------- T
+celltype <- "T"
+mast_T_late$comparison <- paste0(celltype,"_late")
+mast_T_middle$comparison <- paste0(celltype,"_middle")
+mast_T_early$comparison <- paste0(celltype,"_early")
+t_de <- rbind(mast_T_late, mast_T_middle, mast_T_early)
+
+
+# ------- B
+celltype <- "B"
+mast_B_late$comparison <- paste0(celltype,"_late")
+mast_B_middle$comparison <- paste0(celltype,"_middle")
+mast_B_early$comparison <- paste0(celltype,"_early")
+b_de <- rbind(mast_B_late, mast_B_middle, mast_B_early)
+
+stats_complete <- rbind( myeloids_de, t_de, b_de)
+
+# Convert into matrix
+m <-xtabs(coef~primerid+comparison, stats_complete)
+attr(m, "class") <- NULL
+colnames(m)
+m <- m[,c("myeloid_early" ,"myeloid_middle","myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+
+m_significance<-xtabs(fdr~primerid+comparison, stats_complete)
+attr(m_significance, "class") <- NULL
+m_significance <- m_significance[,c("myeloid_early" ,"myeloid_middle","myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+
+# -------------------------------------------------------------------------
+# Select genes
+# -------------------------------------------------------------------------
+
+FDRTHRESHOLD <- 0.1
+
+get_de_names <- function(df_filtered, FDRTHRESHOLD = 0.1, FCTHRESHOLD = log(1.2), subset = all_lncrnas){
+  # Only select lncrnas 
+  df_filtered <- df_filtered[df_filtered$primerid %in% subset,]
+  # Only select significant ones
+  df_filtered <- df_filtered[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
+  return(df_filtered$primerid)
+}
+
+# Select genes to plot
+lnc_myeloid_late <- get_de_names(mast_myeloid_late, subset = all_lncrnas)
+lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas)
+lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas)
+
+lnc_T_late <- get_de_names(mast_T_late, subset = all_lncrnas)
+lnc_T_middle <- get_de_names(mast_T_middle, subset = all_lncrnas)
+lnc_T_early <- get_de_names(mast_T_early, subset = all_lncrnas)
+
+lnc_B_late <- get_de_names(mast_B_late, subset = all_lncrnas)
+lnc_B_middle <- get_de_names(mast_B_middle, subset = all_lncrnas)
+lnc_B_early <- get_de_names(mast_B_early, subset = all_lncrnas)
+
+## mrnas
+mrna_myeloid_late <- get_de_names(mast_myeloid_late, subset = annotated_mrnas)
+mrna_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = annotated_mrnas)
+mrna_myeloid_early <- get_de_names(mast_myeloid_early, subset = annotated_mrnas)
+
+mrna_T_late <- get_de_names(mast_T_late, subset = annotated_mrnas)
+mrna_T_middle <- get_de_names(mast_T_middle, subset = annotated_mrnas)
+mrna_T_early <- get_de_names(mast_T_early, subset = annotated_mrnas)
+
+mrna_B_late <- get_de_names(mast_B_late, subset = annotated_mrnas)
+mrna_B_middle <- get_de_names(mast_B_middle, subset = annotated_mrnas)
+mrna_B_early <- get_de_names(mast_B_early, subset = annotated_mrnas)
+# ----------------------------
+
+
+
+
+de_lists_lnc <- list(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early,lnc_T_late, lnc_T_middle, lnc_T_early, lnc_B_late, lnc_B_middle, lnc_B_early )
+names(de_lists_lnc) <- c("lnc_myeloid_late", "lnc_myeloid_middle", "lnc_myeloid_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
+
+
+de_lists_mrna <- list(mrna_myeloid_late, mrna_myeloid_middle, mrna_myeloid_early,mrna_T_late, mrna_T_middle, mrna_T_early, mrna_B_late, mrna_B_middle, mrna_B_early )
+names(de_lists_mrna) <- c("mrna_myeloid_late", "mrna_myeloid_middle", "mrna_myeloid_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
+
+FCTHRESHOLD <- 1.2
+FDRTHRESHOLD <- 0.1
+# Prep data
+de_lists_lnc_my <- list(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early )
+names(de_lists_lnc_my) <- c("lnc_myeloid_late", "lnc_myeloid_middle", "lnc_myeloid_early")
+
+de_lists_lnc_T <- list(lnc_T_late, lnc_T_middle, lnc_T_early )
+names(de_lists_lnc_T) <- c("lnc_T_late", "lnc_T_middle", "lnc_T_early")
+de_lists_lnc_T <- de_lists_lnc_T[unlist(lapply(1:length(de_lists_lnc_T), function(index) length(de_lists_lnc_T[[index]]) != 0))]
+
+de_lists_lnc_B <- list(lnc_B_late, lnc_B_middle, lnc_B_early )
+names(de_lists_lnc_B) <- c("lnc_B_late", "lnc_B_middle", "lnc_B_early")
+de_lists_lnc_B <- de_lists_lnc_B[unlist(lapply(1:length(de_lists_lnc_B), function(index) length(de_lists_lnc_B[[index]]) != 0))]
+
+de_lnc_all <- c(de_lists_lnc_my, de_lists_lnc_T, de_lists_lnc_B)
+length(unique(unlist(de_lnc_all)))
+# How many are DE 
+
+# --------- lnc
+# Myeloid DE
+lnc_myeloid_de <- length(unique(unlist(c(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early))))
+lnc_myeloid_de_novel <-sum(substr(unique(unlist(c(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early))),1,5) == "MSTRG")
+# B DE
+lnc_B_de <- length(unique(unlist(c(lnc_B_late, lnc_B_middle, lnc_B_early))))
+lnc_B_de_novel <-sum(substr(unique(unlist(c(lnc_B_late, lnc_B_middle, lnc_B_early))),1,5) == "MSTRG")
+#T DE
+lnc_T_de <- length(unique(unlist(c(lnc_T_late, lnc_T_middle, lnc_T_early))))
+lnc_T_de_novel <-sum(substr(unique(unlist(c(lnc_T_late, lnc_T_middle, lnc_T_early))),1,5) == "MSTRG")
+
+# --------- pc
+mrna_myeloid_de <- length(unique(unlist(c(mrna_myeloid_late, mrna_myeloid_middle, mrna_myeloid_early))))
+mrna_myeloid_de_novel <-sum(substr(unique(unlist(c(mrna_myeloid_late, mrna_myeloid_middle, mrna_myeloid_early))),1,5) == "MSTRG")
+# B DE
+mrna_B_de <- length(unique(unlist(c(mrna_B_late, mrna_B_middle, mrna_B_early))))
+mrna_B_de_novel <-sum(substr(unique(unlist(c(mrna_B_late, mrna_B_middle, mrna_B_early))),1,5) == "MSTRG")
+#T DE
+mrna_T_de <- length(unique(unlist(c(mrna_T_late, mrna_T_middle, mrna_T_early))))
+mrna_T_de_novel <-sum(substr(unique(unlist(c(mrna_T_late, mrna_T_middle, mrna_T_early))),1,5) == "MSTRG")
+
+df_lnc_de <- data.frame(celltype = rep(c("Myeloid", "B", "T"), 2) , n = c(lnc_myeloid_de-lnc_myeloid_de_novel, lnc_B_de-lnc_B_de_novel, lnc_T_de-lnc_T_de_novel, lnc_myeloid_de_novel, lnc_B_de_novel, lnc_T_de_novel), set = c(rep("annot", 3), rep("novel", 3)),  stringsAsFactors = F)
+df_lnc_de$type <- "lnc"
+
+ggplot(df_lnc_de, aes(x = celltype,y=n, col = set, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Paired")
+
+df_mrna_de<- data.frame(celltype = c("Myeloid", "B", "T"), n = c(mrna_myeloid_de, mrna_B_de, mrna_T_de), stringsAsFactors = F)
+df_mrna_de$type <- "mrna"
+
+ggplot(df_mrna_de, aes(x = celltype,y=n, col = celltype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")
+```
+
+```{r heatmap}
+hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
+  # Only select lncrnas
+  rownames(m) <- gsub("-unknown","",rownames(m))
+  features <- gsub("-unknown","",features)
+  m <- m[rownames(m) %in% features,, drop = FALSE]
+  
+ column_ha <- HeatmapAnnotation( 
+                          comparison = anno_text( unlist(lapply(unlist(lapply( colnames(z_score_mean_matrix), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+                          show_annotation_name = FALSE, 
+                          gap = unit(16, "points"),
+                          
+                          col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+                                                  "T" = brewer.pal(3, "Set2")[1],
+                                                  "B" = brewer.pal(3, "Set2")[2]),
+                                     comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
+                                                  "middle" = brewer.pal(8, "Pastel2")[7],
+                                                  "late" = brewer.pal(8, "Pastel2")[8])), 
+                        
+                          show_legend = FALSE, 
+                           annotation_height =  unit(c(1), "cm")
+                          )
+  
+  row_ha <- rowAnnotation(genetype =substring(rownames(m), 1,3),
+                        show_annotation_name = FALSE)
+  if(!first){
+
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+          show_column_dend = FALSE,
+          cluster_columns = FALSE,
+          show_column_names = FALSE,
+          show_row_names = row_names, 
+          row_title = row_title,
+          row_title_rot = 0, 
+          column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])), 
+          show_heatmap_legend = FALSE
+          )    
+  }else{
+
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+          show_column_dend = FALSE,
+          cluster_columns = FALSE,
+          show_column_names = FALSE,
+          show_row_names = row_names, 
+          row_title = row_title,
+          row_title_rot = 0, 
+          top_annotation = column_ha, 
+          
+          column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1]))
+          )
+  }
+  print("done")
+  return(h1)
+}
+```
+
+
+```{r heatmap}
+
+# -------------------------------------------------------------------------
+# Create Heatmap(s)
+# -------------------------------------------------------------------------
+de_lists_lnc <- de_lists_lnc[unlist(lapply(1:length(de_lists_lnc), function(index) length(de_lists_lnc[[index]]) != 0))]
+h1_lnc<- hm(m= m,row_title = names(de_lists_lnc)[1], features  = de_lists_lnc[1][[1]], first = TRUE, row_names = FALSE)
+hms <- lapply(2:length(de_lists_lnc), function(index) hm(m,row_title = names(de_lists_lnc)[index], features  = de_lists_lnc[index][[1]], row_names = FALSE))
+
+length(hms)
+heatmap_lnc <- h1_lnc %v% hms[[1]]%v%hms[[2]]%v%hms[[3]]%v%hms[[4]]%v%hms[[5]]%v%hms[[6]]
+heatmap_lnc
+
+# mrna ---------
+de_lists_mrna <- de_lists_mrna[unlist(lapply(1:length(de_lists_mrna), function(index) length(de_lists_mrna[[index]]) != 0))]
+h1 <- hm(m= m,row_title = names(de_lists_mrna)[1], features  = de_lists_mrna[1][[1]], first = TRUE, row_names = FALSE)
+hms_mrna <- lapply(2:length(de_lists_mrna), function(index) hm(m,row_title = names(de_lists_mrna)[index], features  = de_lists_mrna[index][[1]], row_names = FALSE))
+
+length(de_lists_mrna)
+
+heatmap_mrna <- h1 %v% hms_mrna[[1]]%v%hms_mrna[[2]]%v%hms_mrna[[3]]%v%hms_mrna[[4]]%v%hms_mrna[[5]]%v%hms_mrna[[6]]%v%hms_mrna[[7]]%v%hms_mrna[[8]]
+heatmap_mrna
+
+do_go(unlist(de_lists_mrna))
+
+Myeloids <- subset(immune.combined, idents = "Myeloid")
+
+
+# identify if upregulated or downregulated 
+
+```
+
+
+```{r heatmap}
+FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title){
+  
+  # Only select the correct celltype
+  columns_keep <- colnames(m)[unlist(lapply(colnames(m), function(column) strsplit(column, "_")[[1]][1] == celltype))]
+  m <- m[,columns_keep]
+
+  # Only select lncRNAs
+  rownames(m) <- gsub("-unknown","",rownames(m))
+  de_lnc_all <- gsub("-unknown","",de_lnc_all)
+  m <- m[rownames(m) %in% de_lnc_all,, drop = FALSE]
+
+  column_ha <- HeatmapAnnotation( 
+                          comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+                          show_annotation_name = FALSE, 
+                          gap = unit(16, "points"),
+                          
+                          col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+                                                  "T" = brewer.pal(3, "Set2")[1],
+                                                  "B" = brewer.pal(3, "Set2")[2]),
+                                     comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
+                                                  "middle" = brewer.pal(8, "Pastel2")[7],
+                                                  "late" = brewer.pal(8, "Pastel2")[8])), 
+                        
+                          show_legend = FALSE, 
+                           annotation_height =  unit(c(1), "cm")
+                          )
+  
+  row_ha <- rowAnnotation(genetype =ifelse(substring(rownames(m), 1,3)=="MST", "MST", "ENS"),show_legend = FALSE,
+                        show_annotation_name = FALSE,
+                        col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
+                                                  "MST" = "purple"
+                                                  )))
+ 
+  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(18, "cm"), 
+            show_column_dend = FALSE,
+            heatmap_height = unit(30, "cm"),
+            cluster_columns = FALSE,
+            cluster_rows = TRUE,
+            cluster_row_slices = FALSE,
+            show_column_names = FALSE,
+            show_row_names = FALSE,
+            row_names_gp = gpar(fontsize = 25),
+            row_title_rot = 0,
+            right_annotation = row_ha, 
+            top_annotation = column_ha, 
+            column_title = title, 
+            column_title_gp = gpar(fill = color_title, fontsize =40, border = NA), 
+            show_heatmap_legend = FALSE
+           
+           )
+  # Add legend
+  leg_comparison <- Legend(at = c("Baseline", "Early", "Middle", "Late"), title = "Stage", legend_gp = gpar(fill = brewer.pal(8,"Pastel2")[5:9]), size = unit(30, "mm"))
+  leg_annot <- Legend(at = c("Novel", "Annotated"), title = "GeneType", legend_gp = gpar(fill = brewer.pal(3,"Paired")[1:3]),size = unit(30, "mm"))
+
+  hm_wlegend <- draw(h,annotation_legend_list = c(leg_comparison, leg_annot))
+  return(hm_wlegend)
+}
+
+#FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_lnc_B)), "B",  brewer.pal(3, "Set2")[2])
+#FC_heatmap_subset_celltype(m, "myeloid", unique(unlist(de_lists_lnc_my)), "Myeloid",brewer.pal(3, "Set2")[3] )
+#FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_lnc_T)), "T",  brewer.pal(3, "Set2")[1])
+```
+
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/mnew_FC.png", width = 1300, height = 1100)
+FC_heatmap_subset_celltype(m, "myeloid", unique(unlist(de_lists_lnc_my)), "Myeloid",brewer.pal(3, "Set2")[3] )
+dev.off()
+```
+
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/tnew_FC.png", width = 1300, height = 1100)
+FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_lnc_T)), "T",  brewer.pal(3, "Set2")[1])
+dev.off()
+```
+
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/bnew_FC.png", width = 1300, height = 1100)
+FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_lnc_B)), "B",  brewer.pal(3, "Set2")[2])
+dev.off()
+```
+
+
+
+```{r a}
+
+# ------------------------------------
+# Now try with z scores 
+# ------------------------------------
+calc_z <- function(matrix){
+  mean <- rowMeans(matrix);
+  sd <- apply(matrix,1, sd)
+  z_scores <-apply(matrix,2, function(x) (x-mean)/sd)
+  return(z_scores)
+}
+
+
+B <- subset(immune.combined, idents = "B")
+T <- subset(immune.combined, idents = "T")
+Myeloids <- subset(immune.combined, idents = "Myeloid")
+
+
+z_score_heatmap <- function(subset, celltype,de_lnc_all, title, color_title){
+  # Exprssion matrix
+  matrix <- as.matrix(subset@assays$RNA@data)
+  subset$state <- gsub("Myeloid", "myeloid",paste(Idents(subset), subset$group, sep = "_"))
+  colnames(matrix) <- subset$state
+  # Calculate Z scores 
+  mean_matrix <- sapply(unique(colnames(matrix)), function(x) rowMeans(matrix[,colnames(matrix) ==x, drop =FALSE],  na.rm = TRUE))
+  mean_matrix <- mean_matrix[rownames(mean_matrix) %in% unique(unlist(de_lnc_all)),, drop = FALSE]
+  z_score_mean_matrix <- calc_z(mean_matrix)
+  
+  # Create annotations
+  rownames(z_score_mean_matrix) <- gsub("-unknown","",rownames(z_score_mean_matrix))
+  colnames(z_score_mean_matrix) <- gsub("Myeloid", "myeloid", colnames(z_score_mean_matrix))
+  column_ha <- HeatmapAnnotation( 
+                          comparison = anno_text( unlist(lapply(unlist(lapply( colnames(z_score_mean_matrix), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+                          show_annotation_name = FALSE, 
+                          gap = unit(16, "points"),
+                          
+                          col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+                                                  "T" = brewer.pal(3, "Set2")[1],
+                                                  "B" = brewer.pal(3, "Set2")[2]),
+                                     comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
+                                                  "middle" = brewer.pal(8, "Pastel2")[7],
+                                                  "late" = brewer.pal(8, "Pastel2")[8])), 
+                        
+                          show_legend = FALSE, 
+                           annotation_height =  unit(c(1), "cm")
+                          )
+  
+  row_ha <- rowAnnotation(genetype =ifelse(substring(rownames(z_score_mean_matrix), 1,3)=="MST", "MST", "ENS"),show_legend = FALSE,
+                        show_annotation_name = FALSE,
+                        col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
+                                                  "MST" = "purple"
+                                                  )))
+  h <- Heatmap(z_score_mean_matrix,name = "Z-Score", show_row_dend = FALSE, heatmap_width = unit(18, "cm"), 
+            show_column_dend = FALSE,
+            heatmap_height = unit(30, "cm"),
+            cluster_columns = FALSE,
+            cluster_rows = TRUE,
+            cluster_row_slices = FALSE,
+            show_column_names = FALSE,
+            show_row_names = FALSE,
+            row_names_gp = gpar(fontsize = 25),
+            row_title_rot = 0,
+            right_annotation = row_ha, 
+            top_annotation = column_ha, 
+            column_title = title, 
+            column_title_gp = gpar(fill = color_title, fontsize =40, border = NA), 
+            show_heatmap_legend = FALSE
+           
+           )
+  h
+  # Add legend
+  leg_comparison <- Legend(at = c("Baseline", "Early", "Middle", "Late"), title = "Stage", legend_gp = gpar(fill = brewer.pal(8,"Pastel2")[5:9]), size = unit(30, "mm"))
+  leg_annot <- Legend(at = c("Novel (Ribodepleted)", "Novel (Poly-A)", "Annotated"), title = "GeneType", legend_gp = gpar(fill = brewer.pal(3,"Paired")[1:3]),size = unit(30, "mm"))
+
+  hm_wlegend <- draw(h,annotation_legend_list = c(leg_comparison, leg_annot))
+  return(h)
+}
+
+z_score_heatmap(Myeloids, "myeloid", de_lists_lnc_my, "Myeloid",brewer.pal(3, "Set2")[3] )
+z_score_heatmap(T, "T", de_lists_lnc_T, "T",  brewer.pal(3, "Set2")[1])
+z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
+
+
+
+```
+
+
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/mnew.png", width = 1300, height = 1100)
+z_score_heatmap(Myeloids, "myeloid", de_lists_lnc_my, "Myeloid",brewer.pal(3, "Set2")[3] )
+dev.off()
+```
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/tnew.png", width = 1300, height = 1100)
+z_score_heatmap(T, "T", de_lists_lnc_T, "T",  brewer.pal(3, "Set2")[1])
+
+dev.off()
+```
+
+```{r colocation}
+png(filename = "/home/luisas/Desktop/cluster/data/bnew.png", width = 1300, height = 1100)
+z_score_heatmap(B, "B", de_lists_lnc_B, "B",  brewer.pal(3, "Set2")[2])
+dev.off()
+```
+
+
+
+
+# --------------------------------
+#       Orthologs w/ ImmLnc 
+# --------------------------------
+
+
+
+```{r }
+orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.top.txt")
+names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alignScore","exonID","locusID","indelRate(exon)" ,"indelRate(intron)","lncExonsAligned","orthExonsAligned","spliceConserved","spliceTotal","category(mmul10)","category(hg38)")
+
+# Prepare columns we might need later 
+orthologs$gene_id <- ref[ref$type == "transcript" & ref$transcript_id %in% orthologs$lnc, ]$gene_id
+orthologs_lnc$ortholog_tr <- unlist(lapply(orthologs_lnc$ortholog, function(x) str_split(x, fixed("."))[[1]][1]))
+
+orthologs_lnc <- orthologs[orthologs$gene_id %in% gsub("-unknown", "",unlist(de_lnc_all)),] 
+
+
+ref_human <- import("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf")
+ensembl_source <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/annotations/ensemblSource.txt", stringsAsFactors = F)
+human_orth <- ref_human[ref_human$type == "transcript" & ref_human$transcript_id %in% orthologs_lnc$ortholog_tr, ]
+
+length(unique(human_orth$gene_id))
+length(unique(human_orth$transcript_id))
+table(human_orth$gene_biotype)
+ensembl_source[ensembl_source$V1 %in% human_ortholgs_tr, ]
+
+
+
+# Check overlap with pan cancer lncRNA analysis
+sign_pathway <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+sign_cell <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs/Lnc_Immunecell_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+sign_cancer <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/04_orthologs/LncRNA_Cancer_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+```
+
+
+
+
+
+
+```{r colocation}
+library(VennDiagram)
+
+# -------------------------------------------
+# Overlap of Differentially expressed genes 
+# -------------------------------------------
+venn.diagram(
+  x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my))),
+  category.names = c( "T DE lncRNAs " , "B DE lncRNAs ","Myeloid DE lncRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/venn_diagramm_celltype',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 580 , 
+          width = 580 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(3, "Set2"),
+          fill = c(alpha(brewer.pal(3, "Set2")[1],0.1), alpha(brewer.pal(3, "Set2")[2],0.1), alpha(brewer.pal(3, "Set2")[3],0.1)),
+          cex = 0.8,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-165, 165, -0),
+          cat.dist = c(0.085, 0.085, 0.085),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
+
+# -------------------------------------------
+# overlap stage specific genes
+# -------------------------------------------
+early_de <- c(de_lists_lnc_T$lnc_T_early, de_lists_lnc_B$lnc_B_early, de_lists_lnc_my$lnc_myeloid_early)
+middle_de <- c(de_lists_lnc_T$lnc_T_middle, de_lists_lnc_B$lnc_B_middle, de_lists_lnc_my$lnc_myeloid_middle)
+late_de <- c(de_lists_lnc_T$lnc_T_late, de_lists_lnc_B$lnc_B_late, de_lists_lnc_my$lnc_myeloid_late)
+
+venn.diagram(
+  x = list( unlist(unique(early_de)), unlist(unique(middle_de)),unlist(unique(late_de))),
+  category.names = c( "Early DE lncRNAs" , "Middle DE lncRNAs ","Late DE lncRNAs" ),
+  filename = '/home/luisas/Desktop/cluster/data/venn_diagram_stagessignature_de',
+  output = TRUE ,
+          imagetype="png" ,
+          height = 680 , 
+          width = 680 , 
+          resolution = 300,
+          compression = "lzw",
+          lwd = 3,
+          col=brewer.pal(8, "Pastel2")[6:8],
+          
+          cex = 0.8,
+          fontfamily = "times",
+          cat.cex = 0.7,
+          cat.default.pos = "outer",
+          cat.pos = c(-20, 20, -180),
+          cat.dist = c(0.050, 0.050, 0.050),
+          cat.fontfamily = "times",
+          cat.col = "black",
+          rotation = 1
+        )
+
+```
+
+
+
+# Correlation 
+
+
+```{r colocation}
+
+subset <- Myeloids
+
+
+# 1. Extract the count matrix and the normalized count matrix
+count_matrix <- subset@assays$RNA@counts
+exp_matrix <-subset@assays$integrated@data
+
+
+all_lncrnas
+calc_correlation <- function(pair, count_matrix, type = "pearson"){
+  gene1 <- pair[1]
+  gene2 <- pair[2]
+
+  c1 <- count_matrix[rownames(count_matrix)== gene1,]
+  c2 <- count_matrix[rownames(count_matrix)== gene2,]
+
+  
+  # calculate the correlation coefficient 
+  if(length(c1)> 0 && length(c2)>0){ 
+    #pc <- bayes.cor.test(c1, c2) 
+    pc <- cor.test(c1, c2, method = c(type)) 
+  }else{ pc = cor.test(c(1:100),c(1:100), method = c(type))  }
+  return(pc)
+}
+
+pair <- c("A4GALT", "AAAS")
+pairs_list <- list(pair)
+
+summary(count_matrix[1:2,1:10])
+correlations <- lapply(pairs_list, function(x) calc_correlation(x, count_matrix, type = "spearman"))
+pvals <- (lapply(correlations, function(correlation) print(correlation$p.value)))
+rhos <- as.vector(lapply(correlations, function(correlation) print(correlation$estimate)))
+
+count_matrix@
+
+
+```
+
+
+
+```{r colocation}
+# 1) For each gene lncrna find neighbour protein coding genes. ( either overlapping or in close region) --> putative pairs
+# 2) Filter: Check the pearson correlation of the identified pairs, reatain the ones w/ |pearson correlation coefficient| > 0.6
+# ==> Only if something nice comes out 
+# 3) Validation: Simulate random pairs 
+# 4) Validation: Compare the correlation of the ones identified with the random ones. 
+library(zeallot)
+
+# 1. extract the count matrix
+#count_matrix <- log2(myeloids@assays$RNA@counts+.5)
+#count_matrix <- myeloids@assays$RNA@counts
+#rownames(count_matrix) <- gsub("-unkown","",rownames(count_matrix))
+#exp_matrix <-myeloids@assays$integrated@data
+
+# 2. 
+mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id  ]
+lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas))]
+
+# Add missing gene entries (as novel lncrnas only prsent transcript and exon entries)
+genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
+missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
+gr_list <- lapply(missing_gene_lines, function(x) get_gene_range(x, lnc_ranges))
+missing_gene_ranges <- do.call(base::c,gr_list)
+lnc_ranges_complete <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
+
+
+
+# --------------------------------------------------------------
+#           Get 5 closest genes to each gene of interest
+# --------------------------------------------------------------
+# Find pairs under maximum overlap
+get_n_closest_gr <- function(gr_gene, gr_hits =mrnas_ranges , n = 5, maxgap =1000000L ){
+  p <- findOverlapPairs(gr_gene, get_gene_only(gr_hits), maxgap=maxgap, ignore.strand = TRUE)
+  pairs_list <- zipup(p)
+  print(gr_gene$gene_name)
+  # Compute thedistances and select the first 5
+  distances <- unlist(lapply(pairs_list, function(pair) GenomicRanges::distance(pair[1], pair[2], ignore.strand = TRUE) ))
+  if(!is.null(distances)){
+    n <- min(length(pairs_list), n)
+    closest_5_pairs <-  pairs_list[order(distances)][1:n]
+  }else{
+    return(NULL)
+  }
+  return(closest_5_pairs)
+}
+
+de_sc <- gsub("-", "_",gsub("-unkown", "", c(unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
+
+# Only select the DE interestin
+lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "",de_sc)), ]
+
+# maximum 1Mb
+all_lnc_1mb <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = Inf, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb))
+
+logfc <- stats_complete[stats_complete$primerid %in% unlist(unique(all_lnc_1mb)),]$coef
+ ego <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_1mb)),OrgDb =org.Hs.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(ref$gene_name))
+library(clusterProfiler) 
+cnetplot(ego, foldChange = 2^logfc, colorEdge = TRUE, node_label = "gene")
+
+barplot(ego)+theme(axis.text.y = element_text(size = 17))
+dotplot(ego)+theme(axis.text.y = element_text(size = 17))
+
+# 1Mb, 15 closest genes
+all_lnc_1mb_max10 <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb_max10))
+
+library(org.Hs.eg.db)
+```
+
+```{r colocation}
+# Overlap is quite low, maybe we can mention if we select a specific lncRNA
+bulk_de_genes_all <-  readRDS(file.path(robjectsdir, "bulkDEgenes.rds"))
+de_sc <- gsub("-", "_",gsub("-unkown", "", c(unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
+intersect(de_sc, bulk_de_genes_all)
+
+de_sc
+setdiff(de_lists_lnc_my$lnc_myeloid_middle, de_lists_lnc_my$lnc_myeloid_late)
+
+
+# One Cell Type Specific Myeloid
+plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000052585-unkown"), ident = "group")
+
+# One Cell Type Specific Myeloid
+lapply(de_lists_lnc_my$lnc_myeloid_late, function(gene) plot_seperate_features(immune.combined, gene  = c(gene), ident = "group", pt.size = 1))
+
+plot_seperate_features(immune.combined, gene  = c("ribodepl-MSTRG.3272-unkown"), ident = "group")
+
+
+DimPlot(immune.combined, label = TRUE, pt.size = 0.1, cols=  brewer.pal(3, "Set2"))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+# One Cell Type Specific B
+plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000061948-unkown"), ident = "group", pt.size = 0.7)
+plot_seperate_features(immune.combined, gene  = c("PVRL1"), ident = "group", pt.size = 1)
+plot_seperate_features(immune.combined, gene  = c("THY1"), ident = "group", pt.size = 0.7,colors =c('#DCD9DE','navy'))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+plot_seperate_features(immune.combined, gene  = c("CCDC153"), ident = "group", pt.size = 1)
+plot_seperate_features(immune.combined, gene  = c("ABCG4"), ident = "group", pt.size = 1)
+
+rownames(immune.combined)[grep("PVRL", rownames(immune.combined))]
+unlist(all_lnc_1mb)[unlist(all_lnc_1mb) %in% rownames(immune.combined)]
+unlist(all_lnc_1mb)["PVRL1" %in% rownames(immune.combined)]
+mast_myeloid_late[grep("ENSMMUG00000061948", mast_myeloid_late$primerid),]
+annotated_mrnas[grep("ENSMMUG00000061948-unkown", all_lncrnas)]
+
+
+all_lncrnas[all_lncrnas == "ENSMMUG00000061948-unkown"]
+all_lncrnas[grep("ENSMMUG000000619",all_lncrnas)]
+
+immune.combined
+table(rownames(immune.combined)=="ENSMMUG00000061948-unkown")
+m[m[,1] =="ENSMMUG00000061948-unkown",]
+m
+lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "","ENSMMUG00000052585-unkown")), ]
+all_lnc_1mb <- lapply(1:(length(lnc_ranges_complete_de)), function(index) unlist(get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = 15, maxgap = 1000000L))[c(rep(FALSE,1), TRUE)]$gene_name)
+do_go(unlist(all_lnc_1mb))
+
+pairs_list <- lapply(1:(length(lnc_ranges_complete_de)), function(index) (get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, n = Inf, maxgap = 1000000L)))[[1]]
+
+myeloids <- subset(immune.combined, idents = "Myeloid")
+count_matrix <- myeloids@assays$RNA@counts
+correlations <- lapply(pairs_list, function(x) calc_correlation(x, count_matrix, type = "spearman"))
+pvals <- (lapply(correlations, function(correlation) ifelse(length(correlation)== 1, print(1),print(correlation$p.value))))
+rhos <- as.vector(lapply(correlations, function(correlation) ifelse(length(correlation)== 1, print(NA),print(correlation$estimate))))
+# Select the significant one
+rhos[pvals < 0.1]
+pvals[pvals < 0.1]
+correlated <- unlist(pairs_list[pvals < 0.1])[c(rep(FALSE,1), TRUE)]$gene_name
+
+do_go(unlist(correlated))
+
+log(1.2)
+df <- data.frame(a = c(1,2), c = c("THY1", "ENSMMUG00000061948"))
+ggplot(df, aes(x = a, fill = c ))+geom_bar()+scale_fill_manual(values  = c("navy", "#870052"))
+```
+
+
+
+# -------------------------------------------
+# -------------------------------------------
+# Analysis colocation in genomic regions
+
+```{r colocation}
+# 1) For each gene lncrna find neighbour protein coding genes. ( either overlapping or in close region) --> putative pairs
+# 2) Filter: Check the pearson correlation of the identified pairs, reatain the ones w/ |pearson correlation coefficient| > 0.6
+# ==> Only if something nice comes out 
+# 3) Validation: Simulate random pairs 
+# 4) Validation: Compare the correlation of the ones identified with the random ones. 
+library(zeallot)
+# --------------------------------------------------------------
+#           Get 5 closest genes to each gene of interest
+# --------------------------------------------------------------
+# Find pairs under maximum overlap
+get_n_closest_gr <- function(gr_gene, gr_hits =mrnas_ranges , n = 5, maxgap =1000000L ){
+  p <- findOverlapPairs(gr_gene, get_gene_only(gr_hits), maxgap=maxgap, ignore.strand = TRUE)
+  pairs_list <- zipup(p)
+  print(gr_gene$gene_name)
+  # Compute thedistances and select the first 5
+  distances <- unlist(lapply(pairs_list, function(pair) GenomicRanges::distance(pair[1], pair[2], ignore.strand = TRUE) ))
+  if(!is.null(distances)){
+    n <- min(length(pairs_list), n)
+    closest_5_pairs <-  pairs_list[order(distances)][1:n]
+  }else{
+    return(NULL)
+  }
+  return(closest_5_pairs)
+}
+
+
+get_closest_genes <- function(genes, original_range, hit_range, n = 10, maxgap = 100000L ){
+  original_range <- original_range[original_range$gene_id %in% gsub("-", "_",gsub("-unkown", "",genes)), ]
+  ranges_5_cl_genes <- lapply(1:(length(original_range)), function(index) unlist(get_n_closest_gr(original_range[index], hit_range, n = n, maxgap = maxgap))[c(rep(FALSE,1), TRUE)]$gene_name)
+return(ranges_5_cl_genes)
+}
+
+
+# prepare ranges
+mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id  ]
+lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas))]
+# add gene entries for novel lncrna, which only present transcripts and exons
+genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
+missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
+gr_list <- lapply(missing_gene_lines, function(x) (get_gene_range(x, lnc_ranges)))
+missing_gene_ranges <- do.call(base::c,gr_list)
+lnc_ranges_genes <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
+
+
+# Group DE lnc 
+lnc_myeloid_late <- get_de_names(mast_myeloid_late, subset = all_lncrnas, FCTHRESHOLD = log(1.0))
+lnc_myeloid_middle <- get_de_names(mast_myeloid_middle, subset = all_lncrnas, FCTHRESHOLD = log(1.0))
+lnc_myeloid_early <- get_de_names(mast_myeloid_early, subset = all_lncrnas, FCTHRESHOLD = log(1.0))
+de_myeloid <- c(lnc_myeloid_late, lnc_myeloid_middle, lnc_myeloid_early)
+
+lnc_T_late <- get_de_names(mast_T_late, subset = all_lncrnas, FCTHRESHOLD = log(1.2))
+lnc_T_middle <- get_de_names(mast_T_middle, subset = all_lncrnas, FCTHRESHOLD = log(1.2))
+lnc_T_early <- get_de_names(mast_T_early, subset = all_lncrnas, FCTHRESHOLD = log(1.2))
+de_t <- c(lnc_T_late, lnc_T_middle, lnc_T_early)
+
+lnc_B_late <- get_de_names(mast_B_late, subset = all_lncrnas)
+lnc_B_middle <- get_de_names(mast_B_middle, subset = all_lncrnas)
+lnc_B_early <- get_de_names(mast_B_early, subset = all_lncrnas)
+de_b<- c(lnc_B_late, lnc_B_middle, lnc_B_early)
+
+de_all <- c(de_myeloid, de_t,de_b)
+closest_m <- get_closest_genes(unique(de_myeloid), lnc_ranges_genes, get_gene_only(mrnas_ranges), Inf, 1000000L)
+
+closest_t <- get_closest_genes(unique(de_t), lnc_ranges_genes, get_gene_only(mrnas_ranges), Inf, 1000000L)
+
+closest_b <- get_closest_genes(unique(de_b), lnc_ranges_genes, get_gene_only(mrnas_ranges), Inf, 1000000L)
+
+closest_myeloid <- get_closest_genes(unique(de_myeloid), lnc_ranges_genes, get_gene_only(mrnas_ranges), Inf, 1000000L)
+
+closest_all <- get_closest_genes(unique(de_all), lnc_ranges_genes, get_gene_only(mrnas_ranges), Inf, 1000000L)
+
+
+do_go(unique(unlist(closest_all)))
+do_go(unique(unlist(closest_t)))
+do_go(unique(unlist(closest_b)))
+do_go(unique(unlist(closest_myeloid)))
+do_go(unique(unlist(closest_m)))
+
+
+# Extract mrnas from significant correlations 
+do_go <- function(list, keytype = "SYMBOL"){
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Hs.eg.db, keyType = keytype,ont = "BP")
+  barplot(ego, showCategory=10)
+  clusterProfiler::dotplot(ego)
+}
+
+```
+
+
+# -------------------------------------------
+# -------------------------------------------
+# Analysis cis-action/coregulation 
+
+```{r cis-regulation}
+# 1) For each gene lncrna find neighbour protein coding genes. ( either overlapping or in close region) --> putative pairs
+# 2) Filter: Check the pearson correlation of the identified pairs, reatain the ones w/ |pearson correlation coefficient| > 0.6
+# ==> Only if something nice comes out 
+# 3) Validation: Simulate random pairs 
+# 4) Validation: Compare the correlation of the ones identified with the random ones. 
+library(zeallot)
+
+# 1. extract the count matrix
+count_matrix <- log2(myeloids@assays$RNA@counts+.5)
+count_matrix <- myeloids@assays$RNA@counts
+rownames(count_matrix) <- gsub("-unkown","",rownames(count_matrix))
+exp_matrix <-myeloids@assays$integrated@data
+
+# 2. 
+mrnas_ranges <- ref[ref$gene_name %in% mrna_ref_id  ]
+lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unkown", "",all_lncrnas))]
+
+
+lnc_ranges
+# Add missing gene entries 
+genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
+missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
+gr_list <- lapply(missing_gene_lines, function(x) (get_gene_range(x, lnc_ranges)))
+missing_gene_ranges <- do.call(base::c,gr_list)
+c(gr_list[1][[1]],gr_list[2][[1]])
+
+lnc_ranges_complete <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
+
+# Only select the DE interestin
+
+lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unkown", "",de_lnc_myelid_late_ordered)), ]
+
+# ----------------------
+# Find pairs allowing 10K gap on both sides
+
+pairs <- findOverlapPairs(lnc_ranges_complete_de, get_gene_only(mrnas_ranges), maxgap=10000L, ignore.strand = TRUE)
+# Get a list of ranges objects in pairs
+pairs_list <- zipup(pairs)
+length(pairs_list)
+
+# How many lncrnas in total vs how many are in pairs
+length(unique(lnc_ranges$gene_id)); length(unique(mrnas_ranges$gene_id)); length(pairs)
+
+# get the counts of the interesting genes
+calc_correlation <- function(pair, count_matrix, type = "pearson"){
+  gene1 <- str_replace_all(pair[1]$gene_id, "_" , "-")
+  gene2 <- str_replace_all(pair[2]$gene_id, "_" , "-")
+  print(gene1)
+  print(gene2)
+  c1 <- count_matrix[rownames(count_matrix)== gene1,]
+  c2 <- count_matrix[rownames(count_matrix)== gene2,]
+  print("----")
+  # calculate the correlation coefficient 
+  if(length(c1)> 0 && length(c2)>0){ 
+    #pc <- bayes.cor.test(c1, c2) 
+    pc <- cor.test(c1, c2, method = c(type)) 
+  }else{ pc = cor.test(c(1:100),c(1:100), method = c(type))  }
+  return(pc)
+}
+# Calc correlation values
+
+correlations <- lapply(pairs_list, function(x) calc_correlation(x, count_matrix, type = "spearman"))
+pvals <- (lapply(correlations, function(correlation) print(correlation$p.value)))
+rhos <- as.vector(lapply(correlations, function(correlation) print(correlation$estimate)))
+
+# Obtain significant correlations
+significant_correlations <- correlations[pvals < 0.1 & rhos !=1]
+significant_pairs <- pairs_list[pvals < 0.1 & rhos !=1]
+significant_correlations
+
+# Extract mrnas from significant correlations 
+do_go <- function(list, keytype = "SYMBOL"){
+  ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =unique(ref$gene_name))
+  barplot(ego, showCategory=10)
+  clusterProfiler::dotplot(ego)
+}
+correlated_mrnas <-unlist(significant_pairs)[c(rep(FALSE,1), TRUE)]$gene_id
+do_go(correlated_mrnas, keytype = "ENSEMBL")
+
+keytypes(org.Mmu.eg.db)
+
+```

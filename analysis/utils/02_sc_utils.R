@@ -1604,3 +1604,58 @@ pre_process_seurat <- function(object, vars_to_regress = NULL) {
     RunTSNE(reduction = "pca", dims = 1:15) %>% 
     RunUMAP(reduction = "pca", dims = 1:15) 
 }
+
+
+hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
+  # Only select lncrnas
+  rownames(m) <- gsub("-unknown","",rownames(m))
+  features <- gsub("-unknown","",features)
+  m <- m[rownames(m) %in% features,, drop = FALSE]
+  
+  column_ha <- HeatmapAnnotation( 
+    comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+    show_annotation_name = FALSE, 
+    gap = unit(16, "points"),
+    
+    col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+                            "T" = brewer.pal(3, "Set2")[1],
+                            "B" = brewer.pal(3, "Set2")[2]),
+               comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
+                              "middle" = brewer.pal(8, "Pastel2")[7],
+                              "late" = brewer.pal(8, "Pastel2")[8])), 
+    
+    show_legend = FALSE, 
+    annotation_height =  unit(c(1), "cm")
+  )
+  
+  row_ha <- rowAnnotation(genetype =substring(rownames(m), 1,3),
+                          show_annotation_name = FALSE)
+  if(!first){
+    
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+                  show_column_dend = FALSE,
+                  cluster_columns = FALSE,
+                  show_column_names = FALSE,
+                  show_row_names = row_names, 
+                  row_title = row_title,
+                  row_title_rot = 0, 
+                  column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])), 
+                  show_heatmap_legend = FALSE
+    )    
+  }else{
+    
+    h1 <- Heatmap(m, show_row_dend = FALSE,
+                  show_column_dend = FALSE,
+                  cluster_columns = FALSE,
+                  show_column_names = FALSE,
+                  show_row_names = row_names, 
+                  row_title = row_title,
+                  row_title_rot = 0, 
+                  top_annotation = column_ha, 
+                  
+                  column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1]))
+    )
+  }
+  print("done")
+  return(h1)
+}

@@ -1,5 +1,10 @@
-FROM r-base:3.6.2
+FROM ubuntu:16.04
 MAINTAINER Luisa Santus <luisa.santus95@gmail.com>
+
+
+RUN apt-get update &&\
+	apt-get install -y r-base
+
 
 RUN R -e "install.packages(c('readr'), repos='https://cloud.r-project.org/')"
 RUN apt-get update && \

@@ -1,0 +1,129 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+library(Seurat)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(ggplot2)
+
+theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+source("../utils/02_sc_utils.R")
+
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/01_QC/immune.combined_qc.rds")
+
+# Load annotations
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+
+# Doublet detection results 
+cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/02_DoubletDetection/immune.combined_scrublet_mask.txt")
+
+
+result_path<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep"
+```
+
+# ---------------------------------------------------------
+#    1. REMOVE DOUBLETS: Use Scrublet mask to remove doublets 
+# ---------------------------------------------------------
+
+```{r cars}
+list <- as.list(as.character(cell_mask_scrublet$V1))
+mask <- list == "True"
+immune.combined <- immune.combined[,!mask]
+```
+
+
+
+# -------------------------------------
+#     Metadata ordering 
+# -------------------------------------
+
+```{r cars}
+
+# CHeck that there is no MCDK 
+table(grepl("MCDK", immune.combined$orig.ident ))
+
+immune.combined$orig.ident <- unlist(lapply(colnames(immune.combined), function(x) strsplit(x, ".", fixed = T)[[1]][1]))
+immune.combined$orig.ident <- gsub("D_", "D-", gsub("-", "_",immune.combined$orig.ident))
+immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "_")[[1]][1]))))
+immune.combined$dpi <- immune.combined$cond <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][2])))
+immune.combined$batch <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][3])))
+immune.combined$analysis <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][4])))
+immune.combined$sample <- paste0(immune.combined$individual," ", immune.combined$dpi)
+immune.combined$group_dpi <- gsub("D", "DPI", immune.combined$dpi)
+
+
+immune.combined$freshfrozen <- as.factor(ifelse(immune.combined$batch =="fresh", 0, 1))
+
+
+# Group DPI into disease stages to gain more statistical power
+
+immune.combined$group <- immune.combined$dpi
+immune.combined$group <- gsub("D-30" , "baseline",immune.combined$group)
+immune.combined$group <- gsub("D-04" , "baseline",immune.combined$group)
+immune.combined$group <- gsub("D000" , "baseline",immune.combined$group)
+
+immune.combined$group <- gsub("D003" , "early",immune.combined$group)
+
+immune.combined$group <- gsub("D004" , "middle",immune.combined$group)
+immune.combined$group <- gsub("D005" , "middle",immune.combined$group)
+
+immune.combined$group <- gsub("D006" , "late",immune.combined$group)
+immune.combined$group <- gsub("D007" , "late",immune.combined$group)
+immune.combined$group <- gsub("D008" , "late",immune.combined$group)
+
+
+table(immune.combined$batch)
+
+```
+# -------------------------------------
+#     Remove MDCKs 
+# -------------------------------------
+
+```{r cars}
+# Identify and remove MDCKs 
+immune.combined <- NormalizeData(immune.combined)
+immune.combined <- FindVariableFeatures(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+
+# Visualize clustering
+DimPlot(immune.combined, reduction = "umap", group.by = "batch")
+DimPlot(immune.combined, reduction = "umap", label = TRUE)
+
+
+# Identify MCDK - remove
+mcdk <- c("COL5A2", "EMP1")
+plot_genes(immune.combined, mcdk, threshold = 2 , title = "MCDK-Cell markers expression", col = "#CA4866")
+
+
+# Remove MCDK 
+idents_to_keep <- setdiff(unique(Idents(immune.combined)), c(4,14))
+immune.combined <- subset(immune.combined, idents = idents_to_keep)
+DimPlot(immune.combined, reduction = "umap", group.by = "batch")
+DimPlot(immune.combined, reduction = "umap", group.by = "ident", label = TRUE)
+
+# We only keep cluster w/ at least 500 cells
+number_of_cells_per_cluster <- as.data.frame(t(table(Idents(immune.combined))))
+idents_to_keep <- number_of_cells_per_cluster[number_of_cells_per_cluster$Freq> 500, ]$Var2
+immune.combined <- subset(immune.combined, idents = idents_to_keep)
+
+DimPlot(immune.combined, reduction = "umap", group.by = "ident", label = TRUE)
+
+
+saveRDS(immune.combined, file.path(result_path,"01_immune.combined_post_scrublet_mdkremoved.rds"))
+```
+
+

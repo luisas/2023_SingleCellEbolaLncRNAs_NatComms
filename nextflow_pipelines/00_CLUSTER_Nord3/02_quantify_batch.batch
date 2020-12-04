@@ -1,0 +1,18 @@
+#!/bin/bash
+#BSUB -J NextflowannotationPipeline
+#BSUB -cwd .
+#BSUB -W 48:01
+#BSUB -e err/Nextflow-%J.err
+#BSUB -o out/Nextflow-%J.out
+
+module load java/1.8.0u66
+module load intel/2017.1
+module load nextflow/19.03.0
+
+module load singularity/3.2.0
+
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/03_get_counts.nf \
+                  --strandness "FR" \
+                  --study "Batch01" \
+                  -w /gpfs/projects/bsc83/Data/Ebola/work/ \
+                  -c ../configs/nextflow.config.rnaseq

@@ -2,7 +2,7 @@ process{
 
   container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/dropseq.simg'
 
-  withName:BamToFastq{
+  withName:Sam2Fastq{
     container = 'file:///gpfs/projects/bsc83/utils/containers/singularity/rnaseqnew.simg'
   }
   withName:create_star_indexes{

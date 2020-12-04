@@ -39,7 +39,6 @@ file_name_no_extension = gsub(pattern = "\\.rds$", "", file_name)
  pbmc <- lapply(X = pbmc, FUN = function(x) {
    #x <- SCTransform(x, verbose = FALSE)
    x <- NormalizeData(x)
-   x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 5000)
  })
 
 

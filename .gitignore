@@ -24,3 +24,9 @@ singularity
 .RData
 src/scripts/Analysis/results/
 .Rproj.user
+nextflow_pipelines/00_CLUSTER_Nord3/JobArrays/
+nextflow_pipelines/00_CLUSTER_Nord3/MultipleJobs/
+nextflow_pipelines/01_CLUSTER_Marenostrum/JobArrays/
+nextflow_pipelines/01_CLUSTER_Marenostrum/MultipleJobs/
+BroadAnnotation/00_Nord3/out/
+BroadAnnotation/01_Marenostrum/out/

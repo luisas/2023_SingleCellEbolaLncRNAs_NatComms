@@ -10,34 +10,37 @@ params.dataset_bam_dir = "${params.dirData}/00_RawData/seqwell/data/IRF_SerialSa
 params.output_dir_preliminary = "${params.dirData}/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
 params.output_dir = "${params.dirData}/02_scRNA-Seq_PBMCs/${params.output_dir_name}"
 
-
+params.bam_name_exvivo="*.bam"
+params.dataset_bam_subset = "*"
 Channel.fromPath("${params.dirData}/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
        .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
 
 if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
-  Channel.fromFilePairs("${params.dataset_bam_dir}/*/results/samples/*/trimmmed_repaired_R{1,2}.fastq.gz")
+
+ Channel.fromPath("${params.dataset_bam_dir}/${params.dataset_bam_subset}/results/samples/*/final.bam")
                 .ifEmpty('bam files directory is empty')
-                .map{tuple(it[1][0].toString().split('/')[-2].split('\\.')[0],
-                           it[1][0].toString().split('/')[-2].split('\\.')[1],
-                          it[1][0].toString().split('/')[-2].split('\\.')[2],
-                          it[1][0].toString().split('/')[-2].split('\\.')[3],
-                          it[1][0].toString().split('/')[-2].split('\\.')[4],
-                          it[1][0].toString().split('/')[-2].split('\\.').join('_'),
-                           it[1])}
-                .into{ fastqs; fastqs2 }
+                .map{tuple(it.parent.name.split('\\.')[0],
+                           it.parent.name.split('\\.')[1],
+                           it.parent.name.split('\\.')[2],
+                           it.parent.name.split('\\.')[3],
+                           it.parent.name.split('\\.')[4],
+                           it.parent.name.split('\\.').join('_'),
+                           it)}
+                .into{ bams_mapped_with_old; bams_mapped_with_old1;  }
+
 
 }else if("${params.output_dir_name}" == "00_scRNA-Seq_exVivo_rhemac10"){
 
-  Channel.fromFilePairs("${params.dataset_bam_dir}/20190829_Novaseq_88bp_ExVivo2*/*/E*_R{1,2}.fastq.gz")
-          .ifEmpty('bam files directory is empty')
-          .map{tuple(it[0].toString().split('\\.')[0],
-                     it[0].toString().split('\\.')[1],
-                    it[0].toString().split('\\.')[3],
-                    it[0].toString().split('\\.')[6],
-                    it[0].toString().split('\\.')[4],
-                    it[0].toString().split('\\.')[0]+ "_" + it[0].toString().split('\\.')[6] + "_" + it[0].toString().split('\\.')[1] + "_" + it[0].toString().split('\\.')[3],
-                     it[1])}
-          .into{ fastqs; fastqs2; printing }
+  Channel.fromPath("${params.dataset_bam_dir}/${params.bam_name_exvivo}")
+                .ifEmpty('bam files directory is empty')
+                .map { tuple(it.baseName.split('\\.')[0],
+                             it.baseName.split('\\.')[1],
+                             it.baseName.split('\\.')[3],
+                             it.baseName.split('\\.')[6],
+                             "std",
+                             it.baseName.split('\\.')[0]+ "_" + it.baseName.split('\\.')[6] + "_" + it.baseName.split('\\.')[1] + "_" + it.baseName.split('\\.')[3],
+                             it ) }.into{ bams_mapped_with_old;bams_mapped_with_old1;   }
+
 }
 params.scripts="${baseDir}/scripts/"
 gtfToGenePred_script_ch = Channel
@@ -88,7 +91,7 @@ process create_star_indexes{
 
   storeDir "${params.output_dir_preliminary}/indexes/"
   //cpus 16
-  cpus 48
+  cpus 16
   label "big_mem"
 
   input:
@@ -116,37 +119,57 @@ log.info "=============================================="
 log.info " DropSeq Analysis Pipeline  "
 log.info "=============================================="
 
-      process STAR{
-
-        label 'big_mem'
-        cpus 48
-        //cpus 1
-        tag "${complete_id}"
-        storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
-
-        input:
-        file indexes from star_indexes.collect()
-        set animal_id, hpi, exp, replicate, preprocessing, complete_id,
-            file(fastq_pair) from fastqs
-
-        output:
-        set animal_id, hpi, exp, replicate, preprocessing, complete_id,
-              file("${complete_id}.Log.final.out"),
-              file("${complete_id}.Aligned.out.bam") into (mapped_bam, test)
 
 
+process Sam2Fastq{
 
-        script:
-        """
-        STAR --genomeDir ${indexes} \
-              --runThreadN ${task.cpus} \
-              --readFilesIn ${fastq_pair[0]} ${fastq_pair[1]}   \
-              --readFilesCommand zcat \
-              --outFileNamePrefix ${complete_id}. \
-              --outTmpDir $TMPDIR/${complete_id} \
-              --outSAMtype BAM Unsorted
-        """
-      }
+  storeDir "${params.output_dir}/01_fastq_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+
+  input:
+  set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_mapped_with_old1
+
+  output:
+  set animal_id, hpi, exp, replicate, preprocessing, complete_id,file("${complete_id}_R1.fastq.gz"), file("${complete_id}_R2.fastq.gz") into  fastqs
+
+  script:
+  """
+  picard-tools SamToFastq \
+     I=${bam} \
+     FASTQ=${complete_id}_R1.fastq.gz \
+     SECOND_END_FASTQ=${complete_id}_R2.fastq.gz
+  """
+}
+
+process STAR{
+
+  label 'big_mem'
+  cpus 16
+  //cpus 1
+  tag "${complete_id}"
+  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+
+  input:
+  file indexes from star_indexes.collect()
+  set animal_id, hpi, exp, replicate, preprocessing, complete_id,
+      file(fastq1), file(fastq2) from fastqs
+
+  output:
+  set animal_id, hpi, exp, replicate, preprocessing, complete_id,
+        file("${complete_id}.Log.final.out"),
+        file("${complete_id}.Aligned.out.bam") into (mapped_bam, test)
+
+  script:
+  """
+  STAR --genomeDir ${indexes} \
+        --runThreadN ${task.cpus} \
+        --readFilesIn ${fastq1} \
+        --readFilesCommand zcat \
+        --outFileNamePrefix ${complete_id}. \
+        --outTmpDir $TMPDIR/${complete_id} \
+        --outSAMtype BAM Unsorted
+  """
+}
+
 
 
 
@@ -155,7 +178,7 @@ process sort_bam{
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
   input:
   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(summary), file(bam) from mapped_bam
@@ -175,7 +198,7 @@ sorted_bams.into{sorted_bams1; sorted_bams2; }
 
 process runRSeQC{
 
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
   input:
   set complete_id, animal_id, hpi, exp, replicate, preprocessing,
     file(bam),
@@ -192,23 +215,24 @@ process runRSeQC{
 }
 
 
-process FastqToSam{
-  cpus 48
+process RevertSam{
+  cpus 16
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing/reverted"
   input:
-  set animal_id, hpi, exp, replicate, preprocessing, complete_id,
-      file(fastq_pair) from fastqs2
+  set animal_id, hpi, exp, replicate, preprocessing, complete_id, file(bam) from bams_mapped_with_old
+
   output:
-  set complete_id,file("${complete_id}_unmapped.bam") into reverted_bams
+  set complete_id,file("${complete_id}_reverted.bam") into reverted_bams
 
   script:
   """
-  picard-tools FastqToSam FASTQ=${fastq_pair[0]} FASTQ2=${fastq_pair[1]} O=${complete_id}_unmapped.bam TMP_DIR=$TMPDIR/${complete_id}.tmp SAMPLE_NAME=${complete_id}
+  picard-tools RevertSam I=${bam} O=${complete_id}_reverted.bam TMP_DIR=$TMPDIR/${complete_id}.tmp
   """
 }
+
 
 
 unmapped_and_mapped_bams = sorted_bams1.combine(reverted_bams, by:0)
@@ -218,13 +242,14 @@ unmapped_and_mapped_bams.into{unmapped_and_mapped_bams0; unmapped_and_mapped_bam
 unmapped_and_mapped_bams1.subscribe{ println "$it" }
 
 // // TODO: Missing orientation !
+
 process MergeBamAlignment{
 
   cpus 48
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
   input:
   file assembly from ReferenceChannel2.collect()
   file(dict) from DictChannel4.collect()
@@ -251,7 +276,7 @@ process MergeBamAlignment{
 
 
 workflow.onComplete {
-	println ( workflow.success ? "Done!" : "Oops .. something went wrong" )
+  println ( workflow.success ? "Done!" : "Oops .. something went wrong" )
 }
 
 /*   -------------------------------

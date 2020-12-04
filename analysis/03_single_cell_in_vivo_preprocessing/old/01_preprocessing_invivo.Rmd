@@ -1,0 +1,296 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE,results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(scater)
+library(SingleCellExperiment)
+library(purrr)
+library(stringr)
+library(mvoutlier)
+library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+library(rtracklayer)
+library(org.Mmu.eg.db)
+library(graphics)
+library(RCy3)
+
+source("../utils/02_sc_utils.R")
+
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects/")
+robjectsdir<- "/home/luisas/Desktop/cluster/data/RObjects/"
+
+
+a <- ref_or[!is.na(ref_or$gene_name) & substr(ref_or$gene_name, 1,2 ) == "MT",]
+unique(a$gene_name)
+
+
+
+```
+
+## Single Cell Analysis
+
+# Import and create unique seurat object 
+```{r cars}
+# Load the PBMC dataset
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/04_DigitalExpressionMatrix_OK/"
+files <- iterate_files(data_dir, ".dge.txt.gz")
+files_umis <- files[!str_detect(files, "reads" )]
+
+# Umis 
+# all matrices files from single cell, still separated per lane
+list <- map(files_umis[2:length(files_umis)], get_Seurat_object)
+pbmc <- get_Seurat_object(files_umis[2])
+list_names <- lapply(files_umis, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
+
+length(list)
+length(list_names)
+unique(unlist(list_names))
+# -------------
+#   Merge
+# -------------
+# Merge all seurats object in one 
+
+# Eemove objects where nocells were identified 
+list_detected_only <- list[unlist(lapply(list, function(x) dim(x)[1] != 0 ))]
+list_names <- list_names[unlist(lapply(list, function(x) dim(x)[1] != 0 ))]
+
+pbmc.big <- merge(pbmc, y = list_detected_only, add.cell.ids = list_names, project = "PBMCbiginvivo")
+# Check if all ids available
+unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
+table(pbmc.big$orig.ident)
+dim(pbmc.big)
+
+#saveRDS(pbmc.big, file.path(robjectsdir,"INVIVO_immune.combined_merged.rds"))
+```
+##---------------------------------------------------------
+##                           Cell QC 
+##  Remove cells with too little or too high UMIS count 
+##  Remove cell based on number of detected genes per cell
+##----------------------------------------------------------
+```{r pressure, results='hide', message=FALSE, warning=FALSE}
+#pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
+
+pbmc_sc <- as.SingleCellExperiment(pbmc.big)
+pbmc_sc <- calculateQCMetrics(pbmc_sc)
+
+# Library size
+lib_size_hist <- plot_histogram( sce = pbmc_sc, qc_metric = "total_counts", title = "Library Size (total UMI)", log_scale = FALSE)
+
+# Number of detected genes
+n_detec_hist <- plot_histogram(sce = pbmc_sc,  qc_metric = "total_features_by_counts",title = "Number of detected genes", log_scale = FALSE)
+
+lsizeplot <- lib_size_hist +
+  geom_vline(xintercept = c(500, 10000), linetype = "dashed", color = "red") + xlim(0,2000)
+
+ndectplot <- n_detec_hist +
+  geom_vline(xintercept = c(600, 2000), linetype = "dashed", color = "red")
+
+lsizeplot
+ndectplot
+```
+
+# Actual Filtering 
+
+```{r}
+pbmc <- pbmc_sc
+keep_cells <-
+  pbmc$total_counts > 500 & pbmc$total_counts < 10000 &
+  pbmc$total_features_by_counts > 600 & pbmc$total_features_by_counts < 2000 
+table(keep_cells)
+pbmc <- pbmc[, keep_cells]
+saveRDS(pbmc,file.path(robjectsdir,"invivo_immunecombined_cellqc.rds"))
+```
+
+
+##----------------------------
+##           Gene QC 
+##  Exclude genes not showing up in a least 10 cells
+##----------------------------  
+
+
+```{r}
+# CLUSTER !!! 
+# Do not delete this lines. The following steps were performed on the cluster for memory issues.
+# n_cells <- rowSums(as.matrix(counts(pbmc)) > 0)
+# pbmc <- pbmc[n_cells > 10, ]
+# saveRDS(pbmc, file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc.rds")
+pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_aftercellandgeneqc.rds"))
+```
+
+##-------------------------------------------------------------------------------
+##    Doublet Detection: Scrublet 
+##-------------------------------------------------------------------------------
+
+Run scrublet with external script (Python)
+
+```{r cars}
+library(reshape2)
+pbmc <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc.rds"))
+pbmc <- as.Seurat(pbmc)
+# Extract count matrix
+m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
+sparse.gbm <- Matrix(m , sparse = T )
+writeMM(obj = sparse.gbm, file=file.path(robjectsdir,"INVIVO_sparse.mtx"))
+```
+
+# External Script Warning!! 
+# --> Run Scrublet in Python
+
+```{r cars}
+cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/INVIVO_predicted_doublet_mask.mtx")
+doublet_scores_scrublet <- read.table("/home/luisas/Desktop/cluster/data/RObjects/INVIVO_predicted_doublet_scores.txt")
+
+list <- as.list(as.character(cell_mask_scrublet$V1))
+mask <- list == "True"
+new <- pbmc[,!mask]
+
+dim(new)
+table(mask)
+pbmc<- seurat_preprocess_standard(new)
+
+# Now check which cells have less than X genes expressed --> cannot see anything special :/
+cells <-  colnames(pbmc[,pbmc$total_features_by_counts > 1000])
+table(pbmc$total_counts < 2000)
+cells <- colnames(pbmc[,pbmc$total_counts > 5000])
+plot_cells(pbmc, cells)
+
+saveRDS(new, file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
+immune.combined <- readRDS(file.path(robjectsdir,"invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
+```
+
+##-------------------------------------------------------------------------------
+##                         Stimulated data analysis 
+##-------------------------------------------------------------------------------
+
+
+# -------------------------------------
+#    Remove MDCKs
+# -------------------------------------
+
+```{r cars}
+# Check the ones without integration for the moment 
+#immune.combined <- readRDS(file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet_after-integration.rds"))
+# Import the newly computed cellswith 5k features and 
+immune.combined <- readRDS(file.path(robjectsdir, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet.rds"))
+# add some labeling 
+immune.combined$orig.ident <- gsub("D_", "D-", gsub("-", "_",immune.combined$orig.ident))
+immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "_")[[1]][1]))))
+immune.combined$dpi <- immune.combined$cond <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][2])))
+immune.combined$batch <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][3])))
+immune.combined$analysis <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][4])))
+immune.combined$sample <- paste0(immune.combined$individual," ", immune.combined$dpi)
+
+
+# Identify and remove MDCKs 
+immune.combined <- NormalizeData(immune.combined)
+immune.combined <- FindVariableFeatures(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+
+# Visualize clustering
+DimPlot(immune.combined, reduction = "umap", group.by = "batch")
+DimPlot(immune.combined, reduction = "umap", label = TRUE)
+# Identify MCDK - remove
+mcdk <- c("COL5A2", "EMP1")
+plot_genes(immune.combined, mcdk, threshold = 2 , title = "MCDK-Cell markers expression", col = "#CA4866")
+# Remove MCDK 
+idents_to_keep <- setdiff(unique(Idents(immune.combined)), c(9,11))
+immune.combined <- subset(immune.combined, idents = idents_to_keep)
+DimPlot(immune.combined, reduction = "umap", group.by = "batch")
+```
+
+# -------------------------------------
+#    Integration
+# -------------------------------------
+
+```{r cars}
+#------------------
+# Integration 
+# -----------------
+immune.combined.list <- SplitObject(immune.combined, split.by = "batch")
+
+immune.combined.list <- lapply(X = immune.combined.list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+immune.anchors <- FindIntegrationAnchors(object.list = immune.combined.list, dims = 1:20)
+saveRDS(immune.anchors, file.path(robjectsdir, "immune_anchors_invivo.rds"))
+immune.combined <- IntegrateData(anchorset = immune.anchors, dims = 1:20)
+immune.combined <- FindVariableFeatures(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+DefaultAssay(immune.combined) <- "integrated"
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+saveRDS(immune.combined, file.path(robjectsdir, "invivo_immunecombined_cellqc_aftercellandgeneqc_afterScrublet_integrated.rds"))
+
+# ----------------------------
+# Visualize the clusters
+immune.combined$group_dpi <- gsub("D", "DPI", immune.combined$dpi)
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "group_dpi", pt.size = 0.1, cols = brewer.pal(10, "Paired"))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+p1
+p2 <- DimPlot(immune.combined, reduction = "umap", group.by = "individual")+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+p3 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)
+immune.combined$batch <- gsub("FRZ", "frozen", immune.combined$batch)
+p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "batch", pt.size = 0.2)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+p5 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample", pt.size = 0.00001)
+p4 +theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+p1; p2; p3; p4; p5
+```
+
+
+```{r cars}
+# ----------------------------
+# FIND MARKERS  for every cluster compared to all remaining cells, report only the positive ones
+pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+saveRDS(pbmc.markers, file.path(robjectsdir,"markers_invivo_normal.rds"))
+pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+
+b <- c("CD79B", "MS4A1", "CD19")
+monocytes <- c("CD14", "LYZ", "CTSB", "PSAP")
+t <- c("IL7R", "CD28", "TRIB2", "SPOCK2")
+nk <- c( "KLRB1")
+dc <- c("IRF8")
+neutrophil <- c("CD177", "SOD2")
+platelet <- c("PPBP", "PF4")
+mdk <- c("COL5A2", "EMP1")
+
+
+
+marker.genes <- c(monocytes, b,t)
+plot_genes(immune.combined,monocytes,threshold= 2, title = "Monocytes marker expression", col = "purple")
+plot_genes(immune.combined, nk, threshold = 2 , title = "NK markers expression", col = "purple")
+plot_genes(immune.combined, b, threshold = 2 , title = "B markers expression", col = "purple")
+plot_genes(immune.combined, t, threshold = 2 , title = "T-Cell markers expression", col = "purple")
+plot_genes(immune.combined, neutrophil, threshold = 4 , title = "Neutrophil-Cell markers expression", col = "purple")
+
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "B", `2` = "T", 
+   `3` = "T", `4` = "B", `5` = "Myeloid", `6` = "Myeloid", `7` = "Myeloid", `8` = "Myeloid", `9` = "Myeloid",
+    `10` = "Myeloid", `11` = "Myeloid", `12` = "Myeloid", `13` = "Myeloid")
+
+
+# Visualize Markers
+DotPlot(immune.combined, features = rev(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())
+DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(3, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+```
+

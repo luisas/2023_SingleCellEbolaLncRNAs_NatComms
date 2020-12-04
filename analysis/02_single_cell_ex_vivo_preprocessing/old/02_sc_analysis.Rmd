@@ -1,0 +1,204 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE,results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(scater)
+library(SingleCellExperiment)
+library(purrr)
+library(stringr)
+library(mvoutlier)
+library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+library(rtracklayer)
+library(org.Mmu.eg.db)
+library(graphics)
+library(RCy3)
+
+source("../utils/02_sc_utils.R")
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+result_path <- file.path("/home/luisas/Desktop/cluster/data/RObjects")
+data_dir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/04_DigitalExpressionMatrix_OK"
+```
+
+## Single Cell Preprocessing Ex Vivo 
+
+1. Merge all quantification files into one Seurat Object 
+2. Cell QC - remove cells with too little or high UMIs counts
+3. Gene QC - remove genes not showing up in at least 10 cells
+4. Mitochondrial QC 
+5. Doublet detection - scrublet 
+
+
+
+
+### Import and merge in one unique Seurat object all the UMIs counts
+```{r cars}
+# Load the PBMC dataset
+files <- iterate_files(data_dir, ".dge.txt.gz")
+files_umis <- files[!str_detect(files, "reads" )]
+
+# Umis 
+# all matrices files from single cell, still separated per lane
+list <- map(files_umis[2:length(files_umis)], get_Seurat_object)
+pbmc <- get_Seurat_object(files_umis[1])
+list_names <- lapply(files_umis, function(x) str_replace_all(unlist(rev(unlist(str_split(x, pattern= "/"))[-1])[[1]]), "_", "-"))
+
+# -------------
+#   Merge
+# -------------
+# Merge all seurats object in one 
+pbmc.big <- merge(pbmc, y = list, add.cell.ids = list_names, project = "PBMCbig")
+# Check if all ids available
+unique(sapply(X = strsplit(colnames(pbmc.big), split = "_"), FUN = "[", 1))
+table(pbmc.big$orig.ident)
+
+saveRDS(pbmc.big, file.path(result_path,"EXVIVO_rhemac10_merged.rds"))
+```
+##---------------------------------------------------------
+##                           Cell QC 
+##  Remove cells with too little or too high UMIS count 
+##  Remove cell based on number of detected genes per cell
+##----------------------------------------------------------
+```{r pressure, results='hide', message=FALSE, warning=FALSE}
+pbmc.big <- readRDS(file.path(result_path,"EXVIVO_rhemac10_merged.rds"))
+
+dim(pbmc.big)
+pbmc_sc <- as.SingleCellExperiment(pbmc.big)
+pbmc_sc <- calculateQCMetrics(pbmc_sc)
+
+# Library size
+lib_size_hist <- plot_histogram( sce = pbmc_sc, qc_metric = "total_counts", title = "Library Size (total UMI)", log_scale = FALSE)
+
+# Number of detected genes
+n_detec_hist <- plot_histogram(sce = pbmc_sc,  qc_metric = "total_features_by_counts",title = "Number of detected genes", log_scale = FALSE)
+
+lsizeplot <- lib_size_hist +
+  geom_vline(xintercept = c(1000, 10000), linetype = "dashed", color = "red")+ xlim(0,20000)
+
+
+lsizeplot <- lib_size_hist +
+  geom_vline(xintercept = c(1000, 10000), linetype = "dashed", color = "red") + xlim(0,2000)
+
+ndectplot <- n_detec_hist +
+  geom_vline(xintercept = c(600, 2000), linetype = "dashed", color = "red")
+
+lsizeplot
+ndectplot
+```
+
+# Actual Filtering 
+
+```{r}
+pbmc <- pbmc_sc
+keep_cells <-
+  pbmc$total_counts > 1000 & pbmc$total_counts < 10000 &
+  pbmc$total_features_by_counts > 600 & pbmc$total_features_by_counts < 2000 
+table(keep_cells)
+pbmc <- pbmc[, keep_cells]
+saveRDS(pbmc,file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
+```
+
+
+##----------------------------
+##           Gene QC 
+##  Exclude genes not showing up in a least 10 cells
+##----------------------------  
+
+```{r}
+pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC.rds"))
+
+# === CLUSTER === 
+# Do not delete this lines. The following steps were performed on the cluster for memory issues.
+# n_cells <- rowSums(as.matrix(counts(pbmc)) > 0)
+# pbmc <- pbmc[n_cells > 10, ]
+# saveRDS(pbmc, file.path(result_path,"seurat_pbmc_rhemac10_merged_aftercellandgeneqc.rds")
+#pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
+
+```
+
+##-------------------------------------------------------------------------------
+##    Doublet Detection: Scrublet 
+##-------------------------------------------------------------------------------
+
+# Create Input for Scrublet 
+```{r cars}
+library(reshape2)
+pbmc <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellQC_aftercellandgeneqc.rds"))
+pbmc <- as.Seurat(pbmc)
+# Extract count matrix
+m <-as.matrix(GetAssayData(object = pbmc, slot = "counts"))
+sparse.gbm <- Matrix(m , sparse = T )
+writeMM(obj = sparse.gbm, file=file.path(result_path,"EXVIVO_sparse.mtx"))
+```
+
+# === CLUSTER ===  --> Run Scrublet in Python ( see nextflow_pipelines/01_CLUSTER_MARENOSTRUM)
+
+```{r cars}
+cell_mask_scrublet <- read.table(file.path(result_path, "EXVIVO_predicted_doublet_mask.mtx"))
+doublet_scores_scrublet <- read.table(file.path(result_path, "EXVIVO_predicted_doublet_scores.txt"))
+
+list <- as.list(as.character(cell_mask_scrublet$V1))
+mask <- list == "True"
+new <- pbmc[,!mask]
+
+saveRDS(new, file.path(result_path,"EXVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
+```
+
+##-------------------------------------------------------------------------------
+##                         Stimulated data analysis 
+##-------------------------------------------------------------------------------
+```{r cars}
+# -----------------------------------
+#         LncRNAs
+# -----------------------------------
+# Extract known lncrnas 
+immune.combined <- as.Seurat(pbmc)
+mrna_ref_id <- unique(ref$gene_name[ref$gene_biotype == "protein_coding"])
+lnc_ref_id <- unique(ref$gene_name[ref$gene_biotype == "lncRNA"])
+ribodepl_genes <- rownames(immune.combined)[grepl("ribodepl*", rownames(immune.combined))]
+polya_genes <- rownames(immune.combined)[grepl("polya*", rownames(immune.combined))]
+novel_lncrnas <- c(ribodepl_genes, polya_genes)
+annotated_lncrna <- rownames(immune.combined)[rownames(immune.combined) %in% str_replace_all(lnc_ref_id, "_" , "-")]
+all_lncrnas <- c(annotated_lncrna, novel_lncrnas)
+```
+
+
+# No Integration 
+
+
+```{r cars}
+#immune.combined <- readRDS(file.path(result_path,"EXVIVO_rhemac10_aftercellandgeneQC_afterScrublet.rds"))
+# Normalize 
+immune.combined <- NormalizeData(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- FindVariableFeatures(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+DefaultAssay(immune.combined) <- "RNA"
+immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function(x) paste(unlist(str_split(x, "-")[[1]][1]))))
+
+saveRDS(immune.combined, file.path(result_path, "EXVIVO_preprocessed_ready.rds"))
+
+# ----------------------------
+# FIND MARKERS  for every cluster compared to all remaining cells, report only the positive ones
+pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+saveRDS(pbmc.markers, file.path(result_path,"EXVIVO_markers_rhemac10_2k.rds"))
+
+```
+
+

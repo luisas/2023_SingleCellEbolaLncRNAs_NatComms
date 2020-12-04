@@ -1,0 +1,153 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(scater)
+library(SingleCellExperiment)
+library(purrr)
+library(stringr)
+library(mvoutlier)
+library(dropbead)
+library(scater)
+library(stringr)
+library(scran)
+library(cowplot)
+library(rtracklayer)
+library(org.Mmu.eg.db)
+library(graphics)
+library(RCy3)
+
+source("../utils/02_sc_utils.R")
+
+theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+
+# Seurat Object - preprocessed
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/01_immune.combined_post_scrublet_mdkremoved__02_integrated_dimred_all.rds")
+dim(immune.combined)
+```
+
+
+# -------------------------------------
+#    Visualize Data through UMAP
+# -------------------------------------
+
+```{r UMAPvisualization}
+
+
+# Day post infection 
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "group_dpi", pt.size = 0.1, cols = brewer.pal(10, "Paired"))+theme_sc
+
+# Individual 
+p2 <- DimPlot(immune.combined, reduction = "umap", group.by = "individual")+theme_sc
+
+# Clusters 
+p3 <- DimPlot(immune.combined, reduction = "umap", label = TRUE)+theme_sc
+
+# Batch 
+p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "batch", pt.size = 0.2)+theme_sc
+
+# Sample
+p5 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample", pt.size = 0.00001)+theme_sc
+
+# Plot all
+p1; p2; p3; p4; p5
+
+table(Idents(immune.combined))
+
+
+
+```
+
+# -----------------------------------------------------
+#    Find markers thoufh DE against all other clusters 
+# -----------------------------------------------------
+
+
+```{r Find markers}
+
+# FIND MARKERS  for every cluster compared to all remaining cells, report only the positive ones
+#pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+#saveRDS(pbmc.markers, file.path(robjectsdir,"markers_invivo_normal.rds"))
+#pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+
+dim(immune.combined)
+# Broad markers
+b <- c("CD79B", "MS4A1", "CD19")
+plasmablast <- c("MZB1")
+tcd4 <- c("CD3D","IL7R")
+tcd8 <- c("GZMB", "CD3D")
+t <- c(tcd4, tcd8)
+nk <- c("KLRB1", "GZMB","FCGR3")
+mono <- c("CFD", "CD163", "KLRB1")
+cDC <- c("IRF8", "FLT3")
+pDC <- c("IRF8", "FLT3")
+neut <- c( "LCN2") 
+neut <- c( "CD177", "SOD2") 
+
+
+marker.genes <- c(plasmablast, b,tcd4, tcd8, nk, mono, cDC, pDC, neut)
+marker.genes_red <- c(t,b,nk,mono,neut)
+
+saveRDS(marker.genes_red, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds")
+
+
+FeaturePlot(immune.combined, neut)
+plot_genes(immune.combined,mono,threshold= 2, title = "Monocytes marker expression", col = "purple")
+plot_genes(immune.combined, b, threshold = 2 , title = "B markers expression", col = "purple")
+plot_genes(immune.combined, c(tcd4, tcd8), threshold = 2 , title = "T-Cell markers expression", col = "purple")
+plot_genes(immune.combined, neut, threshold = 3 , title = "Neutrophil-Cell markers expression", col = "purple")
+
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "T", `2` = "B", 
+   `3` = "B", `4` = "T", `5` = "Monocyte", `6` = "Neutrophil", `7` = "Monocyte", `8` = "T", `9` = "Monocyte",
+    `10` = "T", `11` = "T", `12` = "B", `13` = "Monocyte", `14` = "T", `15` = "Neutrophil",`16` = "Monocyte",`17` = "T", `18` = "T")
+saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+
+
+immune.combined_noneut <- RenameIdents(immune.combined, `Neutrophil` = "Myeloid", `Monocyte` = "Myeloid")
+saveRDS(immune.combined_noneut, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_no_neut.rds")
+
+
+```
+
+
+
+# Visualize Marker genes
+
+```{r Find markers}
+# Visualize Markers
+DotPlot(immune.combined, features = unique(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())
+
+theme_paper
+# Plot with correct
+DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+```
+
+# -----------------------------
+#     Identify EbolaGenes
+#-----------------------------
+
+```{r cars}
+ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unknown", sep ="-")]
+
+
+lapply(ebola_genes, function(gene) FeaturePlot(immune.combined, features  = gene, sort.cell = T, pt.size = 0.7)+theme_sc)
+plot_genes(immune.combined, ebola_genes,0, col = "#DA0202", "Cells expressing Ebola RNA")
+
+novel <- ref[substr(ref$gene_id,1,2) =="MS", ]$gene_name
+lnc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "lncRNA",]$gene_name
+found <- rownames(immune.combined)[rownames(immune.combined) %in% c(lnc, novel)]
+table(substr(ref[ref$gene_name %in% found, ]$transcript_id,1,3))
+```
