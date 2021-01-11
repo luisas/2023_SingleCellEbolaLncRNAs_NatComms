@@ -574,13 +574,13 @@ calc_correlation_with_names <- function(gene1,gene2,count_matrix, type = "pearso
   return(pc)
 }
 
-plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells expressing subset Genes", col = "darkblue"){
+plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells expressing subset Genes", col = "darkblue", pt.size = 0.1){
   # Threshold: at least one gene in the geneset analyzed must have > threshold expression
   mask <- unlist(lapply(rownames(immune.combined), function(x) any(grepl(x, tcell) == TRUE ) ))
   expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
   g1 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x = expr > threshold)]))
  
-  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), sizes.highlight = 0.5, cols.highlight = c(col), cols= "grey", pt.size = 0.1)+ 
+  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), sizes.highlight = 0.1, cols.highlight = c(col), cols= "grey", pt.size = pt.size)+ 
     labs(title = title )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
     theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
   return (list(p1,  sprintf("Number of cells %s", length(g1) )))
@@ -1659,3 +1659,65 @@ hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
   print("done")
   return(h1)
 }
+
+
+FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title){
+  
+  # Only select the correct celltype
+  columns_keep <- colnames(m)[unlist(lapply(colnames(m), function(column) strsplit(column, "_")[[1]][1] == celltype))]
+  m <- m[,columns_keep]
+  
+  # Only select lncRNAs
+  rownames(m) <- gsub("-unknown","",rownames(m))
+  de_lnc_all <- gsub("-unknown","",de_lnc_all)
+  m <- m[rownames(m) %in% de_lnc_all,, drop = FALSE]
+  
+  column_ha <- HeatmapAnnotation( 
+    comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+    show_annotation_name = FALSE, 
+    gap = unit(16, "points"),
+    
+    col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+                            "T" = brewer.pal(3, "Set2")[1],
+                            "B" = brewer.pal(3, "Set2")[2]),
+               comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
+                              "middle" = brewer.pal(8, "Pastel2")[7],
+                              "late" = brewer.pal(8, "Pastel2")[8])), 
+    
+    show_legend = FALSE, 
+    annotation_height =  unit(c(1), "cm")
+  )
+  labels_orth <- ifelse(rownames(m) %in% orthologs$gene_id, "Ortholog found in human", "na")
+  row_ha_type <- rowAnnotation(genetype =ifelse(substring(rownames(m), 1,3)=="MST", "MST", "ENS"),ortholog =labels_orth, show_legend = FALSE,
+                               show_annotation_name = FALSE,
+                               col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
+                                                       "MST" = "purple"
+                               ), ortholog = c("na" = "white", "Ortholog found in human" = "orange")))
+  
+  
+  
+  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(18, "cm"), 
+               show_column_dend = FALSE,
+               heatmap_height = unit(30, "cm"),
+               cluster_columns = FALSE,
+               cluster_rows = TRUE,
+               cluster_row_slices = FALSE,
+               show_column_names = FALSE,
+               show_row_names = FALSE,
+               row_names_gp = gpar(fontsize = 25),
+               row_title_rot = 0,
+               right_annotation = row_ha_type, 
+               top_annotation = column_ha,
+               column_title = title, 
+               column_title_gp = gpar(fill = color_title, fontsize =40, border = NA), 
+               show_heatmap_legend = FALSE
+               
+  )
+  # Add legend
+  leg_comparison <- Legend(at = c("Baseline", "Early", "Middle", "Late"), title = "Stage", legend_gp = gpar(fill = brewer.pal(8,"Pastel2")[5:9]), size = unit(30, "mm"))
+  leg_annot <- Legend(at = c("Novel", "Annotated"), title = "GeneType", legend_gp = gpar(fill = brewer.pal(3,"Paired")[1:3]),size = unit(30, "mm"))
+  
+  hm_wlegend <- draw(h,annotation_legend_list = c(leg_comparison, leg_annot))
+  return(hm_wlegend)
+}
+

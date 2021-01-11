@@ -52,7 +52,7 @@ immune.combined$individual <- unlist(lapply(immune.combined$orig.ident, function
 immune.combined$cond <- immune.combined$cond <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][2])))
 immune.combined$dpi <- unlist(lapply(immune.combined$orig.ident, function(x) unlist(str_split(x, "_")[[1]][3])))
 immune.combined$sample <- paste0(immune.combined$individual," ", immune.combined$dpi)
-table(immune.combined$cond)
+sum(table(immune.combined$dpi))
 ```
 
 ```{r cars}

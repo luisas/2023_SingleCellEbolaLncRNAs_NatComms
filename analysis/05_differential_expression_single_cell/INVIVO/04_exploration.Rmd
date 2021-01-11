@@ -1,0 +1,70 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(scales)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+
+source("../../utils/02_sc_utils.R")
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# Output paths
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+
+# LncRNAs
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+print("--")
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+
+de_all_genes<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_genes.rds")
+length(unique(de_all_genes))
+
+de_mrna_all <- de_all_genes[de_all_genes %in% annotated_mrnas]
+length(unique(de_mrna_all))
+
+de_lnc_all <- de_all_genes[de_all_genes %in% all_lncrnas]
+length(unique(de_lnc_all))
+
+stats_complete <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds")
+
+# Check that i also have the novel lncRNAs
+# OK - i also have the novel ones
+table(substr(all_lncrnas, 1,4) == "MSTR")
+
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
+
+```
+
+# Check the expression of some known lncRNAs
+
+```{r a}
+
+all_genes <- rownames(immune.combined)
+
+
+ref[ref$gene_id == "ENSG00000251562",]
+
+
+```
+

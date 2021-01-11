@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=NextflowQAPipeline
+#SBATCH --workdir=.
+#SBATCH --error=err/Nextflow-%j.err
+#SBATCH --output=out/Nextflow-%j.out
+#SBATCH --cpus-per-task=48
+#SBATCH --qos=debug
+module load java/8u131
+module load intel/2017.1
+module load R/3.6.1
+
+module load singularity/3.2.0
+
+CONTAINER=/gpfs/projects/bsc83/utils/containers/singularity/rdeanalysis.simg
+
+#srun Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/SeuratForCluster/geneQC.R "/gpfs/projects/bsc83/Projects/Ebola/code/ebola/src/scripts/Analysis/results/seurat_pbmc_rhemac10_merged_aftercellqc.rds"
+srun singularity exec ${CONTAINER} Rscript /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/scripts/SC/05_DE_mast_exvivo_continous.R "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/myeloids.rds" "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_noebola_viralload/"

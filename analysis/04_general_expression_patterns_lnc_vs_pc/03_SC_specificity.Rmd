@@ -86,7 +86,6 @@ max(spec_min_corrected_new_df$score)
 
 # How many lnc do i find in the object 
 spec_res <- spec_min_corrected
-table(df_test$type)
 ```
 
 ```{r cars}
@@ -274,9 +273,9 @@ In order to exclude the hypothesis that the number of cells drives the higher sp
 
 ```{r matchmedian}
 
-permutation_files <- iterate_files("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity_permutation/","Permutations*")
+permutation_files <- iterate_files("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/","Permutations*")
 
-perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity_permutation/Permutations_3.rds")
+perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/Permutations_100.rds")
 
 # Permuted
 perm <- get_df_summary(perm)
@@ -313,6 +312,16 @@ df_test[gene, ]
 
 n_cell_celltype <- df_celltype[df_celltype$gene_id == gene & df_celltype$ident == "Myeloid",]$n_cells
 df_test[gene, ]$score * n_cell_celltype
+
+
+c_density_plot <- ggplot(df_tot, aes(score, col = type )) + stat_ecdf(geom = "step", size = 1)+theme_paper+xlab("Specificity score")+ylab("")+ggtitle("Cumulative density plot")+scale_color_viridis_d() 
+
+
+c_density_plot <- ggplot(df_tot, aes(score, col = type )) + geom_s(geom = "step", size = 1)+theme_paper+xlab("Specificity score")+ylab("")+ggtitle("Cumulative density plot")+scale_color_viridis_d() 
+
+ggExtra::ggMarginal(c_density_plot,type = 'boxplot',margins = "x",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
+
+ggplot(df_tot, aes(y=score,x = type,  col = type, fill = type )) + geom_boxplot(alpha = 0.5)+theme_paper+xlab("Specificity score")+ylab("")+scale_color_viridis_d()+scale_fill_viridis_d()+theme(axis.text.x = element_blank())
 
 
 ```

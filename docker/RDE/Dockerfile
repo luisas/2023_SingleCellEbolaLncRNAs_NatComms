@@ -16,3 +16,6 @@ RUN  R -e "BiocManager::install(c('DESeq2', 'zinbwave'), update=FALSE, ask=FALSE
 RUN  R -e "BiocManager::install(c('scater', 'purrr', 'rtracklayer', 'stringr'), update=FALSE, ask=FALSE)"
 RUN  R -e "BiocManager::install(c('reshape2'), update=FALSE, ask=FALSE)"
 RUN  R -e "BiocManager::install(c('Matrix'), update=FALSE, ask=FALSE)"
+RUN  R -e "BiocManager::install(c('scran', 'reshape2'), update=FALSE, ask=FALSE)"
+RUN  R -e "BiocManager::install(c('GENIE3'), update=FALSE, ask=FALSE)"
+RUN  R -e "BiocManager::install(c('knitr', 'rmarkdown', 'foreach', 'doRNG', 'doParallel', 'Biobase', 'SummarizedExperiment', 'testthat', 'methods'), update=FALSE, ask=FALSE)"
