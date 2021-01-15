@@ -258,12 +258,12 @@ sig_correlations_pc_infected_24["MX1",]
 
 # For the postively regulated ones
 egoup <- clusterProfiler::enrichGO(gene = sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$rho > 0, ]$gene, OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(gsub("-unknown", "", rownames(expression_matrix))))
-heatplot(egoup)
+#heatplot(egoup)
 dotplot(egoup)
 
 # For the negatively regulated ones
 egodown <- clusterProfiler::enrichGO(gene =sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$rho < 0, ]$gene,OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(gsub("-unknown", "", rownames(expression_matrix))))
-heatplot(egodown)
+#heatplot(egodown)
 dotplot(egodown)
 
 
@@ -276,12 +276,13 @@ unique(transcripts_de_orthologs$orthologGeneSymbol)
 
 
 gene_gas5 <- paste(unique(ref[ref$transcript_id %in% unique(transcripts_de_orthologs[transcripts_de_orthologs$orthologGeneSymbol == "GAS5", ]$lnc),]$gene_id), "-unknown", sep = "")
-plot_corr(expression_matrix, gene_gas5, sig_correlations_lnc_infected_24[sig_correlations_lnc_infected_24$gene == gene_gas5,]$rho)
+#plot_corr(expression_matrix, gene_gas5, sig_correlations_lnc_infected_24[sig_correlations_lnc_infected_24$gene == gene_gas5,]$rho)
 
 
 
 plot_corr_gene_box <- function(gene, n){
    gene_gas5 <- paste(unique(ref[ref$transcript_id %in% unique(transcripts_de_orthologs[transcripts_de_orthologs$orthologGeneSymbol == gene, ]$lnc),]$gene_id), "-unknown", sep = "")
+   print(gene_gas5)
   df <- data.frame(exp = expression_matrix[gene_gas5, ], viral_load)
   df <- df[df$exp !=0, ]
   # Order cells by viral load 
@@ -289,11 +290,11 @@ plot_corr_gene_box <- function(gene, n){
   n<-n
   df_ordered$bin <- cut(1:length(df_ordered$viral_load), breaks =c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n) )
   print(c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n))
-  ggplot(df_ordered, aes(x= bin, y = exp))+geom_boxplot(fill = "#5bcfcb", alpha =0.9)+theme_paper+xlab("Viral Load")+ylab("logCP10K")+theme(axis.text.x = element_blank())+ggtitle(paste(gene, gene_gas5, sig_correlations_lnc_infected_24[sig_correlations_lnc_infected_24$gene == gene_gas5,]$rho, sep = "  "))
+  ggplot(df_ordered, aes(x= bin, y = exp))+geom_boxplot(fill = "#5bcfcb", alpha =0.9)+theme_paper+xlab("Viral Load")+ylab("logCP10K")+ggtitle(paste(gene, gene_gas5, sig_correlations_lnc_infected_24[sig_correlations_lnc_infected_24$gene == gene_gas5,]$rho, sep = "  "))
 }
 
 
-plot_corr_gene_box("GAS5", 40)
+plot_corr_gene_box("GAS5", 20)
 
 plot_corr_gene_box("SNHG6", 40)
 gene_gas5 <- paste(unique(ref[ref$transcript_id %in% unique(transcripts_de_orthologs[transcripts_de_orthologs$orthologGeneSymbol == "SNHG6", ]$lnc),]$gene_id), "-unknown", sep = "")
@@ -311,7 +312,7 @@ plot_corr <- function(expression_matrix, gene, rho){
   df <- df[df$exp !=0, ]
   # Order cells by viral load 
   df_ordered <- df[order(df$viral_load),]
-  ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_point( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous(trans = "log10")+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
+  ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_point( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous()+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
 }
 
 plot_corr_boxplot <- function(expression_matrix, gene, rho){
@@ -319,11 +320,14 @@ plot_corr_boxplot <- function(expression_matrix, gene, rho){
   df <- df[df$exp !=0, ]
   # Order cells by viral load 
   df_ordered <- df[order(df$viral_load),]
-  ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_point( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous(trans = "log10")+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
+  ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_boxplot( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous()+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
 }
+
+
 
 # Plot each of them 
 apply(sig_correlations_lnc_infected_24, 1,function(x) plot_corr(expression_matrix, x[3], x[2]))
+apply(sig_correlations_lnc_infected_24, 1,function(x) plot_corr_boxplot(expression_matrix, x[3], x[2]))
 
 ```
 # ----------------------------------------------------------------

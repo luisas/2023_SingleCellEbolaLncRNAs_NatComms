@@ -52,7 +52,7 @@ complete_set_annotated_lncrnas_in_object <- rownames(immune.combined)[rownames(i
 
 
 # Novel lncRNAs
-novel_lncrnas <- rownames(immune.combined)[grepl("MST*", rownames(immune.combined))]
+novel_lncrnas <- rownames(immune.combined)[unlist(lapply(rownames(immune.combined), function(x) startsWith(x, "MSTRG")))]
 
 # Complete Set 
 all_lncrnas <- c(complete_set_annotated_lncrnas_in_object, novel_lncrnas)

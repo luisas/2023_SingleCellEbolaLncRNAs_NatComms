@@ -1,0 +1,393 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+library(GENIE3)
+library(igraph)
+library(RCy3)
+library(Rgraphviz)
+library(reshape2)
+library(org.Mmu.eg.db)
+library(enrichplot)
+
+source("../../utils/02_sc_utils.R")
+
+# IN VIVO 
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+
+dim(immune.combined)
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_lnc <- de_all[de_all$type == "lnc", ]
+# get DE lnc names
+
+
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+
+
+de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
+de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
+
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
+get_ortholog <- function(gene_id){
+  transcripts_of_gene <- ref[ref$gene_id == gene_id, ]$transcript_id
+  return(orthologs[orthologs$lnc %in% transcripts_of_gene,])
+}
+```
+
+# Prepare the matrixes to calculate the networks on. One per celltype, only DE genes. 
+
+```{r a}
+myeloids <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+b <- immune.combined[,Idents(immune.combined)=="B"]
+t <- immune.combined[,Idents(immune.combined)=="T"]
+
+de_myeloids <- myeloids[rownames(myeloids) %in% de_all$primerid,]
+de_b <- b[rownames(b) %in% de_all$primerid,]
+de_t <- t[rownames(t) %in% de_all$primerid,]
+
+exprMatr_myeloids_de <- de_myeloids@assays$integrated@data
+exprMatr_b_de <- de_b@assays$integrated@data
+exprMatr_t_de <- de_t@assays$integrated@data
+
+
+universe_myeloids <- unique(rownames(myeloids))
+universe_t <- unique(rownames(t))
+universe_b <- unique(rownames(b))
+```
+
+# Save all the expression matrices
+
+```{r a}
+
+#write.csv(t(exprMatr_myeloids_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_myeloids_de.csv", row.names = FALSE)
+
+
+#write.csv(t(exprMatr_b_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_b_de.csv", row.names = FALSE)
+
+
+#write.csv(t(exprMatr_t_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_t_de.csv", row.names = FALSE)
+
+```
+
+
+# ---------------------- RUN ON CLUSTER GRNBOOST ---------------------------
+
+
+# ---------------------------------------
+#      Myeloids 
+# ---------------------------------------
+
+
+# 1) Visualize the hubs and do the enrichment 
+# 2) Visualize sme specific examples 
+
+```{r a}
+
+# read in 
+weightdf_myeloids <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_myeloids_de.tsv")
+weightMat_myeloids <- acast(weightdf_myeloids, V1~V2, value.var="V3")
+
+# Clean names 
+colnames(weightMat_myeloids) <- gsub(".unknown", "", colnames(weightMat_myeloids))
+rownames(weightMat_myeloids) <- gsub(".unknown", "", rownames(weightMat_myeloids))
+```
+
+
+# Only with lnc
+```{r a}
+set.seed(123)
+
+de_myeloids <- gsub("-unknown", "",de_lnc[de_lnc$celltype == "Monocyte",]$primerid)
+
+# Get the graph and extract the clusters interesting for lncRNAS
+prepare_hubs <- function(weightMat_myeloids, de_lnc_names = de_lnc_names){
+  # Extract lncRNAS
+  linkList <- getLinkList(weightMat_myeloids)
+  max_n <- nrow(linkList)*0.5/100
+  linkList <- getLinkList(weightMat_myeloids, reportMax = max_n)
+  
+  
+  lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% de_lnc_names |as.character(linkList$targetGene) %in% de_lnc_names, ]
+  Gsi <- graph.data.frame(lnc_graphs,directed = F)
+  
+  hubs <- decompose.graph(Gsi, min.vertices = 5) 
+  print(paste("#Hubs: ",length(hubs)))
+  
+  # Check how big they are
+  print("Size of hubs: ")
+  print(unlist(lapply(hubs, function(subgraph) length(V(subgraph)))))
+  return(hubs)
+}
+
+# Visualize the hub and its connections
+
+check_hub <- function(subgraph, universe){
+  # Visualize subgraph 
+  V(subgraph)$color <- ifelse(names(as.list(V(subgraph))) %in% de_lnc_names, "red", "grey")
+  V(subgraph)[startsWith(names(as.list(V(subgraph))), "MSTRG")]$color <- "purple"
+  plot(subgraph,  vertex.size=8, vertex.label=NA)
+  
+  #plot(subgraph, vertex.size=5, vertex.label.font=1, vertex.label.cex=.6)
+  # Calculate enrichment
+  ego <- clusterProfiler::enrichGO(gene = names(as.list(V(subgraph))),OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =universe)
+  p0 <- (clusterProfiler::dotplot(ego))
+  p1 <- emapplot(ego)
+  netm <- as_adjacency_matrix(subgraph, attr="weight", sparse=F)
+  palf <- colorRampPalette(c("light grey", "red")) 
+  netm_filt <- netm[rownames(netm)[rownames(netm) %in% gsub("-unknown", "",de_lnc_names)], setdiff(rownames(netm), rownames(netm)[rownames(netm) %in% gsub("-unknown", "",de_lnc_names)])]
+  
+  p2 <- heatmap.2(netm_filt, Rowv = TRUE, Colv = TRUE, col = palf(100), 
+        scale="none", margins=c(10,10),trace='none',dendrogram='none',cexRow = 0.9)
+  return(list(p0,p1,p2))
+}
+
+
+hubs_myeloids <- prepare_hubs(weightMat_myeloids, de_myeloids)
+
+check_hub(hubs_myeloids[[1]], universe_myeloids)
+check_hub(hubs_myeloids[[2]], universe_myeloids)
+
+
+
+gene_id <- "MSTRG.146560"
+get_ortholog(gene_id)
+ref[ref$gene_id == "MSTRG.146560",]
+de_all[de_all$primerid == paste(gene_id,"-unknown",sep=""),]
+plot_seperate_features(immune.combined, gene  = c(paste(gene_id,"-unknown",sep="")), ident = "group")
+
+
+
+
+
+
+
+```
+
+
+
+# ---------------------------------------
+#      B  
+# ---------------------------------------
+
+
+# Check directionality 
+# Check colocation 
+# Check orthologs 
+# Novel vs annotated 
+
+
+```{r a}
+linkList <- getLinkList(weightMat_myeloids)
+lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% de_myeloids |as.character(linkList$targetGene) %in% de_myeloids, ]
+
+# Get all pc connected with lnc 
+# all_pc <- unique(unlist(list(lnc_graphs$regulatoryGene, lnc_graphs$targetGene)))
+# ego <- clusterProfiler::enrichGO(gene = all_pc,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =universe_myeloids)
+# (clusterProfiler::dotplot(ego))
+
+# Get directionality 
+
+subset <- lnc_graphs
+de_all_myeloids <- de_all[de_all$celltype == "Monocyte",]
+
+# IMPORTNT
+subset$regulatoryGene <- gsub('.', "-", subset$regulatoryGene, fixed = T)
+subset$targetGene <- gsub('.', "-", subset$targetGene, fixed = T)
+de_all_myeloids$primerid <- gsub('.', "-", de_all_myeloids$primerid , fixed = T)
+de_all$primerid <- gsub('.', "-", de_all$primerid , fixed = T)
+
+
+# Obatin type of gene 
+reg_type <- unlist(lapply(subset$regulatoryGene, function(gene) unique(de_all[gsub("-unknown", "", de_all$primerid)==gene,]$type)))
+
+# Add regulatory direction 
+directions <- lapply(subset$regulatoryGene, function(gene) unique(ifelse(de_all[gsub("-unknown", "", de_all$primerid)==gene,]$coef>0, "up", "down")))
+directions_ready <- unlist(lapply(directions, function(x) ifelse(length(x)!=1, "uncertain", x)))
+subset$regulatory_direction <- directions_ready
+
+# Add target direction 
+directions_target <- lapply(subset$targetGene, function(gene) unique(ifelse(de_all_myeloids[gsub("-unknown", "", de_all_myeloids$primerid)==gene,]$coef>0, "up", "down")))
+directions_ready_t <- unlist(lapply(directions_target, function(x) ifelse(length(x)!=1, "uncertain", x)))
+subset$target_direction <- directions_ready_t
+
+# Add concordancy 
+subset$concordance <- apply(subset,1,function(line) ifelse(line[4] == line[5], "concordant", "unconcordant"))
+subset$concordance<- ifelse(subset$target_direction == "uncertain" | subset$regulatory_direction == "uncertain", "uncertain", subset$concordance )
+
+# Plot concordancy 
+subset$regulatory_type <- unlist(lapply(subset$regulatoryGene, function(gene) unique(de_all[gsub("-unknown", "",de_all$primerid) == gene, ]$type)))
+subset$target_type <- unlist(lapply(subset$targetGene, function(gene) unique(de_all[gsub("-unknown", "",de_all$primerid) == gene, ]$type)))
+
+# Remove lnc-lnc pairs 
+subset <- subset[subset$target_type != subset$regulatory_type,]
+# Remove pairs with uncertain 
+subset <- subset[!(subset$regulatory_direction == "uncertain" | subset$target_direction == "uncertain"),]
+
+
+
+subset$lnc_type  <- ifelse(subset$target_type == "lnc", subset$target_direction, subset$regulatory_direction)
+subset$pc_type  <- ifelse(subset$target_type == "pc", subset$target_direction, subset$regulatory_direction)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r a}
+
+prep_pairs <- function(subset){
+  df_pairs <- data.frame(table(subset %>% group_by(lnc_type, pc_type) %>% summarise(a = paste(`lnc_type`, `pc_type`))))
+  names(df_pairs) <- c("pair", "value")
+  df_pairs$source <- unlist(lapply(df_pairs$pair, function(x) str_split(x, " ")[[1]][1]))
+  df_pairs$target <- unlist(lapply(df_pairs$pair, function(x) str_split(x, " ")[[1]][2]))
+  df_pairs$target <- paste(df_pairs$target, "_pc")
+  return(df_pairs)
+}
+
+
+
+
+library(networkD3)
+
+
+plot_sankey <- function(df_pairs, group = c("type_a","type_a","type_b","type_b","type_b", "type_b", "type_b")){
+  # A connection data frame is a list of flows with intensity for each flow
+links <- data.frame(
+  source=df_pairs$source, 
+  target=df_pairs$target, 
+  value=df_pairs$value
+  )
+ 
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes <- data.frame(
+  name=c(as.character(links$source), 
+  as.character(links$target)) %>% unique()
+)
+ 
+# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+links$IDsource <- match(links$source, nodes$name)-1 
+links$IDtarget <- match(links$target, nodes$name)-1
+my_color <- 'd3.scaleOrdinal() .domain(["group_A", "group_B","group_C", "group_D"]) .range(["#7ABFF3", "#F04343" , "#7ABFF3", "#F04343"])'
+
+p <- sankeyNetwork(Links = links, Nodes = nodes,
+              Source = "IDsource", Target = "IDtarget",
+              Value = "value", NodeID = "name", 
+              sinksRight=FALSE, fontSize=18, colourScale = my_color)
+p
+return(p)
+}
+
+
+
+p
+df_pairs <- prep_pairs(subset)
+plot_sankey(df_pairs)
+
+```
+
+
+
+```{r a}
+
+# read in 
+weightdf_b <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_b_de.tsv")
+weightMat_b <- acast(weightdf_b, V1~V2, value.var="V3")
+
+# Clean names 
+colnames(weightMat_b) <- gsub(".unknown", "", colnames(weightMat_b))
+rownames(weightMat_b) <- gsub(".unknown", "", rownames(weightMat_b))
+
+de_b <- gsub("-unknown", "",de_lnc[de_lnc$celltype == "B",]$primerid)
+
+hubs_b <- prepare_hubs(weightMat_b, de_b)
+check_hub(hubs_b[[1]], universe_b)
+check_hub(hubs_b[[2]], universe_b)
+
+# Plot second hub 
+subgraph <- hubs_b[[2]]
+V(subgraph)$color <- ifelse(names(as.list(V(subgraph))) %in% de_lnc_names, "red", "grey")
+V(subgraph)[startsWith(names(as.list(V(subgraph))), "MSTRG")]$color <- "purple"
+plot(subgraph, vertex.size=10,
+vertex.label.color = "black", vertex.label.cex = 0.9, vertex.label.degree = -pi/2,
+edge.arrow.size = 0.3, edge.arrow.width = 0.4, edge.color = "black")
+
+
+plot_seperate_features(immune.combined, gene  = c("IL22"), ident = "group")
+plot_seperate_features(immune.combined, gene  = c("MSTRG.31111-unknown"), ident = "group")
+plot_seperate_features(immune.combined, gene  = c("GADD45B"), ident = "group")
+#plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000065174-unknown"), ident = "group")
+
+# Investigate genes one by one
+# ORTHOLOG 
+gene_id <- "MSTRG.31111"
+get_ortholog(gene_id)
+# Find genomic location 
+#ref[ref$gene_id == "MSTRG.31111",]
+
+# Investigate genes one by one
+# ORTHOLOG 
+gene_id <- "ENSMMUG00000061913"
+get_ortholog(gene_id)
+# Find genomic location 
+#ref[ref$gene_id == "MSTRG.31111",]
+```
+
+
+# ---------------------------------------
+#      T 
+# ---------------------------------------
+```{r a}
+
+# read in 
+weightdf_t <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_t_de.tsv")
+weightMat_t <- acast(weightdf_t, V1~V2, value.var="V3")
+
+# Clean names 
+colnames(weightMat_t) <- gsub(".unknown", "", colnames(weightMat_t))
+rownames(weightMat_t) <- gsub(".unknown", "", rownames(weightMat_t))
+
+de_t <- gsub("-unknown", "",de_lnc[de_lnc$celltype == "T",]$primerid)
+
+hubs_t <- prepare_hubs(weightMat_t, de_t)
+check_hub(hubs_t[[1]], universe_t)
+check_hub(hubs_t[[2]], universe_t)
+
+# Plot second hub 
+subgraph <- hubs_t[[2]]
+V(subgraph)$color <- ifelse(names(as.list(V(subgraph))) %in% de_lnc_names, "red", "grey")
+V(subgraph)[startsWith(names(as.list(V(subgraph))), "MSTRG")]$color <- "purple"
+plot(subgraph, vertex.size=10,
+vertex.label.color = "black", vertex.label.cex = 0.9, vertex.label.degree = -pi/2,
+edge.arrow.size = 0.3, edge.arrow.width = 0.4, edge.color = "black")
+
+
+```

@@ -223,7 +223,7 @@ scatter_plot_expression <- function(df, genetype, type = "Max", col = "blue"){
   return(p1)
 }
 
-scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max", palette = brewer.pal("Set1", 2)){
+scatter_plot_both<- function(df_lnc,df_mrna,highlight_genes = "",  y = "Variance", type = "Max", palette = brewer.pal("Set1", 2)){
   df_lnc$type <- "ncRNA"
   df_mrna$type   <- "Protein coding"
   df_complete <- rbind(df_mrna, df_lnc)
@@ -237,12 +237,20 @@ scatter_plot_both<- function(df_lnc,df_mrna, y = "Variance", type = "Max", palet
       p1 <- ggplot(df_complete, aes(x = maxexpr , y = perc_cells_expressing, col = type))
     }else if(type == "Median"){
       p1 <- ggplot(df_complete, aes(x = medianexpr , y = perc_cells_expressing, col = type))
-      print("asdasdasd")
     }
   }
 
   p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
           scale_alpha_manual(values = c(1,0.3))+ylim(0,1)
+  if(highlight_genes != ""){
+    highlight_df <-  df_complete[unlist(lapply(rownames(df_complete), function(x) gsub( "-unknown", "",x))) %in% highlight_genes, ]
+    print(highlight_df)
+    p1 <- p1 + geom_point(data=highlight_df, 
+               color='orange',
+               size=1.4)
+    
+  }
+  
   p1 <- ggExtra::ggMarginal(p1,type = 'boxplot',margins = 'both',size = 8,colour = "darkgrey", alpha = 0.5,groupColour = TRUE, groupFill = TRUE)
   return(p1)
 }
@@ -1703,7 +1711,7 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
                cluster_rows = TRUE,
                cluster_row_slices = FALSE,
                show_column_names = FALSE,
-               show_row_names = FALSE,
+               show_row_names = TRUE,
                row_names_gp = gpar(fontsize = 25),
                row_title_rot = 0,
                right_annotation = row_ha_type, 
@@ -1718,6 +1726,7 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
   leg_annot <- Legend(at = c("Novel", "Annotated"), title = "GeneType", legend_gp = gpar(fill = brewer.pal(3,"Paired")[1:3]),size = unit(30, "mm"))
   
   hm_wlegend <- draw(h,annotation_legend_list = c(leg_comparison, leg_annot))
-  return(hm_wlegend)
+  
+  return(draw(h))
 }
 

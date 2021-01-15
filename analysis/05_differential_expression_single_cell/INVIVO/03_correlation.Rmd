@@ -377,7 +377,7 @@ write.csv(t(exprMatr), "/home/luisas/Desktop/cluster/data/matrix.csv", row.names
 t_names <- colnames(t(exprMatr))[1:10]
 write.table((t_names), "/home/luisas/Desktop/cluster/data/tnames.csv", row.names = FALSE, col.names = FALSE, quote = F)
 
-
+as.matrix(weightMat)
 
 
 ```

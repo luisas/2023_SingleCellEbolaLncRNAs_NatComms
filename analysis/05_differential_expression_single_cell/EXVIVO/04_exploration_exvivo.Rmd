@@ -1,0 +1,105 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(scales)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+library(enrichplot)
+library(ggthemes)
+
+
+source("../../utils/02_sc_utils.R")
+theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# Output paths
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE/")
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
+
+ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unknown", sep ="-")]
+
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
+
+# ------------------------------------
+#     LncRNAs present in object 
+# -------------------------------------
+# annotated lncrnas id 
+lnc_ref_id <- gsub("_","-",unique(ref$gene_name[ref$gene_biotype %in% c("lncRNA")]))
+# Annotated lncRNAs: remove the gene names so it can match 
+complete_set_annotated_lncrnas_in_object <- rownames(immune.combined)[rownames(immune.combined) %in% lnc_ref_id]
+# Novel lncRNAs
+novel_lncrnas <- rownames(immune.combined)[grepl("MST*", rownames(immune.combined))]
+# Complete Set 
+all_lncrnas <- c(complete_set_annotated_lncrnas_in_object, novel_lncrnas)
+
+annotated_mrnas <- unique(ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding", ]$gene_name)
+
+
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_statsOld//"
+df_lnc <- readRDS(file.path(robjectsdir_stats, "df_lnc.rds"))
+df_mrna <- readRDS(file.path(robjectsdir_stats, "df_mrna.rds"))
+df_lnc$type <- "lncRNAs"
+df_mrna$type <- "mRNAs"
+df_complete <- rbind(df_lnc, df_mrna)
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+all_genes <- unlist(lapply(rownames(df_complete), function(x) gsub( "-unknown", "",x)))
+
+
+```
+
+
+
+
+# Check the expression of some known lncRNAs
+
+```{r a}
+
+all_genes <- rownames(immune.combined)
+find_macaque_geneID <- function(gene){
+  return(unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in% unique(orthologs[orthologs$orthologGeneSymbol==gene,]$lnc),]$gene_name))
+}
+
+
+gene <- "GAS5"
+highlight_genes <- c(find_macaque_geneID(gene))
+highlight_genes
+
+orthologs[orthologs$orthologGeneSymbol==gene,]
+orthologs$orthologGeneSymbol
+ref[ref$gene_name %in% highlight_genes,]
+table(rownames(immune.combined) %in% (highlight_genes))
+rownames(immune.combined)[substr(rownames(immune.combined),1,4) == "ENSM"]
+
+# Plot gene 
+expression_matrix <- immune.combined@assays$RNA@data
+colnames(expression_matrix) <- immune.combined$cond
+
+
+m <- (expression_matrix[rownames(expression_matrix) %in% (highlight_genes),])
+df <- melt(as.matrix(m))
+names(df) <- c("stage", "no", "value")
+df$stage <- ifelse(df$stage =="baseline", "baseline", "infected")
+ggplot(df, aes(x = stage, y = value, col = stage, fill = stage))+geom_violin(alpha = 0.5)+theme_paper+ggtitle(gene)
+```

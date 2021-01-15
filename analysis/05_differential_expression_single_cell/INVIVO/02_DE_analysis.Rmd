@@ -173,11 +173,11 @@ de_mrna_all <- c(de_lists_mrna_my, de_lists_mrna_T, de_lists_mrna_B)
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 
 
-de_lists_lnc <- list(lnc_Monocyte_late$primerid,lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid,lnc_T_late$primerid, lnc_T_late$primerid, lnc_Monocyte_early$primerid, lnc_B_early$primerid, lnc_B_middle$primerid, lnc_B_late$primerid )
+de_lists_lnc <- list(lnc_Monocyte_late$primerid,lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid,lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid, lnc_B_late$primerid, lnc_B_middle$primerid, lnc_B_early$primerid )
 names(de_lists_lnc) <- c("lnc_monocyte_late", "lnc_monocyte_middle", "lnc_monocyte_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
 
 
-de_lists_mrna <- list(mrna_Monocyte_late$primerid,mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid,mrna_T_late$primerid, mrna_T_late$primerid, mrna_Monocyte_early$primerid, mrna_B_early$primerid, mrna_B_middle$primerid, mrna_B_late$primerid )
+de_lists_mrna <- list(mrna_Monocyte_late$primerid,mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid,mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid, mrna_B_late$primerid, mrna_B_middle$primerid, mrna_B_early$primerid )
 names(de_lists_mrna) <- c("mrna_monocyte_late", "mrna_monocyte_middle", "mrna_monocyte_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
 
 de_all_genes <- unique(unlist(c(unlist(de_lists_mrna), unique(de_lists_lnc))))
@@ -201,6 +201,9 @@ de_all <- rbind(lnc_de_all, mrna_de_all)
 de_all$direction <- ifelse(de_all$coef < 0 , "down", "up")
 de_all$direction <- factor(de_all$direction, c("down", "up"))
 de_all$stage <- factor(de_all$stage, c("early", "middle", "late"))
+
+
+#saveRDS(de_all, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
 ```
 
 
