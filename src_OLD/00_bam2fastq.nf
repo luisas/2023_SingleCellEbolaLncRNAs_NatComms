@@ -1,13 +1,9 @@
 
-//load bedtools/2.25.0
-
-
 log.info "=============================================="
-log.info "          Convert unmapped bam to fastq.gz"
+log.info "          Convert unmapped bam to fastq.gz    "
 log.info "=============================================="
 
 params.output_dir = "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/"
-params.input_dir = ""
 
 unmapped_bams = Channel
                   .fromPath("${params.dataset_bam_dir_zyagen}/*_long.bam")

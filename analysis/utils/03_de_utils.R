@@ -121,10 +121,10 @@ get_colData <- function(matrix){
 extract_info_sample_from_dir <- function(file){
   file_no_ext <- strsplit(file,".", fixed = T)[[1]][1]
   info <- rev(strsplit(file, "/")[[1]])
-  dataset <- info[6]
-  tissue <- info[5]
-  dpo <- info[4]
-  sample <- info[3]
+  dataset <- info[5]
+  tissue <- info[4]
+  dpo <- info[3]
+  sample <- info[2]
   sample_name=paste(dataset,tissue,dpo,sample,sep="_")
   return(c(dataset,tissue,dpo,sample, sample_name))
 }
@@ -186,3 +186,5 @@ create_dds <- function(sampleFiles,directory, names_from_dir = FALSE, tximport =
 
   return(dds)
 }
+
+

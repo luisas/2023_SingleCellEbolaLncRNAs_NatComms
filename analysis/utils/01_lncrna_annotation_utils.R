@@ -3,6 +3,41 @@
 #  Utils for lncRNA annotation stats
 # ------------------------------------------------
 
+
+
+
+
+
+plot_stats_benchmark <- function(pcvslnc){
+  data <- data.frame(table(pcvslnc[pcvslnc$type == "transcript",]$class_code))
+  colnames(data) <- c("group", "value")
+  data <- data[data$group %in% c("u", "i", "x"), ]
+  # Basic piechart
+  # Compute the position of labels
+  data <- data %>% 
+    arrange(desc(group)) %>%
+    mutate(prop = value / sum(data$value) *100) %>%
+    mutate(ypos = cumsum(prop)- 0.5*prop )
+  
+  # Basic piechart
+  plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
+    geom_bar(stat="identity", width=1, color="white") +
+    coord_polar("y", start=0) +
+    theme_void() + 
+    theme(legend.position="none") +
+    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
+    scale_fill_brewer(palette="Set1")
+  return(plotassembly)
+}
+
+
+
+
+
+
+
+
+
 # Given a genomic range gets only the maximum transcript of a gene
 # computed based on the sum of the lenghts of its exons.
 get_only_max_transcript <- function(gr){
@@ -374,25 +409,4 @@ bed12_entry <- function(transcript){
 }
 
 
-plot_stats_benchmark <- function(pcvslnc){
-  data <- data.frame(table(pcvslnc[pcvslnc$type == "transcript",]$class_code))
-  colnames(data) <- c("group", "value")
-  data <- data[data$group %in% c("u", "i", "x"), ]
-  # Basic piechart
-  # Compute the position of labels
-  data <- data %>% 
-    arrange(desc(group)) %>%
-    mutate(prop = value / sum(data$value) *100) %>%
-    mutate(ypos = cumsum(prop)- 0.5*prop )
-  
-  # Basic piechart
-  plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
-    geom_bar(stat="identity", width=1, color="white") +
-    coord_polar("y", start=0) +
-    theme_void() + 
-    theme(legend.position="none") +
-    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
-    scale_fill_brewer(palette="Set1")
-  return(plotassembly)
-}
 

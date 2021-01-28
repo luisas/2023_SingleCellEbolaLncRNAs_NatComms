@@ -83,13 +83,15 @@ myeloids <- immune.combined[,Idents(immune.combined)=="Monocyte"]
 b <- immune.combined[,Idents(immune.combined)=="B"]
 t <- immune.combined[,Idents(immune.combined)=="T"]
 
-de_myeloids <- myeloids[rownames(myeloids) %in% de_all$primerid,]
-de_b <- b[rownames(b) %in% de_all$primerid,]
-de_t <- t[rownames(t) %in% de_all$primerid,]
+ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep = "")
 
-exprMatr_myeloids_de <- de_myeloids@assays$integrated@data
-exprMatr_b_de <- de_b@assays$integrated@data
-exprMatr_t_de <- de_t@assays$integrated@data
+de_myeloids_ebola <- myeloids[rownames(myeloids) %in% c(de_all$primerid,ebola_genes)]
+de_b_ebola <- b[rownames(b) %in% c(de_all$primerid,ebola_genes)]
+de_t_ebola <- t[rownames(t) %in% c(de_all$primerid,ebola_genes),]
+
+exprMatr_myeloids_de_ebola <- de_myeloids_ebola@assays$integrated@data
+exprMatr_b_de_ebola <- de_b_ebola@assays$integrated@data
+exprMatr_t_de_ebola <- de_t_ebola@assays$integrated@data
 
 
 universe_myeloids <- unique(rownames(myeloids))
@@ -102,15 +104,7 @@ universe_b <- unique(rownames(b))
 # Prepare the matrixes with Ebola genes 
 
 ```{r a}
-ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep = "")
 
-de_myeloids_ebola <- myeloids[rownames(myeloids) %in% c(de_all$primerid,ebola_genes)]
-de_b_ebola <- b[rownames(b) %in% c(de_all$primerid,ebola_genes)]
-de_t_ebola <- t[rownames(t) %in% c(de_all$primerid,ebola_genes),]
-
-exprMatr_myeloids_de_ebola <- de_myeloids_ebola@assays$integrated@data
-exprMatr_b_de_ebola <- de_b_ebola@assays$integrated@data
-exprMatr_t_de_ebola <- de_t_ebola@assays$integrated@data
 
 
 #write.csv(t(exprMatr_myeloids_de_ebola), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_myeloids_de_ebola.csv", row.names = FALSE)
@@ -125,15 +119,6 @@ exprMatr_t_de_ebola <- de_t_ebola@assays$integrated@data
 # Save all the expression matrices
 
 ```{r a}
-
-#write.csv(t(exprMatr_myeloids_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_myeloids_de.csv", row.names = FALSE)
-
-
-#write.csv(t(exprMatr_b_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_b_de.csv", row.names = FALSE)
-
-
-#write.csv(t(exprMatr_t_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_final_t_de.csv", row.names = FALSE)
-
 
 library(zeallot)
 robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
@@ -182,7 +167,7 @@ length(unique(lnc_ranges_complete_de$gene_id))
 ```{r a}
 
 # read in 
-weightdf_myeloids <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_myeloids_de.tsv")
+weightdf_myeloids <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_myeloids_de_ebola.tsv")
 weightMat_myeloids <- acast(weightdf_myeloids, V1~V2, value.var="V3")
 
 # Clean names 
@@ -280,7 +265,22 @@ max_n <- nrow(linkList)*0.5/100
 linkList <- getLinkList(weightMat_myeloids, reportMax = max_n)
 min(linkList$weight)
 
-lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% de_myeloids |as.character(linkList$targetGene) %in% de_myeloids, ]
+lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% c(gsub("-unknown", "", ebola_genes), de_myeloids) |as.character(linkList$targetGene) %in%  c(gsub("-unknown", "", ebola_genes), de_myeloids), ]
+lnc_graphs_ebola <- linkList[as.character(linkList$regulatoryGene) %in% ebola_genes |as.character(linkList$targetGene) %in% ebola_genes, ]
+
+
+# Ebola left lnc right 
+lnc_graphs[lnc_graphs$regulatoryGene %in%gsub("-unknown", "", ebola_genes)  ,]
+
+lnc_graphs[lnc_graphs$targetGene %in%gsub("-unknown", "", ebola_genes) ,]
+
+E(gD2, path=gsub("-unknown", "", ebola_genes))
+
+
+
+(lapply(names(as.list(V(gD2)))[names(as.list(V(gD2))) %in% de_lnc_names][[1]], function(x) (get.shortest.paths(gD2, from='VP30', to=x)$vpath)))
+
+
 Gsi <- graph.data.frame(lnc_graphs,directed = F)
 
 # Cluster with louvain algorithm 
@@ -304,6 +304,10 @@ LO2 = LO[Keep,]
 V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in% de_lnc_names, "red", "grey")
 # highlight novel ones 
 V(gD2)[startsWith(names(as.list(V(gD2))), "MSTRG")]$color <- "purple"
+V(gD2)[names(as.list(V(gD2))) %in% gsub("-unknown", "",ebola_genes)]$color <- "green"
+
+names(as.list(V(gD2)))
+
 # Highlight orthologs
 V(gD2)$frame.color <- ifelse( names(as.list(V(gD2))) %in% de_lnc_names & names(as.list(V(gD2))) %in% orthologs$gene_id , "blue", "#7A7A7A")
 

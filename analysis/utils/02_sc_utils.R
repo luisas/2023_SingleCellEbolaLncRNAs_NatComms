@@ -1468,6 +1468,23 @@ get_stress_signature_seurat <- function(sce, test_sce) {
   output
 }
 
+
+get_n_closest_gr_name <- function(gr_gene, gr_hits =mrnas_ranges, maxgap =2000000L ){
+  p <- findOverlapPairs(gr_gene, get_gene_only(gr_hits), maxgap=maxgap, ignore.strand = TRUE)
+  
+  print(gr_gene$gene_name)
+  # Compute thedistances and select the first 5
+  if(length(p@second) == 0 ){
+    df <- data.frame(gene=gr_gene$gene_name, distances=NA, second = NA, chr = seqnames(gr_gene), stringsAsFactors = F )
+  }else{
+    distances <- unlist(lapply(1:length(p@second), function(index) GenomicRanges::distance(gr_gene, p@second[index], ignore.strand = TRUE) ))
+    df <- data.frame(gene=gr_gene$gene_name, distances=distances, second = p@second$gene_name, stringsAsFactors = F, chr = seqnames(gr_gene) )
+  }
+  return(df)
+}
+
+
+
 calc_time_score2 <- function(sce, signature_df, random = FALSE) {
   # Calculate time score for every cell in sce.
   # 

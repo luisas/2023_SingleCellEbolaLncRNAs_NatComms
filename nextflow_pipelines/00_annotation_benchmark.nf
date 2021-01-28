@@ -1,27 +1,44 @@
 
-// Filter is performed on the correct RheMac gtf
+log.info "=============================================="
+log.info "            Benchmark: LncRNA annotation      "
+log.info "=============================================="
 
-params.output_dir = "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/"
-params.dataset= "02_RNA-Seq_ribodepl"
-params.prefix_label = "ribodepleted"
-output_dir_sub="03_novel_lncRNAs_list/99_benchmark_annotation/"
+/*
+ * This pipeline is built to benchmark the performance of annotation tools
+ * such as CPC2, CPAT and CNIT, on the reference annotation of Macaque to
+ * assess their performance.
+ */
 
+// CONFIG FILE: ../configs/nextflow.annotation.config
+
+// Input directory
+params.input_dir = "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/"
+
+// Output directory
+output_dir_sub="${params.input_dir}/03_novel_lncRNAs_list/99_benchmark_annotation/"
+
+// Reference genome ( Macaca Mulatta rheMac10 )
 reference_assembly = Channel.fromPath("/gpfs/projects/bsc83/Data/assemblies/ensembl/release-100/rheMac10/Macaca_mulatta.Mmul_10.dna.toplevel.fa").collect()
-gtf2bed = Channel.fromPath("${baseDir}/scripts/gtf2bed0.R").collect()
+
+// Reference annotation ( Macaca Mulatta rheMac10)
 gtf = Channel.fromPath("/gpfs/projects/bsc83/Data/gene_annotation/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf")
 
-cpatmodel= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/Human_logitModel.RData").collect()
-cpathexamer= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/Human_Hexamer.tsv").collect()
-cpat_files = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/cpat*").collect()
+// Script for conversion of gtf to bed format
+gtf2bed = Channel.fromPath("${baseDir}/scripts/gtf2bed0.R").collect()
+
+// Extra (default) files needed by CPAT for obtaining the prediction
+cpatmodel= Channel.fromPath("${params.input_dir}/01_PreliminaryFiles_rheMac10/Human_logitModel.RData").collect()
+cpathexamer= Channel.fromPath("${params.input_dir}/01_PreliminaryFiles_rheMac10/Human_Hexamer.tsv").collect()
+cpat_files = Channel.fromPath("${params.input_dir}/01_PreliminaryFiles_rheMac10/cpat*").collect()
 
 
-log.info "=============================================="
-log.info "            LncRNA annotation"
-log.info "=============================================="
 
+/*
+ * 1) Convert GTF to BED
+ */
 
 process gtf2bed{
-   storeDir "${params.output_dir}/${output_dir_sub}/00_preliminaryfiles/"
+   storeDir "${output_dir_sub}/00_preliminaryfiles/"
 
    input:
    file gtf2bed
@@ -36,8 +53,11 @@ process gtf2bed{
    """
 }
 
+/*
+ * 2) Obtain FASTA file
+ */
 process getFasta{
-   storeDir "${params.output_dir}/${output_dir_sub}/00_preliminaryfiles/"
+   storeDir "${output_dir_sub}/00_preliminaryfiles/"
 
    input:
    file reference_assembly
@@ -52,13 +72,14 @@ process getFasta{
    """
 }
 
-
-
 candidates.into{candidatesfa1; candidatesfa2; candidatesfa3; }
 
 
+/*
+ * 3) Run prediction with CPC2
+ */
 process CPC2{
-  storeDir "${params.output_dir}/${output_dir_sub}/01_predictions/CPC2"
+  storeDir "${output_dir_sub}/01_predictions/CPC2"
    input:
   file candidates from candidatesfa1
    output:
@@ -71,9 +92,11 @@ process CPC2{
    """
 }
 
-
+/*
+ * 4) Run prediction with CPAT
+ */
 process CPAT{
-   storeDir "${params.output_dir}/${output_dir_sub}/01_predictions/CPAT"
+   storeDir "${output_dir_sub}/01_predictions/CPAT"
 
    input:
    file candidates from candidatesfa2
@@ -92,9 +115,11 @@ process CPAT{
 }
 
 
-
+/*
+ * 5) Run prediction with CNIT
+ */
 process CNIT{
-    storeDir "${params.output_dir}/${output_dir_sub}/01_predictions/CNIT"
+    storeDir "${output_dir_sub}/01_predictions/CNIT"
 
     input:
     file candidates from candidatesfa3

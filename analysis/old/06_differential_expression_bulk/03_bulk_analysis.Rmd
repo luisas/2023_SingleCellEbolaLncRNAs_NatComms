@@ -38,7 +38,7 @@ datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation
 
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
-dir_counts_ref = file.path(datadir, "04_quantification/")
+dir_counts_ref = file.path(datadir, "04_quantification")
 htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
 batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
 zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
@@ -54,13 +54,15 @@ txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
 colnames(txi$counts) <- abundance_files
 
 dds <- create_dds(abundance_files,names_from_dir = TRUE,  tximport = TRUE, tx_obj = txi)
-dds$tissue
 
-samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)
+table(dds$condition)
+
+
+#samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)
 
 # Retain only blood and liver
-dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
-dds <- dds[!rownames(dds) %in% ebola_ref$gene_id,]
+#dds <- dds[, dds$tissue == "Blood" | dds$tissue == "Liver"]
+#dds <- dds[!rownames(dds) %in% ebola_ref$gene_id,]
 
 # remove one sample
 #dds <- dds[,dds$complete_id != "Batch01_Blood_D07_RA0700"]
@@ -131,6 +133,10 @@ dds$birthyear <- as.double(str_sub(metadata$birthday, -4))[match(dds$id,metadata
 dds$weight <- as.double(metadata$weight)[match(dds$id,metadata$id)]
 
 colnames(dds) <- dds$complete_id
+
+dds$id
+
+
 # Order the levels
 dds$infection <- factor(dds$infection, levels = c("infected","not-infected"), ordered = TRUE )
 dds$gender <- factor(dds$gender, levels = c("Female","Male"), ordered = TRUE )
@@ -139,9 +145,41 @@ dds$birthyear <- factor(dds$birthyear, levels = c("2011","2012"), ordered = TRUE
 dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
 dge <- calcNormFactors(dge) 
 dge <- estimateCommonDisp(dge)
-#mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), main=" samples on genes CPM", top=50,  gene.selection="common")
+mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), main=" samples on genes CPM", top=50,  gene.selection="common",col=, labels=dge$samples$condition)
+dge$samples
 
+table(dge$samples$condition)
+table(dds$condition)
+
+col <- as.numeric(dge$samples$tissue)
+mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01), top=200, col=col)
+
+# or labels can be provided, here group indicators:
+plotMDS(mds, col=col, labels=dge$samples$condition)
 ```
+
+```{r cars}
+clust <- kmeans(mds, 3)$cluster %>%
+  as.factor()
+mds <- mds %>%
+  mutate(groups = clust)
+# Plot and color by groups
+ggscatter(mds, x = "Dim.1", y = "Dim.2", 
+          label = rownames(swiss),
+          color = "groups",
+          palette = "jco",
+          size = 1, 
+          ellipse = TRUE,
+          ellipse.type = "convex",
+          repel = TRUE)
+
+
+mds <- plotMDS(x,  col=c(rep("black",3), rep("red",3)) )
+# or labels can be provided, here group indicators:
+plotMDS(mds,  col=c(rep("black",3), rep("red",3)), labels= c(rep("Grp1",3), rep("Grp2",3)))
+```
+
+
 
 
 ```{r cars}
