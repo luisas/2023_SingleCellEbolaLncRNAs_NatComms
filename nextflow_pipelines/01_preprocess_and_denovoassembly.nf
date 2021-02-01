@@ -1,7 +1,6 @@
 /*
 *
 * Nextflow pipeline bulk RNA-Seq preprocessing and novel lncRNAs annotation
-* leveraging the FeelNC tool.
 *
 */
 log.info "=============================================="
@@ -27,10 +26,6 @@ params.rhesus_genome = "${params.prefix_data}/assemblies/ensembl/release-100/Mac
 params.prefix_rawdata = "${params.prefix_data}/Ebola/00_RawData"
 params.ebov_genome = "${params.prefix_rawdata}/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.fa"
 params.ebov_gtf = "${params.prefix_rawdata}/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"
-
-// FEELNC: TRAINING DATA (Human Gencode)
-params.data_folder = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation"
-
 
 
 // Output folders
@@ -112,7 +107,6 @@ fastqs = Channel.fromFilePairs("${params.fastqs}")
 
 
 fastqs.into{ fastq_files_for_qc; fastq_files_for_mapping; printing2 }
-//printing2.subscribe{ println "$it" }
 
 // ------------------------------------------------------------
 //-------------- CREATE CHANNELS ------------------------------
@@ -123,8 +117,7 @@ rhesus_genome_channel = Channel
 ebov_genome_channel = Channel
                       .fromPath("${params.ebov_genome}")
 scripts=file("${params.scripts}")
-rheMac_annotation_channel = Channel
-                                  .fromPath("${params.rhesus_gtf}")
+Channel.fromPath("${params.rhesus_gtf}").into{rheMac_annotation_channel; rheMac_annotation_channel1 }
 
 ebov_annotation_channel = Channel
                           .fromPath("${params.ebov_gtf}")
@@ -412,10 +405,6 @@ if( "${params.umi}" == "true" ){
   unmapped_bams.into{ printing4; unmapped_bams_2; }
   unmapped_and_mapped_bams = sorted_and_index_bam_1.combine(unmapped_bams_2, by:0)
 
-  println " -----------------------------------------"
-  printing3.subscribe{ println "$it"}
-  printing4.subscribe{ println "$it"}
-
 
   process add_unmapped_bam{
 
@@ -591,7 +580,6 @@ process runRSeQC{
 
   input:
 
-
   // set lane, dataset_name, dayPostInfection, tissue, sample, complete_id,
   //     file(ss), file(sum),
   //     file(bam) from mapped_bam
@@ -631,7 +619,7 @@ process DeNovoAssembly{
 
   cpus 1
   tag "${complete_id}"
-  publishDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample",  mode: 'copy'
+  storeDir "${params.output_dir}/04_stringtie/$dataset_name/$tissue/$dayPostInfection/$sample"
 
 
   input:
@@ -648,6 +636,31 @@ process DeNovoAssembly{
   stringtie ${bam} -G ${gtf} -o ${file_prefix}.stringtie.gtf --${params.stringtiestrandness} -p ${task.cpus}
   """
 }
+
+// /*
+// * Quantification for samples quality control
+// */
+process stringtie{
+  cpus 1
+  storeDir "${params.output_dir}/01b_quantification_qc/$dataset_name/$tissue/$dayPostInfection/$sample"
+
+  input:
+  file gtf from rheMac_annotation_channel1.collect()
+  set dataset_name, dayPostInfection, tissue, sample, complete_id,
+      file(bampair) from filtered_merged_bams_5
+
+  output:
+  file("*") into fpkm_channel
+
+  script:
+  """
+  # Calc the counts for the umi_dedup
+  stringtie -eB  --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
+  """
+}
+
+
+
 
 // /*
 // * Merge all the assemblies Reference Guided

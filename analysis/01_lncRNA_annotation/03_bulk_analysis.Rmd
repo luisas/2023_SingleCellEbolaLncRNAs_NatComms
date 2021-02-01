@@ -1,0 +1,174 @@
+---
+title: "DE_bulk"
+author: "Luisa Santus"
+date: "12/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Samples quality control 
+
+
+# ----------------------------------
+# ----------------------------------
+#          1. TEST WITH TPMs  
+# ----------------------------------
+# ----------------------------------
+
+### Import
+```{r import}
+library(sva); library(edgeR)
+library("genefilter")
+library("gplots")
+library(plyr)
+library(geneplotter)
+library(clusterProfiler)
+library(org.Mmu.eg.db)
+library(rtracklayer)
+library(stringr)
+library(edgeR)
+library(zeallot)
+library(DESeq2)
+library(readr)
+library(tximport)
+
+# ----------------------------------
+#           Load files 
+# ----------------------------------
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/analysis/utils/")
+source(file.path(scripts_dir,"03_de_utils.R"));
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_ribodepl/01b_quantification_qc")
+
+abundance_files <- iterate_files(dir_counts_ref, "gene_abundances.tsv")
+
+# Create Map for Transcript names to Gene names 
+abundances <- list()
+for(i in 1:length(abundance_files)) {
+  file <- readr::read_tsv(abundance_files[i])
+  # Sum up values for double entries (https://github.com/gpertea/stringtie/issues/192)
+  file <- file %>% dplyr::group_by(`Gene ID`)%>% dplyr::summarise(TPM = sum(TPM))
+  abundances[[i]] <- data.frame(file$TPM, row.names =file$`Gene ID` )
+}
+
+# Summarize all TPMs from all quantification files 
+rn <- rownames(abundances[[1]])
+dat <- abundances[[1]]
+for(i in 2:length(abundances)) {
+  dat <- merge(dat, abundances[[i]],  by= "row.names", all.x= F, all.y= F) [,-1]
+  rownames(dat) <- rn
+}
+colnames(dat) <- abundance_files
+
+# Remove Batch
+dat <- dat[,!unlist(lapply(abundance_files, function(x) (grepl( "Batch01", x, fixed = TRUE))))]
+abundance_files <- abundance_files[!unlist(lapply(abundance_files, function(x) (grepl( "Batch01", x, fixed = TRUE))))]
+
+
+# Remove not-expressed genes 
+mask <- rowSums(dat > 0) > 0
+dat <- dat[mask, ]
+
+# Transpose matrix
+# Row: samples, Columns: genes 
+data <- t(dat)
+
+# Add metadata 
+metadata <- data.frame(t(as.data.frame((lapply(abundance_files, extract_info_sample_from_filename)))))
+colnames(metadata) <- c("Dataset", "Tissue", "DPI", "Sample", "Complete_id")
+
+# Fix Tissue naming
+metadata$Tissue  <- as.character(metadata$Tissue)
+metadata$Tissue <- unlist(lapply(metadata$Tissue, function(x) str_split(x, "-")[[1]][1]))
+metadata$Tissue <- ifelse(metadata$Tissue == "Wholeblood", "Blood",metadata$Tissue )
+
+
+# Create final table
+data_annotated <- cbind(metadata, data)
+```
+
+
+## Visualize PCA 
+
+```{r import}
+library(cluster)
+
+pca_res <- prcomp(data_annotated[,6:length(data_annotated)], scale. = TRUE)
+autoplot(pca_res, data = data_annotated,frame = TRUE, frame.colour = 'Tissue')+theme_classic()
+autoplot(pca_res, data = data_annotated,frame = TRUE, frame.colour = 'Dataset')+theme_classic()
+autoplot(pca_res, data = data_annotated,frame = FALSE, colour = 'Tissue')+theme_classic()
+
+```
+
+
+
+
+# ----------------------------------
+# ----------------------------------
+#          1. TEST WITH CPMs   
+# ----------------------------------
+# ----------------------------------
+
+
+
+```{r import}
+
+# ----------------------------------
+#           Import Utils 
+# ----------------------------------
+scripts_dir = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/analysis/utils/")
+source(file.path(scripts_dir,"03_de_utils.R"));
+
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_ribodepl/01b_quantification_qc")
+
+abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
+# Create Map for Transcript names to Gene names 
+tmp <- read_tsv(abundance_files[1])
+tx2gene <- tmp[,c("t_name", "gene_id")]
+txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
+colnames(txi$counts) <- abundance_files
+
+dds <- create_dds(abundance_files,names_from_dir = TRUE,  tximport = TRUE, tx_obj = txi)
+```
+
+
+
+```{r import}
+# Remove samples 
+dds <- dds[, dds$condition != "Batch01"]
+dge <- DGEList(counts = assays(dds)$counts, group = dds$dpo, genes = rownames(dds), samples = colData(dds))
+assays(dds)$logCPM <- edgeR::cpm(dge, log=TRUE, prior.count=0.5)
+
+# ----------------------------------------
+#         Remove not expressed genes 
+# ----------------------------------------
+mask <- rowSums(edgeR::cpm(dge) > 0) > 0
+dds.filt <- dds[mask, ]
+dge.filt <- dge[mask, ]
+
+# Visualzie with MDS
+col <- as.numeric(dge$samples$tissue)
+mds <- plotMDS(cpm(dge, log = TRUE,prior.count = 0.01),labels=dge$samples$condition, top=100, col=col)
+# or labels can be provided, here group indicators:
+plotMDS(mds, col=col, labels=dge$samples$condition)
+
+
+```
+
+
+
+
+
+
+

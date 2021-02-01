@@ -49,17 +49,15 @@ files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing}
 printing.subscribe{ println it }
 
 
-//params.gtf_ref_merged =  "/home/luisas/Desktop/cluster/data/01_Ebola-RNASeq_all/03_novel_lncrnas/00_gtf_filtering_step_01/rheMac10_EBOV-Kikwit_and_both_novel.gtf"
-params.gtf_ref_merged =  "/gpfs/projects/bsc83/Data/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf"
+params.gtf= "/gpfs/projects/bsc83/Data/gene_annotation/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"
 
-Channel.fromPath("${params.gtf_ref_merged}").set{ gtfANDnovel }
 
 process stringtie{
   cpus 1
   storeDir "${params.output_dir}/04_quantification/$dataset_name/$tissue/$dayPostInfection/$sample"
 
   input:
-  file gtf from gtfANDnovel.collect()
+  file gtf from gtf.collect()
   set dataset_name, dayPostInfection, tissue, sample, complete_id,
       file(bampair) from filtered_merged_bams_4
 

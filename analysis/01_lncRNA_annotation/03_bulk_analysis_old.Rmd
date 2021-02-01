@@ -9,10 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Differential expression Bulk 
+## Samples quality control 
 
-
-```{r cars}
+### Import
+```{r import}
 library(sva); library(edgeR)
 library("genefilter")
 library("gplots")
@@ -36,15 +36,9 @@ source(file.path(scripts_dir,"03_de_utils.R"));
 
 datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
 
-dir_counts_ref = file.path(datadir, "04_quantification")
-htseq_files_ref <- iterate_files(dir_counts_ref, ".gene_counts.tab")
-batch <- htseq_files_ref[str_detect(htseq_files_ref, "Batch01")]
-zyagen <- htseq_files_ref[str_detect(htseq_files_ref, "Zyagen")]
-htseq_files_ref <- c(batch,zyagen)
-#htseq_files_ref <- batch
-
+dir_counts_ref = file.path(datadir, "02_RNA-Seq_ribodepl/01b_quantification_qc")
 
 abundance_files <- iterate_files(dir_counts_ref, "t_data.ctab")
 # Create Map for Transcript names to Gene names 
@@ -54,10 +48,11 @@ txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
 colnames(txi$counts) <- abundance_files
 
 dds <- create_dds(abundance_files,names_from_dir = TRUE,  tximport = TRUE, tx_obj = txi)
+```
 
-table(dds$condition)
 
 
+```{r import}
 #samples_info <- sapply(sampleFiles,extract_info_sample_from_dir)
 
 # Retain only blood and liver
