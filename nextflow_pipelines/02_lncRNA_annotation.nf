@@ -31,22 +31,25 @@ files = Channel.fromFilePairs("${params.output_dir}/${params.dataset}/03_hisat/*
                              it[1] ) }
 
 
+
+
 files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing; filtered_merged_bams_5}
 //printing.subscribe{ println it }
 
+
+
+
 params.data_dir = "${params.output_dir}/${params.dataset}"
-params.lnc_novel_compared_to_ref= "${params.data_dir}/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf"
-params.mrnas_predicted ="${params.data_dir}/05_feelNC_prediction/feelnc_gencode_linc/feelnc_codpot_out/candidate_lncRNA.gtf.mRNA.gtf"
+params.lnc_novel_compared_to_ref= "${params.data_dir}/04_stringtie_gffcompare/merged.annotated.gtf"
 params.assembly ="${params.data_dir}/04_stringtie/stringtie_merged_reference_guided.gtf"
 params.reference_annotated = "${params.output_dir}/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV-Kikwit.gtf"
 reference_assembly = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/reference_assembly/rheMac10_EBOV-Kikwit.fa")
 
-// // SCRIPTS
+// SCRIPTS
 extractNovel_script = Channel.fromPath("${baseDir}/scripts/03_concordant_and_merge.R").collect()
 prefilter_script = Channel.fromPath("${baseDir}/scripts/01_prefilter_script.R").collect()
 expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
 lnc_novel_compared_to_ref = Channel.fromPath("${params.lnc_novel_compared_to_ref}").collect()
-mrnas_predicted = Channel.fromPath("${params.mrnas_predicted}").collect()
 assembly = Channel.fromPath("${params.assembly}").collect()
 gtf2bed = Channel.fromPath("${baseDir}/scripts/gtf2bed.R").collect()
 gtf_ref_1 = Channel.fromPath("${params.reference_annotated}").collect()
@@ -56,12 +59,21 @@ cpatmodel= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/H
 cpathexamer= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/Human_Hexamer.tsv").collect()
 cpat_files = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/cpat*").collect()
 
-gtf_ref_1.into{gtf_ref; gtf_ref_2; }
+gtf_ref_1.into{gtf_ref; gtf_ref_2; gtfChannel5; gtfChannel6; }
 // /*
 // * Extract only the novel (unkown and antisense) lncRNAs compared to the reference.
 // * Also remove non concordant predictions.
 // */
 output_dir_sub="03_novel_lncRNAs_list"
+
+
+
+
+
+//------------ FILTER 0: retain only novel transcripts  --------------
+//------------ FILTER 1: remove monoexonic transcripts ----------------------------------
+//------------ FILTER 2: remove transcripts shorter than 200 nucleotides --------------
+//------------ FILTER 3: remove anything overlapping protein coding genes (in-sense) --------------
 
 process prefilter{
 
@@ -81,10 +93,10 @@ process prefilter{
    Rscript ${prefilter_script} ${lnc_novel_compared_to_ref} ${assembly} ${ref} prefilter_candidates.gtf
    """
 }
-//
-// /*
-// * Append novel concordant to the reference before quantification
-// */
+
+/*
+* Append novel concordant to the reference before quantification
+*/
 process mergeWithAnnotation {
      storeDir "${params.output_dir}/${output_dir_sub}/00_prefilter_candidates/"
 
@@ -101,10 +113,10 @@ process mergeWithAnnotation {
      cat ${novel} >> ref_novel_${params.prefix_label}.gtf
      """
  }
-//
-// /*
-// * Quantify Expression with stringtie.
-// */
+
+/*
+* Quantify Expression with stringtie.
+*/
  process expression_stringtie{
 
    storeDir "${params.output_dir}/${output_dir_sub}/01_quantification_for_filtering/$dataset_name/$tissue/$dayPostInfection/$sample/stringtie"
@@ -124,8 +136,8 @@ process mergeWithAnnotation {
    mv t_data.ctab ${complete_id}_t_data.ctab
    """
  }
-//
-//
+
+
  expression = fpkm_channel.collect()
  expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
 

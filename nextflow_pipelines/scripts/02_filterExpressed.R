@@ -22,8 +22,8 @@ iterate_files <- function(inpath, pattern_string){
   return(files)
 } 
 
-dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/01_quantification_for_filtering/"
-novel_concordant <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf")
+#dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/01_quantification_for_filtering/"
+#novel_concordant <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf")
 
 abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
 
@@ -69,9 +69,6 @@ novel_expressed_ribodepleted <- novel_concordant[novel_concordant$gene_id %in% r
 length(unique(novel_expressed_ribodepleted$transcript_id))
 
 
-table(ref$transcript_biotype)
-a <- rownames(expression)
-test
 # Save 
 export(novel_expressed_ribodepleted,outfile)
 

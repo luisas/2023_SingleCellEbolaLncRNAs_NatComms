@@ -3,7 +3,6 @@ params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
 params.output_dir_name = "01_scRNA-Seq_inVivo_rhemac10"
-params.primer = "AAGCAGTGGTATCAACGCAGAGTGAATGGG"
 params.strandness = "FR"
 params.dataset_bam_dir = "${params.dirData}/00_RawData/seqwell/data/IRF_SerialSac/Mapping_V4/Mapping_V4"
 
@@ -49,8 +48,8 @@ genePredToBed_script_ch = Channel
                       .fromPath("${params.scripts}/genePredToBed")
 cell_selection_script = Channel.fromPath("${params.scripts}/cellselection.R").collect()
 
-Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
-        .into{ GtfNotNovel;   }
+//Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit.gtf")
+//        .into{ GtfNotNovel;   }
 
 Channel.fromPath("${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit.fa")
        .into{ ReferenceChannel;ReferenceChannel2;   }
@@ -65,28 +64,6 @@ log.info " Metadata Generation  "
 log.info "=============================================="
 
 
-process convert_gtf_to_bed12{
-  storeDir "${params.output_dir_preliminary}/gene_annotations"
-
-  input:
-  file annotation from GtfChannel4
-  file gtfToGenePred_script from gtfToGenePred_script_ch
-  file genePredToBed_script from genePredToBed_script_ch
-
-  output:
-  set file("${prefix}.bed"), file("${prefix}.bed12") into bed_channel
-
-  script:
-  prefix = get_file_name_no_extension(annotation.name)
-  """
-  ./${gtfToGenePred_script} ${annotation} ${prefix}.bed
-  ./${genePredToBed_script} ${prefix}.bed ${prefix}.bed12
-  """
-}
-
-
-
-
 process create_star_indexes{
 
   storeDir "${params.output_dir_preliminary}/indexes/"
@@ -96,7 +73,7 @@ process create_star_indexes{
 
   input:
   file assembly from ReferenceChannel
-  file annotation from GtfNotNovel
+  file annotation from GtfChannel2
 
   output:
   file "star" into star_indexes
@@ -113,14 +90,15 @@ process create_star_indexes{
 }
 
 // Not doing preprocessing of bams cause they have already been preprocessed by Dylan
-// preprocess is before mapping so independent from Annotation
+// Preprocess is before mapping so independent from Annotation
 
 log.info "=============================================="
 log.info " DropSeq Analysis Pipeline  "
 log.info "=============================================="
 
 
-
+//  --- Convert bam files back to fastq
+//  --- Independent from annotation
 process Sam2Fastq{
 
   storeDir "${params.output_dir}/01_fastq_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
@@ -139,6 +117,9 @@ process Sam2Fastq{
      SECOND_END_FASTQ=${complete_id}_R2.fastq.gz
   """
 }
+
+
+// Mapping
 
 process STAR{
 
@@ -171,10 +152,10 @@ process STAR{
 }
 
 
-
+// Sorting
 
 process sort_bam{
-  cpus 48
+  cpus 16
   //cpus 1
   label "rnaseq"
   tag "${complete_id}"
@@ -196,14 +177,37 @@ process sort_bam{
 
 sorted_bams.into{sorted_bams1; sorted_bams2; }
 
+// Gene annotation with novel lncrnas
+// Convert GTF to BED
+
+process convert_gtf_to_bed12{
+  storeDir "${params.output_dir_preliminary}/gene_annotations"
+
+  input:
+  file annotation from GtfChannel
+  file gtfToGenePred_script from gtfToGenePred_script_ch
+  file genePredToBed_script from genePredToBed_script_ch
+
+  output:
+  set file("${prefix}.bed"), file("${prefix}.bed12") into bed_channel
+
+  script:
+  prefix = get_file_name_no_extension(annotation.name)
+  """
+  ./${gtfToGenePred_script} ${annotation} ${prefix}.bed
+  ./${genePredToBed_script} ${prefix}.bed ${prefix}.bed12
+  """
+}
+
+
 process runRSeQC{
 
-  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+  storeDir "${params.output_dir}/01b_RSeQC/$animal_id/$hpi/$exp/$replicate/$preprocessing"
   input:
   set complete_id, animal_id, hpi, exp, replicate, preprocessing,
     file(bam),
     file(sortedbam) from sorted_bams2
-    set file(bed), file(bed12) from  bed_channel.collect()
+  set file(bed), file(bed12) from  bed_channel.collect()
 
   output:
    file "*" into read_distribution_channel
@@ -215,6 +219,8 @@ process runRSeQC{
 }
 
 
+
+// Remove mapping from bam files of Dylan
 process RevertSam{
   cpus 16
   //cpus 1
@@ -241,37 +247,34 @@ unmapped_and_mapped_bams.into{unmapped_and_mapped_bams0; unmapped_and_mapped_bam
 
 unmapped_and_mapped_bams1.subscribe{ println "$it" }
 
-// // TODO: Missing orientation !
 
 process MergeBamAlignment{
 
-  cpus 48
-  //cpus 1
-  label "rnaseq"
-  tag "${complete_id}"
-  storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
-  input:
-  file assembly from ReferenceChannel2.collect()
-  file(dict) from DictChannel4.collect()
-  set complete_id,animal_id, hpi, exp, replicate, preprocessing,
-      file(sam), file(bam),
-      file(unmapped_bam) from unmapped_and_mapped_bams0
+   cpus 48
+   //cpus 1
+   label "rnaseq"
+   tag "${complete_id}"
+   storeDir "${params.output_dir}/02_star_NEW/$animal_id/$hpi/$exp/$replicate/$preprocessing"
+   input:
+   file assembly from ReferenceChannel2.collect()
+   file(dict) from DictChannel4.collect()
+   set complete_id,animal_id, hpi, exp, replicate, preprocessing,
+       file(sam), file(bam),
+       file(unmapped_bam) from unmapped_and_mapped_bams0
 
-  output:
-  set animal_id, hpi, exp, replicate, preprocessing, complete_id, file("${complete_id}.merged.bam") into merged_bam_alignments_channel
+   output:
+   set animal_id, hpi, exp, replicate, preprocessing, complete_id, file("${complete_id}.merged.bam") into merged_bam_alignments_channel
 
 
-  script:
-  """
-  picard-tools MergeBamAlignment REFERENCE_SEQUENCE=${assembly} \
-               UNMAPPED_BAM=${unmapped_bam} \
-               ALIGNED_BAM=${bam} \
-               OUTPUT=${complete_id}.merged.bam \
-               INCLUDE_SECONDARY_ALIGNMENTS=false \
-               PAIRED_RUN=true \
-               ORIENTATIONS=${params.strandness} \
-               TMP_DIR=$TMPDIR/${complete_id}.tmp
-  """
+   script:
+   """
+   picard-tools MergeBamAlignment REFERENCE_SEQUENCE=${assembly} \
+                UNMAPPED_BAM=${unmapped_bam} \
+                ALIGNED_BAM=${bam} \
+                OUTPUT=${complete_id}.merged.bam \
+                INCLUDE_SECONDARY_ALIGNMENTS=false \
+                TMP_DIR=$TMPDIR/${complete_id}.tmp
+   """
 }
 
 

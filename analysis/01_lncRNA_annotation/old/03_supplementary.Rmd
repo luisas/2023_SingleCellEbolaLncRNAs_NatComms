@@ -38,29 +38,19 @@ pc_macaque <- sum(ref_macaque_gene$gene_biotype == "protein_coding")
 lnc_human <- sum(ref_human_gene$gene_biotype == "lncRNA")
 pc_human <- sum(ref_human_gene$gene_biotype == "protein_coding")
 
-
-ref_macaque_transcript <- ref_macaque[ref_macaque$type == "transcript",]
-ref_human_transcript <- ref_human[ref_human$type == "transcript",]
-
-lnc_macaque_transcript <- sum(ref_macaque_transcript$transcript_biotype == "lncRNA")
-pc_macaque_transcript <- sum(ref_macaque_transcript$transcript_biotype == "protein_coding")
-lnc_human_transcript <- sum(ref_human_transcript$transcript_biotype == "lncRNA")
-pc_human_transcript<- sum(ref_human_transcript$transcript_biotype == "protein_coding")
-
-count <- c(lnc_macaque, pc_macaque, lnc_human, pc_human, lnc_macaque_transcript, pc_macaque_transcript, lnc_human_transcript, pc_human_transcript ) 
-species <- c(rep("Macaque", 2), rep("Human",2,),rep("Macaque", 2), rep("Human",2))
-gene_biotype <- c(rep(c("LncRNA", "Protein Coding"), 2 ),rep(c("LncRNA", "Protein Coding"), 2 ) )
-gene_type <- c(rep("gene", 4), rep("transcript",4,))
-df_n_genes <- data.frame(count, species, gene_biotype, gene_type)
+count <- c(lnc_macaque, pc_macaque, lnc_human, pc_human ) 
+species <- c(rep("Macaque", 2), rep("Human",2))
+gene_biotype <- c(rep(c("LncRNA", "Protein Coding"), 2 ) )
+df_n_genes <- data.frame(count, species, gene_biotype)
 ```
 
 
 
 ```{r results='hide', message=FALSE, warning=FALSE}
-ggplot(df_n_genes, aes(fill = gene_biotype, col =gene_type,   y = count, x = species))+
-                geom_bar(stat="identity", position = position_dodge2(), alpha = 0.8)+
+ggplot(df_n_genes, aes(fill = gene_biotype, y = count, x = species))+
+                geom_bar(stat="identity", position = position_dodge2())+
                 theme_paper+scale_fill_manual(values = palette_plot_percentage)+
-                scale_color_manual(values = c("orange", "blue"))+
+                scale_color_manual(values = palette_plot_percentage)+
                 labs(x = "", y = "")+
                 scale_y_continuous( breaks = c(lnc_macaque, lnc_human))+
                 geom_abline(slope=0, intercept=lnc_macaque,  col = "darkgrey",lty=2)+

@@ -40,11 +40,11 @@ ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_r
 # Table correspondence between transcripts and gene IDs 
 df_ref <- distinct(data.frame(ref[!is.na(ref$transcript_id),]$transcript_id, ref[!is.na(ref$transcript_id),]$gene_id, stringsAsFactors = F))
 names(df_ref) <- c("transcript_id", "gene_id")
+rownames(df_ref) <- df_ref$transcript_id
 
-
-ref_lnc <- ref[ref$gene_biotype %in% c("lncRNA", "antisense"),]
-ref_lnc <- ref_lnc[ref_lnc$type == "gene", ]
-ref_pc <- ref[ref$type == "gene" & ref$gene_biotype == "protein_coding",]
+ref_lnc <- ref[ref$transcript_biotype %in% c("lncRNA", "antisense"),]
+ref_lnc <- ref_lnc[ref_lnc$type == "transcript", ]
+ref_pc <- ref[ref$type == "transcript" & ref$transcript_biotype == "protein_coding",]
 
 # ----------------------
 #   CPC2 predictions
@@ -67,31 +67,21 @@ cpat$label <- ifelse(cpat$Coding_prob > cutoff, "coding", "noncoding")
 #   CNIT predictions
 # ----------------------
 cnit <- read.table(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CNIT/cnit_pred/CNCI2.index"), header = T, sep="\t", stringsAsFactors = F)
-
+# Compare which ones and how many overlap 
+cnit$label <- cnit$index
+cnit$transcript_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) strsplit(x,"[(]")[[1]][1]))
 
 
 
 # How many of the known lncRNAs (TRANSCRIPTS) are identified as such 
-noncoding_cpc2_transcripts <- unlist(lapply(cpc2[cpc2$label == "noncoding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
-coding_cpc2_transcripts <- unlist(lapply(cpc2[cpc2$label == "coding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
+noncoding_cpc2 <- unlist(lapply(cpc2[cpc2$label == "noncoding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
+coding_cpc2 <- unlist(lapply(cpc2[cpc2$label == "coding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 
-noncoding_cpat_transcripts <- unlist(lapply(cpat[cpat$label == "noncoding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
-coding_cpat_transcripts <- unlist(lapply(cpat[cpat$label == "coding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
+noncoding_cpat <- unlist(lapply(cpat[cpat$label == "noncoding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
+coding_cpat <- unlist(lapply(cpat[cpat$label == "coding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 
-noncoding_cnit_transcripts <- unlist(lapply(cnit[cnit$index == "noncoding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
-coding_cnit_transcripts <- unlist(lapply(cnit[cnit$index == "coding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
-
-
-# How many of the known lncRNAs (GENES) are identified as such
-noncoding_cpc2 <- df_ref[df_ref$transcript_id %in% unique(noncoding_cpc2_transcripts),]$gene_id
-coding_cpc2 <- df_ref[df_ref$transcript_id %in% unique(coding_cpc2_transcripts),]$gene_id
-
-
-noncoding_cpat <- df_ref[df_ref$transcript_id %in% unique(noncoding_cpat_transcripts),]$gene_id
-coding_cpat <- df_ref[df_ref$transcript_id %in% unique(coding_cpat_transcripts),]$gene_id
-
-noncoding_cnit <- df_ref[df_ref$transcript_id %in% unique(noncoding_cnit_transcripts),]$gene_id
-coding_cnit <- df_ref[df_ref$transcript_id %in% unique(coding_cnit_transcripts),]$gene_id
+noncoding_cnit <- unlist(lapply(cnit[cnit$index == "noncoding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
+coding_cnit <- unlist(lapply(cnit[cnit$index == "coding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 
 ```
 
@@ -106,15 +96,15 @@ coding_cnit <- df_ref[df_ref$transcript_id %in% unique(coding_cnit_transcripts),
 
 calc_stats_prediction <- function(noncoding_pred,coding_pred, name, ref_lnc.=ref_lnc, ref_pc.=ref_pc){
   # Predicted as lnc and and are lnc
-  TP <- length(unique(noncoding_pred[noncoding_pred %in% ref_lnc.$gene_id ]))
+  TP <- length(unique(noncoding_pred[noncoding_pred %in% ref_lnc.$transcript_id ]))
   print(TP)
   # Predicted as pc but are lnc
-  FN <- length(unique(coding_pred[coding_pred %in% ref_lnc.$gene_id ]))
+  FN <- length(unique(coding_pred[coding_pred %in% ref_lnc.$transcript_id ]))
   print(FN)
   # Predicted as pc and are pc
-  TN <- length(unique(coding_pred[coding_pred %in% ref_pc.$gene_id ]))
+  TN <- length(unique(coding_pred[coding_pred %in% ref_pc.$transcript_id ]))
   # Predicted as lnc but are pc
-  FP <- length(unique(noncoding_pred[noncoding_pred %in% ref_pc.$gene_id ]))
+  FP <- length(unique(noncoding_pred[noncoding_pred %in% ref_pc.$transcript_id ]))
   sensitivity <- (TP/(FN+TP))*100
   specificity <- (TN/(TN+FP))*100
   accuracy <- ((TP + TN)/(TP + TN + FP + FN))*100 
@@ -124,11 +114,11 @@ calc_stats_prediction <- function(noncoding_pred,coding_pred, name, ref_lnc.=ref
 
 # Intersection of the predictions
 noncoding_intersection <- unique(intersect(noncoding_cpc2,intersect(noncoding_cnit, noncoding_cpat)))
-coding_intersection <- unique(ref[!(ref$gene_id %in% noncoding_intersection), ]$gene_id)
+coding_intersection <- unique(ref[!(ref$gene_id %in% noncoding_intersection), ]$transcript_id)
 
 # Union of the predictions
 noncoding_union <- unique(union(noncoding_cpc2,union(noncoding_cnit, noncoding_cpat)))
-coding_union <- unique(ref[!(ref$gene_id %in% noncoding_intersection), ]$gene_id)
+coding_union <- unique(ref[!(ref$gene_id %in% noncoding_intersection), ]$transcript_id)
 
 cpc2_stats <- calc_stats_prediction(noncoding_cpc2, coding_cpc2, "CPC2")
 cpat_stats <- calc_stats_prediction(noncoding_cpat, coding_cpat, "CPAT")
@@ -143,6 +133,7 @@ table <- formattable(stats_summary,
             align = c("l",rep("r", NCOL(stats_summary) - 1)),
             list(`name` = formatter("span", style = ~ style(color = "grey", font.weight = "bold")), 
                  area(col = c(accuracy)) ~ normalize_bar("#E5CCFF", 0.2)))
+table
 export_formattable(table,"Fig_S1A.png")
 ```
 
@@ -153,7 +144,7 @@ export_formattable(table,"Fig_S1A.png")
 library(UpSetR)
 
 # All lncRNAs annotated
-annotated_lnc <- unique(ref_lnc$gene_id)
+annotated_lnc <- unique(ref_lnc$transcript_id)
 length(unique(annotated_lnc))
 
 # Upset Plot

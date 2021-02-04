@@ -79,10 +79,12 @@ wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(mRNAs_ref))
 
 # Separate by intergenic and antisense 
 ```{r cpc2vscpan}
-gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
+gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/merged.annotated.gtf")
 
 # Check everything is allright 
 length(unique(all_novel_lnc$transcript_id))
+length(unique(all_novel_lnc$gene_id))
+
 length(unique(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id,]$transcript_id))
 
 plot_stats_benchmark(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",])
@@ -93,7 +95,12 @@ intergenic_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "u", ]$t
 
 
 intergenic_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% intergenic_ids, ]
+length(unique(intergenic_lnc$gene_id))
+length(unique(intergenic_lnc$transcript_id))
+
 antisense_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% antisense_ids, ]
+length(unique(antisense_lnc$gene_id))
+length(unique(antisense_lnc$transcript_id))
 
 plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
 
@@ -193,14 +200,14 @@ plot_expression(median_expression, palette_expression, level = levels, title = "
 
 tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
 tissues <- lapply(tissues, function(x) (str_split(x, "-")[[1]])[1])
-unique(tissues)
+length(unique(tissues))
 colnames(expression) <- tissues
 tissues <- gsub("Testes", "Testis", tissues)
 tissues <- gsub("Wholeblood", "Blood", tissues)
 tissues <- gsub("Serum", "Blood", tissues)
 table(tissues)
 # Check how many tissues express a gene
-expressed_booleans <- ifelse(log(expression) > 1,1,0)
+expressed_booleans <- ifelse(log(expression) > 0.5,1,0)
 colnames(expressed_booleans) <- tissues
 grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
 n_tissues_expresseing_gene <- rowSums(grouped_expression)

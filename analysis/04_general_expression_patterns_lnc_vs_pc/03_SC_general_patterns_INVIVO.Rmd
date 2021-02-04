@@ -5,9 +5,12 @@ date: "3/16/2020"
 output: html_document
 ---
 
-# General Expression Patterns of lncRNAs Ex Vivo
+# ----------------------------------------------------
+# General Expression Patterns of lncRNAs IN VIVO
+# ----------------------------------------------------
 
 
+### Imports 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggpubr)
@@ -31,6 +34,8 @@ file <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inViv
 immune.combined <- readRDS(file)
 ```
 
+
+
 # Visualize how many lnc and mrnas are present in the object 
 
 ```{r check}
@@ -39,7 +44,6 @@ immune.combined <- readRDS(file)
 # -------------------------------------
 annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% unique(ref$gene_name[ref$gene_biotype == "protein_coding"])]
 
-annotated_pseudogenes <- rownames(immune.combined)[rownames(immune.combined) %in% unique(ref$gene_name[ref$gene_biotype %in% c("pseudogene", "processed_pseudogene")])]
 
 # ------------------------------------
 #     LncRNAs present in object 
@@ -48,8 +52,6 @@ annotated_pseudogenes <- rownames(immune.combined)[rownames(immune.combined) %in
 lnc_ref_id <- gsub("_","-",unique(ref$gene_name[ref$gene_biotype %in% c("lncRNA")]))
 # Annotated lncRNAs: remove the gene names so it can match 
 complete_set_annotated_lncrnas_in_object <- rownames(immune.combined)[rownames(immune.combined) %in% lnc_ref_id]
-
-
 
 # Novel lncRNAs
 novel_lncrnas <- rownames(immune.combined)[unlist(lapply(rownames(immune.combined), function(x) startsWith(x, "MSTRG")))]

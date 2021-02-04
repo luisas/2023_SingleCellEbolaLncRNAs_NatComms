@@ -83,7 +83,7 @@ monoexonic_transcript_ids <- summary_exons[summary_exons$max_exon == 1,]$transcr
 
 print("After 1 ")
 
-# ------------------------------- FILTER 1: retain only novel ones  --------------
+# ------------------------------- FILTER 0: retain only novel ones  --------------
 
 # Get only novel with GFF compare 
 lnc_novel_compared_to_ref <- import(lnc_novel_compared_to_ref_file)
@@ -137,7 +137,6 @@ print("After 4 ")
 # ------------------------------- FILTER 3: Remove anything overlapping protein coding genes --------------
 # Remove anything overlapping a protein coding genes 
 ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
-ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
 overlap <- findOverlaps(assembly_filtered, ref_mrna )
 remove <- assembly_filtered[unique(queryHits(overlap))]$transcript_id
 length(unique(remove))

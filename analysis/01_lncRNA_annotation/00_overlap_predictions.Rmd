@@ -117,7 +117,7 @@ library(UpSetR)
 library(ComplexHeatmap)
 # example of list input (list of named vectors)
 listInput <- list(CPAT = unique(cpat_pre_lnc$gene_id), CPC2 = unique(cpc2_pre_lnc$gene_id), CNIT = unique(cnit_pre_lnc$gene_id))
-upset(fromList(listInput), order.by = "freq", main.bar.color = c("darkorange", rep("gray23",6)),text.scale = 2.4)
+upset(fromList(listInput), order.by = "freq", main.bar.color = c("darkorange", rep("gray23",6)),text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15))
 ```
 
 
