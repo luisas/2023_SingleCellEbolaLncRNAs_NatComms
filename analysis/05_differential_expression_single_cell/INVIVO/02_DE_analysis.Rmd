@@ -5,6 +5,9 @@ date: "1/22/2020"
 output: html_document
 ---
 
+
+# Differential expression analysis IN VIVO 
+
 ```{r a}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
@@ -17,9 +20,10 @@ library(ComplexHeatmap)
 library(RColorBrewer)
 library(scales)
 
-source("../../utils/02_sc_utils.R")
-
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Imports 
+source("../../utils/02_sc_utils.R")
 
 # Gene annotation 
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
@@ -33,12 +37,14 @@ robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_sc
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 
+# Seurat object
 immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
 
+# Ortholgs
 orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
 
 # -------------------------------------------
-#    define threshold for the analysis
+#    Define threshold for the whole analysis
 # -------------------------------------------
 
 # Corrected q-value .05
@@ -46,8 +52,6 @@ FDRTHRESHOLD<- 0.05
 # Fold-Change of 30%
 FCTHRESHOLD <- log(1.23)
 
-plot_seperate_features(immune.combined, gene  = c("ENSMMUG00000061948-unknown"), ident = "group")
-plot_seperate_features(immune.combined, gene  = c("THY1"), ident = "group", colors =c('#DCD9DE','navy'))
 ```
 
 # --------------------------------------------------
@@ -85,10 +89,9 @@ mast_objects_celltype_all <- unlist(lapply(celltypes, function(celltype){
                                     }))
 
 # Print names of the variables 
-mast_objects_celltype
-mast_objects_celltype_all
-
-mast_B_early
+# mast_objects_celltype
+# mast_objects_celltype_all
+# mast_B_early
 ```
 
 
@@ -228,8 +231,6 @@ length(unique(mrna_de_all$primerid))
 
 # Check for DE genes mrnas
 ```{r heatmap}
-mrna_de_all
-
 
 do_go <- function(list, keytype = "SYMBOL"){
   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =unique(rownames(immune.combined)))
@@ -456,7 +457,9 @@ orthologs_lnc[orthologs_lnc$human_gene_id %in% Immlnc_id, ]
 ```
 
 
-
+# ---------------------------------------------------------------
+#            Specificity of DE expression 
+# ---------------------------------------------------------------
 
 
 ```{r colocation}
@@ -681,158 +684,6 @@ df$n <- df$n*100
 ggplot(df, aes(x = label, col = type, fill = type, y = n))+geom_bar(stat = "identity", position = position_dodge())+theme_paper+ylab("% DE genes")+xlab("")+scale_fill_manual(values= c(palette_expression[2:3]))+scale_color_manual(values= c(palette_expression[2:3]))
 ```
 
-
-
-
-
-
-```{r colocation}
-library(zeallot)
-
-mrnas_ranges <- ref[ref$gene_name %in% annotated_mrnas  ]
-lnc_ranges <- ref[ref$gene_id %in% gsub("-", "_",gsub("-unknown", "",all_lncrnas))]
-mrnas_ranges_de<- ref[ref$gene_name %in% unique(unlist(de_mrna_all))  ]
-
-
-# Add missing gene entries (as novel lncrnas only prsent transcript and exon entries)
-genes_lnc_ranges <- get_gene_only(lnc_ranges)$gene_id
-missing_gene_lines <- unique(lnc_ranges$gene_id)[!(unique(lnc_ranges$gene_id) %in% genes_lnc_ranges)]
-gr_list <- lapply(missing_gene_lines, function(x) get_gene_range(x, lnc_ranges))
-missing_gene_ranges <- do.call(base::c,gr_list)
-lnc_ranges_complete <-c(get_gene_only(lnc_ranges), missing_gene_ranges)
-
-# Only select the DE interestin
-lnc_ranges_complete_de <- lnc_ranges_complete[lnc_ranges_complete$gene_id %in% gsub("-", "_",gsub("-unknown", "",unique(unlist(de_lnc_all)))), ]
-length(unique(lnc_ranges_complete_de$gene_id))
-
-# --------------------------------------------------------------
-#           Get 5 closest genes to each gene of interest
-# --------------------------------------------------------------
-# Find pairs under maximum overlap
-get_all_colocations <- function(gr_gene, gr_hits =mrnas_ranges){
-  print(gr_gene$gene_name)
-  # Compute thedistances and select the first 5
-  distances <- unlist(lapply(1:length(mrnas_ranges), function(index) GenomicRanges::distance(gr_gene, mrnas_ranges[index], ignore.strand = TRUE) ))
-  df <- data.frame(gene=gr_gene$gene_id, distances=distances, second = p@second$gene_id, stringsAsFactors = F, chr = seqnames(gr_gene) )
-  return(df)
-}
-
-
-
-get_n_closest_gr <- function(gr_gene, gr_hits =mrnas_ranges, maxgap =2000000L ){
-  p <- findOverlapPairs(gr_gene, get_gene_only(gr_hits), maxgap=maxgap, ignore.strand = TRUE)
-  
-  print(gr_gene$gene_name)
-  # Compute thedistances and select the first 5
-  if(length(p@second) == 0 ){
-    df <- data.frame(gene=gr_gene$gene_id, distances=NA, second = NA, chr = seqnames(gr_gene), stringsAsFactors = F )
-  }else{
-    distances <- unlist(lapply(1:length(p@second), function(index) GenomicRanges::distance(gr_gene, p@second[index], ignore.strand = TRUE) ))
-    df <- data.frame(gene=gr_gene$gene_id, distances=distances, second = p@second$gene_id, stringsAsFactors = F, chr = seqnames(gr_gene) )
-  }
-  return(df)
-}
-
-
-
-get_nearest <- function(gr_gene, gr_hits =mrnas_ranges){
-  p <- nearest(gr_gene, get_gene_only(gr_hits),ignore.strand = TRUE)
-  if(is.na(p)){
-    return(NA)
-  }
-  df <- data.frame(gene = gr_gene$gene_id, second =get_gene_only(gr_hits)[p]$gene_id, distance = GenomicRanges::distance(gr_gene, get_gene_only(gr_hits)[p], ignore.strand = TRUE) )
-  return(df)
-}
-```
-
-# Check where lncRNAs are located - compared to each other 
-
-```{r colocation}
-library(scales)
-
-df_distances_de <- do.call(rbind, lapply(1:(length(lnc_ranges_complete_de)), function(index) (get_nearest(lnc_ranges_complete_de[index],gr_hits=lnc_ranges_complete_de[setdiff(1:length(lnc_ranges_complete_de), index)]))))
-df_distances_de$type <- ifelse(substr(df_distances_de$gene,1,4)=="MSTR", "Novel", "Annotated")
-df_distances_de <- df_distances_de[!is.na(df_distances_de$distance),]
-options(scipen=999)
-ggplot(df_distances_de, aes(x = distance, fill = type))+geom_histogram(alpha=0.6, labels = comma)+theme_paper+ggtitle("Distance to closest DE lncRNA")+scale_fill_brewer(palette = "Paired")
-
-
-df_distances_de <- do.call(rbind, lapply(1:(length(lnc_ranges_complete_de)), function(index) (get_nearest(lnc_ranges_complete_de[index],gr_hits=mrnas_ranges_de))))
-df_distances_de$type <- ifelse(substr(df_distances_de$gene,1,4)=="MSTR", "Novel", "Annotated")
-df_distances_de <- df_distances_de[!is.na(df_distances_de$distance),]
-options(scipen=999)
-ggplot(df_distances_de, aes(x = distance, fill = type))+geom_histogram(alpha=0.6, labels = comma)+theme_paper+ggtitle("Distance to closest DE mRNA")+scale_fill_brewer(palette = "Paired")
-
-
-
-
-
-```
-
-
-
-
-```{r colocation}
-library(org.Hs.eg.db)
-library(clusterProfiler) 
-
-# maximum 1Mb
-all_lnc_2mb <- do.call(rbind,lapply(1:(length(lnc_ranges_complete_de)), function(index) (get_n_closest_gr(lnc_ranges_complete_de[index], mrnas_ranges, maxgap = 2000000L))))
-all_lnc_2mb$type <- ifelse(substr(all_lnc_2mb$gene,1,4)=="MSTR", "Novel", "Annotated")
-
-# How many DE pc genes they have in 2Mbp range nearby 
-ggplot(all_lnc_2mb %>% group_by(gene, type) %>% tally(), aes(x=n, fill = type ))+geom_histogram()+theme_paper+scale_fill_brewer(palette = "Paired")+ggtitle("How many DE mRNAs found in 2Mb")
-
-# ------------------------------------------------------------
-# Visualize enrichment of PC genes found in those regions
-# -----------------------------------------------------------
-all_lnc_2mb_names <- ref[ref$gene_id %in% all_lnc_2mb$second, ]$gene_name
-all_lnc_2mb_stats <- stats_complete[stats_complete$primerid %in% unlist(unique(all_lnc_2mb_names)),]
-logfc <- all_lnc_2mb_stats$coef
-
-all_lnc_2mb_names_up <- unique(all_lnc_2mb_stats[logfc>0, ]$primerid)
-all_lnc_2mb_names_down <- unique(all_lnc_2mb_stats[logfc<0, ]$primerid)
-ego <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_2mb_names)),OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(rownames(immune.combined)))
-ego_up <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_2mb_names_up)),OrgDb =org.Hs.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(rownames(immune.combined)))
-ego_down <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_2mb_names_down)),OrgDb =org.Hs.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(rownames(immune.combined)))
-#cnetplot(ego, foldChange = 2^logfc, colorEdge = TRUE, node_label = "gene")
-dotplot(ego)+theme(axis.text.y = element_text(size = 10))
-dotplot(ego_up)+theme(axis.text.y = element_text(size = 10))
-dotplot(ego_down)+theme(axis.text.y = element_text(size = 10))
-
-
-
-# Visualize enrichment of PC genes found in those regions close to Novel 
-all_lnc_2mb_novel <- all_lnc_2mb[all_lnc_2mb$type == "Novel",]
-all_lnc_2mb_names <- ref[ref$gene_id %in% all_lnc_2mb_novel$second, ]$gene_name
-ego <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_2mb_names)),OrgDb =org.Hs.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(rownames(immune.combined)))
-#cnetplot(ego, foldChange = 2^logfc, colorEdge = TRUE, node_label = "gene")
-dotplot(ego)+theme(axis.text.y = element_text(size = 10))
-
-
-# Visualize enrichment of PC genes found in those regions close to Annotated 
-all_lnc_2mb_novel <- all_lnc_2mb[all_lnc_2mb$type == "Annotated",]
-all_lnc_2mb_names <- ref[ref$gene_id %in% all_lnc_2mb_novel$second, ]$gene_name
-logfc <- stats_complete[stats_complete$primerid %in% unlist(unique(all_lnc_2mb_names)),]$coef
-ego <- clusterProfiler::enrichGO(gene = unlist(unique(all_lnc_2mb_names)),OrgDb =org.Hs.eg.db, keyType = "SYMBOL",ont = "BP",universe =unique(rownames(immune.combined)))
-#cnetplot(ego, foldChange = 2^logfc, colorEdge = TRUE, node_label = "gene")
-dotplot(ego)+theme(axis.text.y = element_text(size = 10))
-
-```
-
-
-
-
-# Check how many de protein coding genes i find near every de lnc
-```{r colocation}
-
-all_lnc_2mb <- all_lnc_2mb[!is.na(all_lnc_2mb$distances),]
-all_lnc_2mb$bin <- (cut(all_lnc_2mb$distances, breaks = c(0,20000, 100000,500000,2000001), labels = c("20kb", "100kb","500kb","2Mb")))
-
-all_lnc_2mb <- all_lnc_2mb[!is.na(all_lnc_2mb$bin), ]
-ggplot(all_lnc_2mb %>% group_by(gene, type, bin) %>% tally(), aes(y= n, col = type, fill = type, x = bin))+geom_boxplot(alpha = 0.5)+theme_paper+ scale_fill_brewer(palette = "Paired")+scale_color_brewer(palette = "Paired")+xlab("Distance from DE lnc allowed")+ylab("#DE mRNAs found")
-
-```
 
 
 

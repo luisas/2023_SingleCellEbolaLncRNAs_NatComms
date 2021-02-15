@@ -5,7 +5,11 @@ date: "2/28/2020"
 output: html_document
 ---
 
-```{r beg}
+# ORTHOLOGS ANALYSIS 
+
+
+### Imports and prepare transcripts
+```{r beg, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rtracklayer)
 library(dplyr)
@@ -66,13 +70,20 @@ return(p)
 ```{r cpc2}
 
 # Check for all orthologs 
-orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out..orthologs.txt")
-orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out..orthologs.top.txt")
+orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.txt")
+orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.top.txt")
 names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alignScore","exonID","locusID","indelRate(exon)" ,"indelRate(intron)","lncExonsAligned","orthExonsAligned","spliceConserved","spliceTotal","category(mmul10)","category(hg38)")
 
-all <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
+all <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/OLD/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
+ref <- all
+```
 
+
+# Look for nice examples 
+
+```{r cpc2}
 all_stringtie_novellnc <- all[all$source == "StringTie", ]
+length(unique(all_stringtie_novellnc))
 all_annot <- all[all$source != "StringTie", ]
 all_annot_lnc <- all_annot[all_annot$type == "transcript" & all_annot$transcript_biotype == "lncRNA",]
 length(unique(all_annot_lnc$gene_id))
@@ -84,11 +95,9 @@ length(unique(orthologs_lncAnnot$lnc))
 all[!is.na(all$transcript_id) & all$transcript_id == "MSTRG.193074.1",]
 
 orthologs_novel[startsWith(as.character(orthologs_novel$orthologGeneSymbol), "IFN"),]
-
-
 ```
 
-# Plot
+# Plot subtypes correspondence
 
 ```{r cpc2}
 prep_pairs <- function(orthologs_novel){
@@ -125,15 +134,19 @@ df_pairs_novel_complete$type <- "Novel"
 #---------------------------------------------
 df_pairs_annotated <- prep_pairs(orthologs_lncAnnot)
 df_pairs_red_annotated <- df_pairs_annotated[!(df_pairs_annotated$source %in%  c("sno_host", "mir_host_exon", "mir_host_intron")),]
-(sum(df_pairs_red$value)/length(unique(all_annot_lnc$transcript_id)))*100
-plot_sankey(df_pairs_red_annotated,as.character(as.integer(as.factor(df_pairs_red$source))))
+(sum(df_pairs_red_annotated$value)/length(unique(all_annot_lnc$transcript_id)))*100
+plot_sankey(df_pairs_red_annotated,as.character(as.integer(as.factor(df_pairs_red_annotated$source))))
 
 
 saveRDS(orthologs, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
 
 ```
 
-# --- compare numbers 
+
+
+
+# --- Compare numbers 
+# ----- Transcript level 
 
 ```{r cpc2}
 
@@ -156,8 +169,6 @@ df <- data.frame(count = c(novel_no_ortholog,orthologs_novel_found,annot_no_orth
 df$orth <- relevel(df$orth, ref = "Ortholog NOT found") 
 
 
-# Plot with real numbers 
-ggplot(df, aes(x = type, fill = orth, y = count))+geom_bar(stat = "identity", alpha = 0.6)+theme_paper+xlab("")+scale_fill_manual(values = c("red", "grey"))
 
 
 # Plot with proportions
@@ -165,5 +176,55 @@ ggplot(df, aes(x = type, fill = orth, y = freq))+geom_bar(stat = "identity", alp
 
 
 ```
+# --- Compare numbers 
+# ----- Gene level  (not in paper)
+
+```{r cpc2}
+
+# Define a gene to be an ortholog when any of its transcripts is an ortholog
 
 
+# Table correspondence between transcripts and gene IDs 
+df_ref <- distinct(data.frame(ref[!is.na(ref$transcript_id),]$transcript_id, ref[!is.na(ref$transcript_id),]$gene_id, stringsAsFactors = F))
+names(df_ref) <- c("transcript_id", "gene_id")
+rownames(df_ref) <- df_ref$transcript_id
+
+
+length(unique(orthologs$lnc))
+length(df_ref[orthologs$lnc,]$gene_id)
+length(unique(df_ref[orthologs$lnc,]$gene_id))
+
+# Genes for which we identified an ortholog
+orthologs_novel <- orthologs[orthologs$lnc %in% all_stringtie_novellnc$transcript_id,]
+orthologs_annot <- orthologs[orthologs$lnc %in% all_annot_lnc$transcript_id,]
+
+
+
+
+# For how many novel lncRNAs did we find an ortholog (GENE) 
+orthologs_novel_found <- sum(unique(df_ref[df_ref$transcript_id %in% orthologs_novel$lnc,]$gene_id) %in% unique(all_stringtie_novellnc$gene_id))
+novel_no_ortholog <- length(unique(all_stringtie_novellnc$gene_id))-orthologs_novel_found
+
+orthologs_annot_found <- sum(unique(df_ref[df_ref$transcript_id %in% orthologs_annot$lnc,]$gene_id)   %in% unique(all_annot_lnc$gene_id))
+annot_no_ortholog <- length(unique(all_annot_lnc$gene_id))-orthologs_annot_found
+
+freqs <- c( 
+           novel_no_ortholog/length(unique(all_stringtie_novellnc$gene_id)), 
+           orthologs_novel_found/length(unique(all_stringtie_novellnc$gene_id)),
+           annot_no_ortholog/length(unique(all_annot_lnc$gene_id)),
+            orthologs_annot_found/length(unique(all_annot_lnc$gene_id)))
+
+
+df <- data.frame(count = c(novel_no_ortholog,orthologs_novel_found,annot_no_ortholog,orthologs_annot_found ), type = c("Novel", "Novel", "Annotated", "Annotated"), orth = c( "Ortholog NOT found","Ortholog found", "Ortholog NOT found", "Ortholog found"),freq = freqs) 
+df$orth <- relevel(df$orth, ref = "Ortholog NOT found") 
+
+# Plot with proportions
+ggplot(df, aes(x = type, fill = orth, y = freq))+geom_bar(stat = "identity", alpha  = 0.6, position = "stack")+theme_paper+xlab("")+scale_fill_manual(values = c("grey","red"))+ylab("Proportion")
+
+
+ggplot(df[df$orth == "Ortholog found",], aes(x = type, fill = type, y = freq*100))+geom_bar(stat = "identity", alpha  = 0.6)+theme_paper+xlab("")+scale_fill_manual(values = c("dark grey", "grey"))+ylab("% lncRNAs (GENEs) ")
+
+
+
+
+```

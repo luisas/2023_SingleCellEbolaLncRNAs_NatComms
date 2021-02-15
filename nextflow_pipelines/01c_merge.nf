@@ -26,7 +26,7 @@ process StringTie_Merge_Reference_Guided{
 
   script:
   """
-  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
+    stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
   """
 }
 

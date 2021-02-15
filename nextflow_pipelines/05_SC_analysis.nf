@@ -37,7 +37,7 @@ if("${params.output_dir_name}" == "01_scRNA-Seq_inVivo_rhemac10"){
                              it.baseName.split('\\.')[3],
                              it.baseName.split('\\.')[6],
                              "std",
-                             it.baseName.split('\\.')[0]+ "_" + it.baseName.split('\\.')[6] + "_" + it.baseName.split('\\.')[1] + "_" + it.baseName.split('\\.')[3],
+                             it.baseName.split('\\.')[0]+ "_" + it.baseName.split('\\.')[6] + "_" + it.baseName.split('\\.')[1] + "_" + it.baseName.split('\\.')[3]+ "_" +"std",
                              it ) }.into{ bams_mapped_with_old;bams_mapped_with_old1;   }
 
 }
@@ -272,6 +272,7 @@ process MergeBamAlignment{
                 UNMAPPED_BAM=${unmapped_bam} \
                 ALIGNED_BAM=${bam} \
                 OUTPUT=${complete_id}.merged.bam \
+                PAIRED_RUN=TRUE \
                 INCLUDE_SECONDARY_ALIGNMENTS=false \
                 TMP_DIR=$TMPDIR/${complete_id}.tmp
    """

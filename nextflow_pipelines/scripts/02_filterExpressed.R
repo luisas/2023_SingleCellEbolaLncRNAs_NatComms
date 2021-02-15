@@ -5,13 +5,10 @@ library(tximport)
 library(readr)
 library(matrixStats)
 
-
-
-
 # Read command line
 args = commandArgs(trailingOnly=TRUE)
 dir_counts_ref <- args[1]
-novel_concordant <- import(args[2])
+ref <- import(args[2])
 outfile <- args[3]
 
 # ----------------------
@@ -22,8 +19,8 @@ iterate_files <- function(inpath, pattern_string){
   return(files)
 } 
 
-#dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/01_quantification_for_filtering/"
-#novel_concordant <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf")
+#dir_counts_ref <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/01_quantification_for_filtering/"
+#ref <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf")
 
 abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
 
@@ -44,32 +41,20 @@ for(i in 2:length(abundances)) {
   rownames(dat) <- rn
 }
 
-# Create Map for Transcript names to Gene names 
-#tmp <- read_tsv(abundance_files[1])
-#tx2gene <- tmp[,c("t_name", "gene_id")]
-#txi <- tximport(abundance_files, type = "stringtie", tx2gene = tx2gene)
 
-a <- novel_concordant[!(novel_concordant$gene_id %in% rownames(expression))]
-length(unique(a$gene_id))
+
 # ---------------------------
-#   Get the expressed ones from the concordant set
+#  Only retain genes expressed at log(TPM) > 0.5 in at least 3 samples. 
 # ---------------------------
-# Remove non expressed genes 
-#expression <- txi$abundance
 expression <- dat
-expression_new <- expression[rownames(expression) %in% novel_concordant$gene_id,]
-nrow(expression_new)
 
-empty <- expression[rowSums(expression) == 0,]
-length(unique(rownames(empty)))
-mask<- rowSums(as.data.frame(expression > 0.0)) > 0
+mask<- rowSums(as.data.frame(log(expression) > 0.5)) > 2
 table(mask)
 expression <- expression[mask,]
-novel_expressed_ribodepleted <- novel_concordant[novel_concordant$gene_id %in% rownames(expression)]
-length(unique(novel_expressed_ribodepleted$transcript_id))
+novel_expressed <- ref[ref$gene_id %in% rownames(expression)]
 
 
 # Save 
-export(novel_expressed_ribodepleted,outfile)
+export(novel_expressed,outfile)
 
 

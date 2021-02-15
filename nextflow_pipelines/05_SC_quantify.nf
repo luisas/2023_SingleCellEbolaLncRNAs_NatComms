@@ -16,14 +16,15 @@ Channel.fromPath("${params.dirData}/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_
 
 params.bam_name="*merged.bam"
 
+
 Channel.fromPath("${params.output_dir}/02_star_NEW/*/*/*/*/*/${params.bam_name}")
               .ifEmpty('bam files directory is empty')
               .map { tuple(it.baseName.split('_')[0],
-                           it.baseName.split('_')[2],
                            it.baseName.split('_')[1],
+                           it.baseName.split('_')[2],
                            it.baseName.split('_')[3].split("\\.")[0],
-                           it.baseName.split('_')[4],
-                           it.baseName.split('_')[0]+ "_" + it.baseName.split('_')[1] + "_" + it.baseName.split('_')[2] + "_" + it.baseName.split('_')[3],
+                           it.baseName.split('_')[4].split("\\.")[0],
+                           it.baseName.split('_')[0]+ "_" + it.baseName.split('_')[1] + "_" + it.baseName.split('_')[2] + "_" + it.baseName.split('_')[3] + "_" + it.baseName.split('_')[4].split("\\.")[0],
                            it ) }.into{ bams_1; bams_2; bams_3;  }
 
 bams_2.subscribe{ println "$it" }
@@ -33,7 +34,7 @@ params.scripts="${baseDir}/scripts/"
 cell_selection_script = Channel.fromPath("${params.scripts}/04_cellselection.R").collect()
 process TagReadWithGeneFunction{
 
-  cpus 12
+  cpus 16
 
   storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
@@ -57,7 +58,7 @@ process TagReadWithGeneFunction{
 
 process DetectBeadSubstitutionError{
 
-  cpus 12
+  cpus 16
 
   storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
@@ -82,7 +83,7 @@ process DetectBeadSubstitutionError{
 
 process BamTagHistogram{
 
-  cpus 12
+  cpus 16
 
   storeDir "${params.output_dir}/04_CellSelection_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 
@@ -102,7 +103,7 @@ process BamTagHistogram{
 
 process CellSelection{
 
-  cpus 4
+  cpus 16
 
   storeDir "${params.output_dir}/03_DropSeqPreProcessing_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
   input:
@@ -124,7 +125,7 @@ CellSelectionChannel.into{CellSelectionChannel1; CellSelectionChannel2}
 // false. This option can be set to 'null' to clear the default value. Possible values:{true, false}
 process DigitalExpressionMatrix_UMI{
 
-  cpus 24
+  cpus 16
 
   storeDir "${params.output_dir}/04_DigitalExpressionMatrix_OK/$animal_id/$hpi/$exp/$replicate/$preprocessing"
 

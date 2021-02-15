@@ -66,14 +66,17 @@ get_gene_id <-function(transcript_id){
 
 get_gene_id("ENSMMUT00000093663")
 
-gene_ids <- apply(orthologs,1,function(x) get_gene_id(x[1]) )
-orthologs$gene_id <- gene_ids
-saveRDS(orthologs,"/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneids.rds" )
 
 
-distances <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/colocation_lnc_pc_de.rds")
-distances$gene <-  gsub("-unknown", "",distances$gene)
-distances$second <-  gsub("-unknown", "",distances$second)
+#orthologs_gene_ids <- lapply(unique(orthologs$lnc), get_gene_id) 
+#gene_ids <- apply(orthologs,1,function(x) get_gene_id(x[1]) )
+#orthologs$gene_id <- gene_ids
+#saveRDS(orthologs,"/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneids.rds" )
+
+
+#distances <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/colocation_lnc_pc_de.rds")
+#distances$gene <-  gsub("-unknown", "",distances$gene)
+#distances$second <-  gsub("-unknown", "",distances$second)
 ```
 
 # Prepare the matrixes to calculate the networks on. One per celltype, only DE genes. 
@@ -321,7 +324,74 @@ plot(lou2, gD2, vertex.label = NA, vertex.size=4, edge.arrow.size = .1, col=V(gD
 legend("topright",
        legend=unique(lou2$membership),
        fill=(brewer.pal(11 , "Set3")), border=NA)
+
+
+
+
 ```
+
+# Subselect in one community 
+
+```{r a}
+
+ortholog_genes <- unique(gsub("-unknown", "", ref[ref$transcript_id %in% unique(orthologs$lnc), ]$gene_id))
+
+
+visualize_community_expression <- function(seuobj, gD2, n){
+    sub <- V(gD2)[V(gD2)$community == n]
+    genes <- names(V(gD2)[V(gD2)$community == n])
+    print(n)
+      calc_z <- function(expression, na.remove = F){
+      mean <- rowMeans(expression, na.rm = na.remove); sd <- apply(expression, 1 , function(x) sd(x, na.rm = na.remove)); 
+      z <- (expression-mean)/sd
+      return(z)
+    }
+    
+    get_z_scores <- function(seuratobject){
+      # First computes z score per gene per cell and then calculate the mean of z score per celltype
+      averaged_z_matrix <- sapply(unique(colnames(zmatrix)), function(x) rowMeans(zmatrix[,colnames(zmatrix) ==x]))
+      return(averaged_z_matrix)
+    }
+    expression_genes <- seuobj[gsub("-unknown", "", rownames(seuobj)) %in% genes, ]@assays$RNA@data
+    colnames(expression_genes) <- seuobj$group
+   
+    zmatrix <- as.matrix(calc_z(expression_genes, T))
+    m<- sapply(unique(colnames(zmatrix)), function(x) rowMeans(zmatrix[,colnames(zmatrix) ==x]))
+    rownames(m) <- gsub("-unknown", "", rownames(m))
+    
+
+    # Prepare dataframe for plotting
+    df <- setNames(reshape2::melt(m), c('rows', 'vars', 'values'))
+    names(df) <- c("gene", "group", "value")
+    # Visualize boxplot with z scores 
+    p1 <- ggplot(df, aes( x = group, y = value, col = group, fill = group) )+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+ylim(-1,1)+scale_fill_manual(values= c(brewer.pal(8, "Pastel2")[5:8]))+ggtitle(paste("Community: ",n)) 
+    # Visualize heatmap
+    column_ha <- HeatmapAnnotation(comparison = anno_text( unlist(lapply(colnames(m), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"))
+   
+  
+  df_col<- data.frame(id = names(sub), col = sub$color, stringsAsFactors = F) 
+  rownames(df_col) <- df_col$id
+  row_ha_type <- rowAnnotation(genetype =df_col[rownames(m),]$col, show_legend = FALSE,
+                               show_annotation_name = FALSE,
+                               col = list(genetype = c("grey" = "grey", "red" = "red",
+                                                       "purple" = "purple"
+                               )))
+  
+    h1 <- Heatmap(m,  top_annotation = column_ha,right_annotation =row_ha_type,   column_order = c("baseline","early", "middle", "late"))+ggtitle(paste("Community: ",n)) 
+    
+    p1
+    h1
+    return(list(p1,h1))
+}
+
+
+
+lapply(unique(V(gD2)$community), function(n) visualize_community_expression(myeloids,gD2 , n))
+
+
+
+```
+
 
 ```{r a}
 # ----------------------------------------

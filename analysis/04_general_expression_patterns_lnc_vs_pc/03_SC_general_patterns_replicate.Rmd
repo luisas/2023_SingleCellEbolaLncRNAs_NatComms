@@ -5,6 +5,8 @@ date: "3/16/2020"
 output: html_document
 ---
 
+
+# Replicate general expression patterns 
 # General Expression Patterns of lncRNAs Ex Vivo
 
 
@@ -32,20 +34,11 @@ immune.combined <- readRDS(file)
 
 annotated_lncrnas <- rownames(immune.combined)[rownames(immune.combined) %in% lnc]
 annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% pc]
-# Check that there is no overlap 
-intersect(annotated_lncrnas, annotated_mrnas ) 
-
-length(unique(annotated_lncrnas))
-length(unique(annotated_mrnas))
 ```
 
-# Visualize how many lnc and mrnas are present in the object 
+# Visualize how many lncRNAs and PC genes are present in the object 
 
 ```{r check}
-
-
-
-
 #------------------------------------------------------------
 # Visualize number of lncRNAs with donut plot
 # ------------------------------------------------------------
@@ -56,10 +49,7 @@ count <- as.numeric(c(length(unique(annotated_mrnas)), length(unique(annotated_l
 df.donut <-data.frame(type = type, subtype = subtype, count= count)
 aggregated_df.donut <- aggregate(df.donut$count, by=list(type=df.donut$type), FUN=sum)
 names(aggregated_df.donut) <- c("type", "count")
-donut_plot(aggregated_df.donut, "Dark2")
-lnc_donut <- df.donut[df.donut$type == "lncRNAs",]
-names(lnc_donut) <- c("-", "type", "count")
-donut_plot(lnc_donut, "Greens")
+donut_plot(aggregated_df.donut, "Greys")
 ```
 
 

@@ -4,6 +4,12 @@ library(data.table);library(dplyr); library(Seurat); library(Matrix); library(sc
 library(SingleCellExperiment); library(purrr); library(stringr); library(mvoutlier)
 library(dropbead); library(scater); library(stringr); library(scran); library(cowplot)
 library(rtracklayer); library(org.Mmu.eg.db); library(graphics); library(RCy3); library(ggsci)
+
+
+theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
 # -------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------
 #                           SC GENERAL PATTERNS
@@ -114,7 +120,6 @@ plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.tab
 plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = brewer.pal("Set1", 2)){
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
-  print(n)
   if(is.na(df_lnc$type[1])){
     df_lnc$type <- "lncRNA"
   }
@@ -122,11 +127,11 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = b
     df_mrna$type   <- "mRNA"
   }
   df_complete <- rbind(df_lnc, df_mrna)
-  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(maxexpr, quantile(maxexpr, probs=0:n/n), include.lowest=TRUE)))
+  df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(medianexpr, quantile(medianexpr, probs=0:n/n, na.rm = T), include.lowest=TRUE,na.rm = T)))
   df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
   if(y == "proportion"){
     title <- "Proportion of cells expressing genes"
-    ylab <- "% Cells"
+    ylab <- "Proportion of Cells"
     p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type, col = type))
   }else if( y == "number"){
     title <- "Number of cells expressing genes"
@@ -140,7 +145,13 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = b
     df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
     p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = medianexpr, fill = type, col = type))
   }
-  
+  else if( y == "max"){
+    title <- "median expression"
+    ylab <- " Median expression "
+    df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(perc_cells_expressing, quantile(perc_cells_expressing, probs=0:n/n), include.lowest=TRUE)))
+    df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
+    p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = maxexpr, fill = type, col = type))
+  }
   
   p1 <- p1+geom_boxplot(alpha = 0.5)+
           theme_classic()+
@@ -149,7 +160,7 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = b
           scale_fill_manual(values = palette)+
           scale_color_manual(values = palette)+
           theme(legend.title = element_blank())+
-          scale_x_discrete(name ="Expression Quantiles on Max Expression values", 
+          scale_x_discrete(name ="Expression Quantiles on Median Expression values", 
                                                                                                                                                                                                                                                                                                 labels=c("1-25","25-50","50-75", "75-100"))
   return(p1)
 }

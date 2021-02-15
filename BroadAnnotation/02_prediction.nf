@@ -14,13 +14,8 @@ log.info "=============================================="
 // ------------------------------------------------------------
 
 params.prefix_data = "/gpfs/projects/bsc83/Data"
-params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation/"
+params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation_NEW/"
 params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
-// Create 2 different batch files
-//params.htseqsense="yes"
-//params.umis = "true"
-//params.strandrule="1++,1--,2+-,2-+"
-params.prefix_label = "ribodepleted"
 
 files = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/bams/*.bam")
                 .ifEmpty("No bams found")
@@ -28,7 +23,7 @@ files = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTransc
 
 
 files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing; filtered_merged_bams_5}
-//printing.subscribe{ println it }
+
 
 
 params.data_dir = "${params.output_dir}/"
@@ -89,12 +84,12 @@ process mergeWithAnnotation {
      file novel from prefiter_candidates_channel
 
      output:
-     file("ref_novel_${params.prefix_label}.gtf") into (novel_and_reference, novel_and_reference2)
+     file("ref_novel.gtf") into (novel_and_reference, novel_and_reference2)
 
      script:
      """
-     cat ${gtf_ref} > ref_novel_${params.prefix_label}.gtf
-     cat ${novel} >> ref_novel_${params.prefix_label}.gtf
+     cat ${gtf_ref} > ref_novel.gtf
+     cat ${novel} >> ref_novel.gtf
      """
  }
 //

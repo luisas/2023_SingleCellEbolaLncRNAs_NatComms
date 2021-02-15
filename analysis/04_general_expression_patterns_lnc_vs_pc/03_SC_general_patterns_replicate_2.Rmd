@@ -39,8 +39,14 @@ saveRDS(annotated_mrnas,file.path(robjectsdir, "annotated_mrnas.rds") )
 # Check that there is no overlap 
 intersect(annotated_lncrnas, annotated_mrnas ) 
 
-length(unique(annotated_lncrnas))
-length(unique(annotated_mrnas))
+type <- as.character(c("mRNAs", "lncRNAs"))
+subtype <- c("annotated", "annotated")
+count <- as.numeric(c(length(unique(annotated_mrnas)), length(unique(annotated_lncrnas)) ))
+
+df.donut <-data.frame(type = type, subtype = subtype, count= count)
+aggregated_df.donut <- aggregate(df.donut$count, by=list(type=df.donut$type), FUN=sum)
+names(aggregated_df.donut) <- c("type", "count")
+donut_plot(aggregated_df.donut, "Greys")
 ```
 
 

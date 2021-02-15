@@ -31,7 +31,7 @@ source(file.path("../utils/01_lncrna_annotation_utils.R"))
 
 #### Read all the prediciton and reference files
 
-```{r readPredictions}
+```{r readPredictions, echo=FALSE}
 
 # rheMac10 reference (download)
 # ftp://ftp.ensembl.org/pub/release-100/gtf/macaca_mulatta/
@@ -105,7 +105,6 @@ coding_cpc2_concordant_transcripts <- unlist(lapply(cpc2_concordant[cpc2_concord
 noncoding_cpat_concordant_transcripts <- unlist(lapply(cpat_concordant[cpat_concordant$label == "noncoding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 coding_cpat_concordant_transcripts <- unlist(lapply(cpat_concordant[cpat_concordant$label == "coding",]$ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 
-hist(cpat_concordant$Coding_prob)
 
 noncoding_cnit_concordant_transcripts <- unlist(lapply(cnit_concordant[cnit_concordant$index == "noncoding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
 coding_cnit_concordant_transcripts <- unlist(lapply(cnit_concordant[cnit_concordant$index == "coding",]$Transcript.ID, function(x) strsplit(as.character(x),'(', fixed = T)[[1]][1]))
@@ -160,11 +159,7 @@ noncoding_union <- unique(union(noncoding_cpc2_concordant,union(noncoding_cnit_c
 coding_union <- unique(ref[!(ref$gene_id %in% noncoding_intersection), ]$gene_id)
 
 cpc2_concordant_stats <- calc_stats_prediction(noncoding_cpc2_concordant, coding_cpc2_concordant, "cpc2_concordant")
-length(noncoding_cpc2_concordant)
-length(coding_cpc2_concordant)
 cpat_concordant_stats <- calc_stats_prediction(noncoding_cpat_concordant, coding_cpat_concordant, "cpat_concordant")
-length(noncoding_cpat_concordant)
-length(coding_cpat_concordant)
 cnit_concordant_stats <- calc_stats_prediction(noncoding_cnit_concordant, coding_cnit_concordant, "cnit_concordant")
 intersection_stats <- calc_stats_prediction(noncoding_intersection, coding_intersection, "Intersection")
 union_stats <- calc_stats_prediction(noncoding_union, coding_union, "Union")
@@ -175,37 +170,12 @@ stats_summary <- rbind(cpc2_concordant_stats, cpat_concordant_stats, cnit_concor
 table <- formattable(stats_summary, 
             align = c("l",rep("r", NCOL(stats_summary) - 1)),
             list(`name` = formatter("span", style = ~ style(color = "grey", font.weight = "bold")), 
-                 area(col = c(accuracy)) ~ normalize_bar("#E5CCFF", 0.2)))
+                 area(col = c(accuracy)) ~ normalize_bar("#ff9999", 0.2)))
+#export_formattable(table,"Fig_S1A.png")
+
 table
-export_formattable(table,"Fig_S1A.png")
+
 ```
 
-
-
-# Upset plot
-```{r upset}
-library(UpSetR)
-
-# All lncRNAs annotated
-annotated_lnc <- unique(ref_lnc$gene_id)
-length(unique(annotated_lnc))
-
-# Upset Plot
-listInput <- list(cpat_concordant = unique(noncoding_cpat_concordant[noncoding_cpat_concordant %in% annotated_lnc]), cpc2_concordant = unique(noncoding_cpc2_concordant[noncoding_cpc2_concordant %in% annotated_lnc]), cnit_concordant = unique(noncoding_cnit_concordant[noncoding_cnit_concordant %in% annotated_lnc]),  annotated = annotated_lnc )
-
-listInput <- list(cpat_concordant = unique(noncoding_cpat_concordant), cpc2_concordant = unique(noncoding_cpc2_concordant), cnit_concordant = unique(noncoding_cnit_concordant),  annotated = annotated_lnc )
-
-
-upset(fromList(listInput), order.by = "freq", main.bar.color = c("#6600cc", rep("gray23",7)),  text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15))
-
-upset(fromList(listInput), order.by = "freq")
-# Also export 
-pdf(file = "Fig_S1B.pdf",   # The directory you want to save the file in
-    width = 7, # The width of the plot in inches
-    height = 7)
-
-upset(fromList(listInput), order.by = "freq", main.bar.color = c("#6600cc", rep("gray23",7)),  text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15))
-dev.off()
-```
 
 

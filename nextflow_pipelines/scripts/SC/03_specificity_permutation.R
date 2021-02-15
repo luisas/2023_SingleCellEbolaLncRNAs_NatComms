@@ -66,7 +66,7 @@ clusterExport(cl,list("expression_matrix","weighted_mean","calc_score_gene"),env
 
 
 # Permutations 
-n_perm <- 100
+n_perm <- 2
 i <- 1
 while (i <= n_perm){
   expression_matrix_permuted <- expression_matrix
