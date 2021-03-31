@@ -14,6 +14,8 @@ file = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/src/scripts/Analy
 file = file.path(args[1])
 robjectsdir  = file.path(args[2])
 
+dir.create(robjectsdir, showWarnings = FALSE)
+
 
 immune.combined <- readRDS(file)
 

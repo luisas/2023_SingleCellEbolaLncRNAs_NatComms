@@ -543,11 +543,11 @@ plot_seperate_features <- function(object, gene, limit = NULL,ident=NULL,pt.size
       for(i in 1:length(levels(Idents(object)))){
         
         j <- i+((g-1)*length(levels(Idents(object))))
-        print("A")
+
         p[[j]] <- FeaturePlot(object, cells = WhichCells(object,idents = levels(Idents(object))[i]), features = gene[g],order = TRUE,cols = colors, pt.size = pt.size, sort.cell = TRUE,...) +
           scale_color_gradient(low = colors[1], high = colors[2], limits = c(0,ceiling(max(object@assays$RNA@data[gene[g],]))),oob = squish) +
           ggtitle(paste(levels(Idents(object))[i],gene[g],sep=", "))+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
-        print("A")
+       
       }
     }
     else{
@@ -559,7 +559,7 @@ plot_seperate_features <- function(object, gene, limit = NULL,ident=NULL,pt.size
       }
     }
   }
-  print("A")
+  
   #correct axis in all plots
   y_axis_max <- 1:length(p)
   y_axis_min <- 1:length(p)

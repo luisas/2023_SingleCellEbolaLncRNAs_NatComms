@@ -29,6 +29,8 @@ cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq
 
 
 result_path<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep"
+dir.create(file.path(result_path), showWarnings = FALSE)
+
 ```
 
 # ---------------------------------------------------------

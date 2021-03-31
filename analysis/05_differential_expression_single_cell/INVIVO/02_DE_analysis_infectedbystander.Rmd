@@ -33,8 +33,7 @@ robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_sc
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
-
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_neut.rds")
 orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
 
 # -------------------------------------------
@@ -85,9 +84,7 @@ threshold <- quantile(ebola_genome_percentage_df[!(ebola_genome_percentage_df$ce
 threshold <- max(unlist(lapply(setdiff(unique(ebola_genome_percentage_df$celltype), c("Monocyte")), function(x) quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == x, ]$percentage_viral_reads, probs = c(0.99)))))
 
 print(paste("Threshold", threshold))
-
-ebola_genome_percentage_df[ebola_genome_percentage_df$percentage_viral_reads > 0,]
-
+#ebola_genome_percentage_df[ebola_genome_percentage_df$percentage_viral_reads > 0,]
 ```
 
 
@@ -103,9 +100,10 @@ table(immune.combined[,Idents(immune.combined) == "B" ]$infection)
 table(immune.combined[,Idents(immune.combined) == "T" ]$infection)
 table(immune.combined[,Idents(immune.combined) == "Neutrophil" ]$infection)
 
-# Save information about infection 
-#saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
+```
 
+
+```{r colocation}
 # Add information about how many cells are found per celltype and, per celltype, which is the proportion of cells infected
 # How many cells are found per celltype
 ebola_genome_percentage_df$hour <- as.character(ebola_genome_percentage_df$hour)
@@ -113,19 +111,17 @@ ebola_genome_percentage_df[as.character(ebola_genome_percentage_df$hour) %in% c(
 
 summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype) %>% tally()
 summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype,hour) %>% tally()
-ebola_genome_percentage_df$celltype_count <- unlist(apply(ebola_genome_percentage_df,1,function(x) summary_celltype[summary_celltype$celltype ==x[2] & summary_celltype$hour == x[4],]$n))
+summary_celltype$celltypedpi <-paste(summary_celltype$celltype, summary_celltype$hour, sep = "-")
 
 
-# Visualize the percentage of infected cells per celltype
-percentage_cells_infected_per_celltype <- ebola_genome_percentage_df %>% dplyr::group_by(celltype, classification, celltype_count, cond, hour) %>% tally()
+infected_summary <- ebola_genome_percentage_df[as.character(ebola_genome_percentage_df$classification) == "Infected",]%>% dplyr::group_by(celltype,hour) %>% tally()
+infected_summary$celltypedpi <- paste(infected_summary$celltype, infected_summary$hour, sep = "-")
+infected_summary <- infected_summary[,c("celltypedpi", "n")]
+names(infected_summary) <- c("celltypedpi", "infected")
 
-percentage_cells_infected_per_celltype <- percentage_cells_infected_per_celltype[percentage_cells_infected_per_celltype$classification == "Infected", ]
+percentage_cells_infected_per_celltype <- merge(infected_summary, summary_celltype, by = "celltypedpi")
 
-percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infected_per_celltype$n / percentage_cells_infected_per_celltype$celltype_count)*100
-
-# reset levels in right order
-percentage_cells_infected_per_celltype$cond <- factor(percentage_cells_infected_per_celltype$cond , levels = c("media", "irrad", "live"))
-
+percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infected_per_celltype$infected / percentage_cells_infected_per_celltype$n)*100
 
 ```
 
@@ -135,42 +131,69 @@ percentage_cells_infected_per_celltype$cond <- factor(percentage_cells_infected_
 library(ggthemes)
 library(wesanderson)
 
-
-
 ggplot(percentage_cells_infected_per_celltype, aes( x= celltype, y = perc_infected , col = hour, fill = hour))+geom_bar(stat="identity",position = position_dodge(), alpha = 0.8)+theme_paper+xlab("")+ylab("% of cells infected")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))
-
-
 
 
 percentage_cells_infected <- ebola_genome_percentage_df %>% dplyr::group_by(celltype, classification, celltype_count) %>% tally()
 percentage_cells_infected$perc_infected <- (percentage_cells_infected$n / percentage_cells_infected$celltype_count)*100
 percentage_cells_infected <- percentage_cells_infected[percentage_cells_infected$classification == "Infected", ]
-
-
-```
 ```
 
 
-```{r cars}
-ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(ebola_ref$gene_id, "unknown", sep ="-")]
 
-# Remove ebola genes 
-immune.combined_noebola <- immune.combined[setdiff(rownames(immune.combined), c(ebola_genes, "MSTRG.184450-unknown")),]
+```{r colocation}
 
-# Re-normalize
-immune.combined_noebola <- NormalizeData(immune.combined_noebola)
-immune.combined_noebola <- FindVariableFeatures(immune.combined_noebola)
-immune.combined_noebola <- ScaleData(immune.combined_noebola)
-immune.combined_noebola <- RunPCA(immune.combined_noebola, npcs = 30, verbose = FALSE)
-immune.combined_noebola <- RunUMAP(immune.combined_noebola, reduction = "pca", dims = 1:20)
-immune.combined_noebola <- FindNeighbors(immune.combined_noebola, reduction = "pca",dims = 1:20 )
-immune.combined_noebola <- FindClusters(immune.combined_noebola, resolution = 0.5)
 
-Idents(immune.combined_noebola) <- Idents(immune.combined)
+ggplot(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == "Monocyte",], aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")
 
-saveRDS(immune.combined_noebola, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus_noebola.rds")
 
 ```
+
+
+# PLot the expression of a gene in infected vs not infected cells
+
+```{r colocation}
+library(reshape2)
+
+
+
+
+
+
+
+gene <- "GAS5"
+gas5_genes <- unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in% unique(orthologs[orthologs$orthologGeneSymbol == "GAS5",]$lnc),]$gene_name)
+gas5_gene <- rownames(subset(immune.combined, features = c(gas5_genes)))
+
+gene <- gas5_gene
+gene <- "MX1"
+
+
+
+immune.combined.late <- immune.combined[,immune.combined$group == "late"]
+infected_cells_labels <- rownames(ebola_genome_percentage_df[ebola_genome_percentage_df$classification == "Infected" & ebola_genome_percentage_df$celltype == "Monocyte",])
+infected_cells_late <- subset(immune.combined.late, cells = infected_cells_labels)
+infected_cells_labels <- colnames(infected_cells_late)
+
+
+gene_expression <- subset(immune.combined.late, features = c(gene))@assays$RNA@data
+colnames(gene_expression)<- ifelse(colnames(gene_expression) %in% infected_cells_labels, "infected", "bystander")
+ge_df <- melt(as.matrix(gene_expression))
+names(ge_df) <- c("gene", "status", "value")
+
+pal <- wes_palette("Darjeeling1", 4, type = "discrete")
+ggplot(ge_df, aes(x = status, y = value, col = status , fill = status))+geom_boxplot(alpha = 0.4)+theme_paper+scale_fill_manual(values = pal)+scale_color_manual(values = pal)+ggtitle(gene)
+
+
+```
+
+
+
+
+
+
+
+
 
 
 

@@ -111,13 +111,12 @@ plot_genes(immune.combined, c(tcd4, tcd8), threshold = 2 , title = "T-Cell marke
 plot_genes(immune.combined, neut, threshold = 3 , title = "Neutrophil-Cell markers expression", col = "purple")
 
 immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "T", `2` = "B", 
-   `3` = "B", `4` = "T", `5` = "Monocyte", `6` = "Neutrophil", `7` = "Monocyte", `8` = "T", `9` = "Monocyte",
-    `10` = "T", `11` = "T", `12` = "B", `13` = "Monocyte", `14` = "T", `15` = "Neutrophil",`16` = "Monocyte",`17` = "T", `18` = "T")
-saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
-
+   `3` = "B", `4` = "T", `5` = "Monocyte", `6` = "Neutrophil", `7` = "T", `8` = "Monocyte", `9` = "T",
+    `10` = "T", `11` = "Monocyte", `12` = "Monocyte", `13` = "B", `14` = "Neutrophil", `15` = "Monocyte",`15` ="T")
+saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_neut.rds")
 
 immune.combined_noneut <- RenameIdents(immune.combined, `Neutrophil` = "Myeloid", `Monocyte` = "Myeloid")
-saveRDS(immune.combined_noneut, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_no_neut.rds")
+saveRDS(immune.combined_noneut, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
 
 
 ```
@@ -128,10 +127,12 @@ saveRDS(immune.combined_noneut, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_
 
 ```{r Find markers}
 # Visualize Markers
-DotPlot(immune.combined, features = unique(marker.genes), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())
+DotPlot(immune.combined_noneut, features = unique(marker.genes_red), cols = c("blue", "red", "purple"), dot.scale = 8) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())
 
 theme_paper
 # Plot with correct
+DimPlot(immune.combined_noneut, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
 DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 ```
 
@@ -144,10 +145,67 @@ ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(eb
 
 
 lapply(ebola_genes, function(gene) FeaturePlot(immune.combined, features  = gene, sort.cell = T, pt.size = 0.7)+theme_sc)
-plot_genes(immune.combined, ebola_genes,0, col = "#DA0202", "Cells expressing Ebola RNA")
+plot_genes(immune.combined, ebola_genes,1, col = "#DA0202", "Cells expressing Ebola RNA")
 
 novel <- ref[substr(ref$gene_id,1,2) =="MS", ]$gene_name
 lnc <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "lncRNA",]$gene_name
 found <- rownames(immune.combined)[rownames(immune.combined) %in% c(lnc, novel)]
 table(substr(ref[ref$gene_name %in% found, ]$transcript_id,1,3))
 ```
+
+# ---------------------------------
+#     Identify lncRNAs and PC genes 
+#----------------------------------
+
+```{r cars}
+# ------------------------------------
+#     PC genes present in object 
+# -------------------------------------
+annotated_mrnas <- rownames(immune.combined_noneut)[rownames(immune.combined_noneut) %in% unique(ref$gene_name[ref$gene_biotype == "protein_coding"])]
+
+# ------------------------------------
+#     LncRNAs present in object 
+# -------------------------------------
+# Annotated lncrnas id 
+lnc_ref_id <- gsub("_","-",unique(ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "lncRNA",]$gene_name))
+unique(ref[ref$gene_name == lnc_ref_id[substr(lnc_ref_id,1,3) != "ENS"],]$gene_biotype)
+
+# Annotated lncRNAs: remove the gene names so it can match 
+annotated_lncrnas <- rownames(immune.combined_noneut)[rownames(immune.combined_noneut) %in% lnc_ref_id]
+# Novel lncRNAs
+novel_lncrnas <- rownames(immune.combined_noneut)[unlist(lapply(rownames(immune.combined_noneut), function(x) startsWith(x, "MSTRG")))]
+# Complete Set 
+all_lncrnas <- c(annotated_lncrnas, novel_lncrnas)
+
+#------------------------------------------------------------
+# Visualize number of lncRNAs with donut plot
+# ------------------------------------------------------------
+type <- as.character(c("mRNAs", "lncRNAs", "lncRNAs"))
+subtype <- c("annotated", "annotated", "novel")
+count <- as.numeric(c(length(unique(annotated_mrnas)), length(unique(annotated_lncrnas)), length(unique(novel_lncrnas))))
+
+df.donut <-data.frame(type = type, subtype = subtype, count= count)
+aggregated_df.donut <- aggregate(df.donut$count, by=list(type=df.donut$type), FUN=sum)
+names(aggregated_df.donut) <- c("type", "count")
+donut_plot(aggregated_df.donut, "Dark2")
+lnc_donut <- df.donut[df.donut$type == "lncRNAs",]
+names(lnc_donut) <- c("-", "type", "count")
+donut_plot(lnc_donut, "Greens")
+
+
+
+# Save
+robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats"
+dir.create(file.path(robjectsdir), showWarnings = FALSE)
+saveRDS(all_lncrnas, file.path(robjectsdir, "all_lncrnas.rds"))
+saveRDS(annotated_mrnas, file.path(robjectsdir, "annotated_mrnas.rds"))
+```
+# ---------------------------------
+#    Remove Ebola Genes  
+#----------------------------------
+```{r cars}
+#length(setdiff(rownames(immune.combined_noneut), ebola_genes))
+#immune.combined_noneut_ebolaremoved <- immune.combined_noneut[setdiff(rownames(immune.combined_noneut), ebola_genes),]
+#immune.combined_noneut_ebolaremoved <- NormalizeData(immune.combined_noneut_ebolaremoved)
+```
+

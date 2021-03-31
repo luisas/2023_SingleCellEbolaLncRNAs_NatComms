@@ -69,8 +69,21 @@ outfile <- args[4]
 assembly_stringtie <- assembly[assembly$source == "StringTie",]
 assembly_ensembl <- assembly[assembly$source == "ensembl",]
 
+print("Beginning ")
 
-# ------------------------------- FILTER 1: retain only novel ones  --------------
+# How many transcripts do we assemble in total ?
+length(unique(assembly_stringtie$transcript_id))
+length(unique(assembly_stringtie$gene_id))
+
+# Assess the number of exons - how many monoexonic 
+summary_exons <- exon_nr_summary(assembly_stringtie)
+monoexonic_transcript_ids <- summary_exons[summary_exons$max_exon == 1,]$transcript_id
+#plot_assembly_stats(summary_exons)
+# ----------------------------------------------------------------------------
+
+print("After 1 ")
+
+# ------------------------------- FILTER 0: retain only novel ones  --------------
 
 # Get only novel with GFF compare 
 lnc_novel_compared_to_ref <- import(lnc_novel_compared_to_ref_file)
@@ -82,12 +95,31 @@ mask_ux[is.na(mask_ux)] <- FALSE
 # comparing the predicted one with the reference.
 novel_transcript_ids <- lnc_novel_compared_to_ref[mask_ux]$transcript_id
 assembly_stringtie <- assembly_stringtie[assembly_stringtie$transcript_id %in% novel_transcript_ids]
+print("After filter 0:")
+length(unique(assembly_stringtie$gene_id))
+length(unique(assembly_stringtie$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
+print("After 2 ")
+# Assess the number of exons - how many monoexonic 
+summary_exons <- exon_nr_summary(assembly_stringtie)
+monoexonic_transcript_ids <- summary_exons[summary_exons$max_exon == 1,]$transcript_id
+#plot_assembly_stats(summary_exons)
 
 
 
+# ------------------------------- FILTER 1: remove monoexonic transcripts ----------------------------------
+# Remove monoexonic entries 
+assembly_stringtie_multiple_exons <- assembly_stringtie[!(assembly_stringtie$transcript_id %in% monoexonic_transcript_ids),]
+print("After filter 1:")
+summary_exons <- exon_nr_summary(assembly_stringtie_multiple_exons)
+#plot_assembly_stats(summary_exons)
 
-# Skip mono-exonic filter 
-assembly_stringtie_multiple_exons <-assembly_stringtie
+length(unique(assembly_stringtie_multiple_exons$gene_id))
+length(unique(assembly_stringtie_multiple_exons$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
+print("After 3 ")
+
+#export(assembly_stringtie_multiple_exons,"/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided_multipleexons.gtf")
 
 
 # ------------------------------- FILTER 2: Remove transcripts shorter than 200 nucleotides --------------
@@ -95,11 +127,16 @@ transcript_length <- calc_transcript_length(assembly_stringtie_multiple_exons)
 short_transcripts_ids <- transcript_length[transcript_length$range < 200,]$transcript_id
 assembly_filtered <- assembly_stringtie_multiple_exons[!(assembly_stringtie_multiple_exons$transcript_id %in% short_transcripts_ids),]
 
+print("After filter 2:")
+length(unique(assembly_filtered$gene_id))
+length(unique(assembly_filtered$transcript_id))
+# ------------------------------------------------------------------------------------------------------------------
 
+print("After 4 ")
 
+# ------------------------------- FILTER 3: Remove anything overlapping protein coding genes --------------
 # Remove anything overlapping a protein coding genes 
 ref_mrna <- ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding",]
-ref_mrna_exons <- ref_mrna[ref_mrna$type == "exon",]
 overlap <- findOverlaps(assembly_filtered, ref_mrna )
 remove <- assembly_filtered[unique(queryHits(overlap))]$transcript_id
 length(unique(remove))
@@ -108,9 +145,9 @@ print("After filter 3:")
 length(unique(assembly_filtered$gene_id))
 length(unique(assembly_filtered$transcript_id))
 # ------------------------------------------------------------------------------------------------------------------
-table(strand(assembly_stringtie))
-table(strand(assembly_filtered))
+
 print("After 5 ")
+#export(assembly_filtered, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_CPC2/candidates.gtf" ) 
 candidates <- assembly_filtered
 export(candidates,outfile)
 

@@ -5,162 +5,80 @@ date: "2/28/2020"
 output: html_document
 ---
 
-## Broad Data Analysis
-
-# Assembly general stats
 
 
-## Set Up 
-```{r cars, echo = FALSE}
-library(rtracklayer)
-library(stringr)
-library(ggpubr)
-library(ggplot2)
-library(gginnards) 
-library(brew)
-col_lnc = "#870052"
-col_mrna = "#2e88bf"
-palette_plot_percentage <- c(col_lnc, col_mrna)
-
-theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
 
-source(file.path("../utils/01_lncrna_annotation_utils.R"))
 
-# Human reference for comparison
-lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_lncrna.gtf"))
-mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
 
-# Macaque reference
-lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
-mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
-mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
-mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
-```
-##  Stranded vs not-stranded
-### How many novel transcript we detect with the annotation (stranded param and not)
-
+# ---------------------------------------
+#          STATS: mapped reads
+#              Our data 
+# ---------------------------------------
 ```{r cars}
-assembly_notstranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
-assembly_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly_old//01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf")
-lnc_novel_compared_to_ref_notstranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
-lnc_novel_compared_to_ref_stranded <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly_old/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
+# How many samples
+dir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/"
+gtf_our <- iterate_files(dir, "*.stringtie.gtf")
 
 
+# -----------------------------------------------------------------------------------------
+# Collect info about our samples 
+# How many tissues do we have, separated by dataset 
+tissues <- unlist(lapply(gtf_our, function(x) str_split(basename(x), "_")[[1]][2]))
+tissues <- unlist(lapply(tissues, function(x) (str_split(x, "-")[[1]])[1]))
+tissues <- gsub("LN", "Lymph node", tissues)
 
-# Only check assembled transcripts
-assembly_stringtie_stranded <- assembly_stranded[assembly_stranded$source == "StringTie",]
-assembly_stringtie_notstranded <- assembly_notstranded[assembly_notstranded$source == "StringTie",]
+dataset <- unlist(lapply(gtf_our, function(x) str_split(basename(x), "_")[[1]][1]))
+df_our_summary <- data.frame(tissue = tissues, dataset= dataset, stringsAsFactors = F)
+# -----------------------------------------------------------------------------------------
 
-# How many transcripts are assembled in total?
-length(unique(assembly_stringtie_stranded$transcript_id))
-length(unique(assembly_stringtie_stranded$gene_id))
+# 1. Plot number of samples
+tot_n_samples <- nrow(df_our_summary)
+dataset_n_samples <- as.data.frame(df_our_summary %>% group_by(dataset) %>% dplyr::count())
+rownames(dataset_n_samples) <- dataset_n_samples$dataset
+ggplot(df_our_summary, aes(x = tissue, fill = dataset ))+geom_bar(width = 0.7)+theme_paper+scale_fill_brewer(palette = "Set3")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("#Samples")+xlab("")+ggtitle(paste("Total number of samples: ", tot_n_samples, sep = " "))
 
-length(unique(assembly_stringtie_notstranded$transcript_id))
-length(unique(assembly_stringtie_notstranded$gene_id))
+# 2. Coverage
+dir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/03b_rseqc/"
+stat_files_hisat_our <- iterate_files(dir, "*.bam_stat.txt")
+length(unique(stat_files_hisat_our))
 
+# --- Find the samples which were filtered out and do not use bam stats from those 
+bams_names <- gsub(".bam", "", unlist(lapply(stat_files_hisat_our, function(x) paste(unlist(str_split(basename(x),"_")[[1]][1:4]), collapse = "_"))))
+gtf_names <- gsub(".UMI.f3.q60.stringtie.gtf", "", unlist(lapply(gtf_our, function(x) paste(unlist(str_split(basename(x),"_")[[1]][1:4]), collapse = "_"))))
+gtf_names <- gsub(".UMI.f3.q60.umi", "", gtf_names)
+filtered_out_samples <- bams_names[!(bams_names %in% gtf_names)]
 
-df_classes_stranded <- data.frame(lnc_novel_compared_to_ref_stranded[!is.na(lnc_novel_compared_to_ref_stranded$class_code)]$class_code, stringsAsFactors = F)
-names(df_classes_stranded) <- c("classcode")
-df_classes_stranded$stranded <- "Stranded"
-df_classes_notstranded <- data.frame(lnc_novel_compared_to_ref_notstranded[!is.na(lnc_novel_compared_to_ref_notstranded$class_code)]$class_code, stringsAsFactors = F)
-names(df_classes_notstranded) <- c("classcode")
-df_classes_notstranded$stranded <- "Not Stranded"
-
-
-df_classes <- rbind(df_classes_stranded, df_classes_notstranded)
-df_classes_plot <- df_classes[df_classes$classcode %in% c("u", "x", "i"),]
-
-df_classes_plot_summarized <- df_classes_plot %>% group_by(stranded,classcode) %>% tally()
-
-df_classes_plot_summarized <- df_classes_plot_summarized[df_classes_plot_summarized$classcode != "i",]
-
-
-ggplot(df_classes_plot_summarized, aes(x = stranded, y = n, fill = classcode))+geom_bar(stat="identity", position=position_dodge())+
-      theme_paper+
-      scale_fill_manual(values=c("orange","#994C00"),labels = c("Intergenic", "Antisense"))+
-      xlab("")+ylab("")
-
-# How many more novel transcripts we identify 
-
-novel_u_stranded <- df_classes_plot_summarized[df_classes_plot_summarized$stranded == "Stranded" & df_classes_plot_summarized$classcode == "u", ]$n
-novel_x_stranded <- df_classes_plot_summarized[df_classes_plot_summarized$stranded == "Stranded" & df_classes_plot_summarized$classcode == "x", ]$n
-novel_u_notstranded <- df_classes_plot_summarized[df_classes_plot_summarized$stranded == "Not Stranded" & df_classes_plot_summarized$classcode == "u", ]$n
-novel_x_notstranded <- df_classes_plot_summarized[df_classes_plot_summarized$stranded == "Not Stranded" & df_classes_plot_summarized$classcode == "x", ]$n
-
-novel_u_stranded-novel_u_notstranded
-novel_x_stranded-novel_x_notstranded
+stat_files_hisat_our_filtered <- stat_files_hisat_our [!(bams_names %in% filtered_out_samples)]
 
 
-# How many monoexonic: STRANDED
-mask_ux_stranded <- lnc_novel_compared_to_ref_stranded$class_code == "u" | lnc_novel_compared_to_ref_stranded$class_code == "x" ;
-mask_ux_stranded[is.na(mask_ux_stranded)] <- FALSE
-novel_transcript_ids_stranded <- lnc_novel_compared_to_ref_stranded[mask_ux_stranded]$transcript_id
-assembly_stringtie_stranded <- assembly_stringtie_stranded[assembly_stringtie_stranded$transcript_id %in% novel_transcript_ids_stranded]
-gr <- assembly_stringtie_stranded[assembly_stringtie_stranded$type == "exon",]
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-number_exons_stranded <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-plot_assembly_stats(number_exons_stranded)
+mapped_ours <- data.frame(mapped_reads = unlist(lapply(stat_files_hisat_our_filtered, function(lines) get_mapped((lines)))))
+mapped_ours$source <- "Our"
+mapped_ours$file <- gtf_names
+mapped_ours$tissue <- unlist(lapply(mapped_ours$file, function(x) str_split(x, "_")[[1]][2]))
+mapped_ours$tissue <- unlist(lapply(mapped_ours$tissue, function(x) (str_split(x, "-")[[1]])[1]))
+mapped_ours$tissue <- gsub("LN", "Lymph node", mapped_ours$tissue)
+mapped_ours$dataset <- unlist(lapply(mapped_ours$file, function(x) str_split(x, "_")[[1]][1]))
+mapped_ours$dpi <- unlist(lapply(mapped_ours$file, function(x) str_split(x, "_")[[1]][3]))
 
-
-df_number_exons_stranded <- data.frame(
-    group=c("1", "2", "3+"),
-    value=c(sum(number_exons_stranded$max_exon == 1),sum(number_exons_stranded$max_exon == 2),sum(number_exons_stranded$max_exon > 2))
-  )
-df_number_exons_stranded$source <- "Stranded"
-
-
-# How many monoexonic: NOT STRANDED
-mask_ux_notstranded <- lnc_novel_compared_to_ref_notstranded$class_code == "u" | lnc_novel_compared_to_ref_notstranded$class_code == "x" ;
-mask_ux_notstranded[is.na(mask_ux_notstranded)] <- FALSE
-novel_transcript_ids_notstranded <- lnc_novel_compared_to_ref_notstranded[mask_ux_notstranded]$transcript_id
-assembly_stringtie_notstranded <- assembly_stringtie_notstranded[assembly_stringtie_notstranded$transcript_id %in% novel_transcript_ids_notstranded]
-gr <- assembly_stringtie_notstranded[assembly_stringtie_notstranded$type == "exon",]
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-number_exons_notstranded <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-plot_assembly_stats(number_exons_notstranded)
-
-df_number_exons_Notstranded <- data.frame(
-    group=c("1", "2", "3+"),
-    value=c(sum(number_exons_notstranded$max_exon == 1),sum(number_exons_notstranded$max_exon == 2),sum(number_exons_notstranded$max_exon > 2))
-  )
-df_number_exons_Notstranded$source <- "Not Stranded"
-
-# Check how many we have
-
-our <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided.gtf")
-gffcompare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
-
-novel_t_id <- gffcompare[gffcompare$class_code %in% c("u", "x"),]$transcript_id
-our_novel <- our[our$transcript_id %in% novel_t_id, ]
-
-
-gr <- our_novel[our_novel$type == "exon",]
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-number_exons <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-monoexonic_ids <- number_exons[number_exons$max_exon == 1, ]$transcript_id
-length(unique(monoexonic_ids))
-
-multiexonic <- our_novel[!(our_novel$transcript_id %in% monoexonic_ids),]
-length(unique(multiexonic$transcript_id))
-plot_assembly_stats(number_exons)
-
-
-df <- rbind(df_number_exons_Notstranded, df_number_exons_stranded)
-ggplot(df, aes(x = source, y = value, fill = group, colur = group))+geom_bar(stat="identity", 
-                                                                             position=position_dodge())+
-      theme_paper+
-      scale_fill_manual(name = "#Exons",values=viridis(3))+
-      xlab("")+ylab("")+theme(legend.title = element_text(size =14))
-
+nb.cols <- 14
+mycolors <- colorRampPalette(brewer.pal(8, "Set3"))(nb.cols)
+# Average mapped reads per tissue
+ylab <- c(20,40,60)
+ggplot(mapped_ours, aes( x = file, fill = tissue, y = mapped_reads))+geom_bar(stat = "identity", width= 0.8)+theme_paper+scale_fill_manual(values = mycolors)+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("# Mapped reads")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )+ facet_grid(~dataset, scales = "free_x", space= "free_x")+scale_y_continuous( labels = paste0(ylab, "M"),breaks = 10^6 * ylab)
 
 ```
 
 
 
+# -------------------------------------------------------------------------------------------------------------------------------------
+#                                                    OLD
+# -------------------------------------------------------------------------------------------------------------------------------------
+# Rseqc summary 
 # Intron mapping reads
 ```{r cars}
-dir <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03b_rseqc/rseqc/"
+library(ggpubr)
+dir <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/02_rseqc//"
 read_distribution_files_broad <- iterate_files(dir, "*.read_distribution.txt")
 read_distribution_files_our <- iterate_files("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/03b_rseqc/", "*q60.read_distribution.txt")
 
@@ -179,7 +97,6 @@ get_exon_perc <- function(file){
   perc <- introns/total_reads
   return(perc)
 }
-lines <- readLines(read_distribution_files_broad[1])
 
 introns_broad <- data.frame(introns = unlist(lapply(read_distribution_files_broad, function(lines) get_intron_perc((lines)))))
 introns_broad$source <- "Broad"
@@ -208,324 +125,6 @@ ggboxplot(rbind(introns_broad, introns_our), x = "type", y = "introns",
 
 ```
 
-
-# Monoexoniv transcripts comparison 
-```{r cars}
-
-gr <- assembly_stringtie_stranded[assembly_stringtie_stranded$type == "exon",]
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-number_exons <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-monoexonic_ids <- number_exons[number_exons$max_exon == 1, ]$transcript_id
-length(unique(monoexonic_ids))
-broad_monoexonic_transcripts <- calc_transcript_length_2(gr[gr$transcript_id %in% monoexonic_ids, ])
-broad_monoexonic_transcripts$source <- "Broad"
-
-multiexonic <- assembly_stringtie_stranded[!(assembly_stringtie_stranded$transcript_id %in% monoexonic_ids),]
-length(unique(multiexonic$transcript_id))
-plot_assembly_stats(number_exons)
-
-
-
-# Our monoexonic novel transcripts
-gr <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie/stringtie_merged_reference_guided.gtf")
-gffcomapare <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/01_gffCompare/merged.annotated.gtf")
-mask_ux <- gffcomapare$class_code == "u" | gffcomapare$class_code == "x" ;
-mask_ux[is.na(mask_ux)] <- FALSE
-# Comparing the predicted one with the reference.
-novel_transcript_ids <- gffcomapare[mask_ux]$transcript_id
-assembly_stringtie_our <- gr[gr$transcript_id %in% novel_transcript_ids]
-length(unique(assembly_stringtie_our$transcript_id))
-gr <- assembly_stringtie_our[assembly_stringtie_our$type == "exon",]
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id,"exon_number" = as.numeric(gr$exon_number))
-number_exons <- df %>% dplyr::group_by(gene_id,transcript_id) %>%dplyr::summarize(max_exon = max(exon_number))
-monoexonic_ids <- number_exons[number_exons$max_exon == 1, ]$transcript_id
-length(unique(monoexonic_ids))
-
-our_monoexonic_transcripts <- calc_transcript_length_2(gr[gr$transcript_id %in% monoexonic_ids, ])
-our_monoexonic_transcripts$source <- "Our"
-
-df <- rbind(broad_monoexonic_transcripts, our_monoexonic_transcripts)
-
-my_comparisons <- list(c("Broad", "Our"))
-ggboxplot(df, x = "source", y = "range",
-                color = "source", fill = "source", alpha = 0.2,  palette =c("#00AFBB", "#E7B800", "#FC4E07"),
-                shape = "source")+theme_paper+xlab("")+ylab("Transcript length")+ 
-  stat_compare_means(comparisons = my_comparisons)
-
-
-```
-
-
-# Mapped reads we have
-```{r cars}
-dir <- "/home/luisas/Desktop/cluster/data/00_RawData/BroadTranscriptomesComplete/bams/stats/"
-stat_files_broad <- iterate_files(dir, "*.bam.txt")
-
-get_mapped <- function(file){
-  lines <- readLines(file)
-  total_reads <- as.double(strsplit(lines[grep(pattern = "mapped", x = lines)], " +")[[1]][1])
-  return(total_reads)
-}
-
-get_mapped_hisat <- function(file){
-  lines <- readLines(file)
-  total_reads <- as.double(strsplit(lines[grep(pattern = "aligned concordantly exactly 1 time", x = lines)], " +")[[1]][2])
-  return(total_reads)
-}
-mapped_broad <- data.frame(mapped_reads = unlist(lapply(stat_files_broad, function(lines) get_mapped((lines)))))
-mapped_broad$source <- "Broad"
-
-
-
-
-# Our : extarct from StAr files
-dir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/03_hisat/"
-stat_files_hisat_our <- iterate_files(dir, "*.hisat2_summary.txt")
-lines <- readLines(stat_files_hisat_our[1])
-mapped_ours <- data.frame(mapped_reads = unlist(lapply(stat_files_hisat_our, function(lines) get_mapped_hisat((lines)))))
-mapped_ours$source <- "Our"
-df <- rbind(mapped_broad, mapped_ours)
-
-ggboxplot(df, x ="source", y = "mapped_reads",
-                color = "source", palette =c("#00AFBB", "#E7B800", "#FC4E07"),
-                add = "jitter")+theme_paper+ylab("")
-```
-
-
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-
-# Visualize stats prediction
-```{r cars}
-all <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel.gtf")
-all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
-length(unique(all_novel_lnc$gene_id))
-length(unique(all_novel_lnc$transcript_id))
-plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
-
-## ---- Expression ----
-
-palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
-
-iterate_files <- function(inpath, pattern_string){
-  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
-  return(files)
-}
-
-
-dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation/04_quantification/"
-
-
-abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
-
-# Read all files
-abundances <- list()
-for(i in 1:length(abundance_files)) {
-  file <- readr::read_tsv(abundance_files[i])
-  # Sum up values for double entries (https://github.com/gpertea/stringtie/issues/192)
-  file <- file %>% dplyr::group_by(`Gene ID`)%>% dplyr::summarise(TPM = sum(TPM))
-  abundances[[i]] <- data.frame(file$TPM, row.names =file$`Gene ID` )
-}
-
-# Summarize all TPMs from all quantification files 
-rn <- rownames(abundances[[1]])
-dat <- abundances[[1]]
-for(i in 2:length(abundances)) {
-  dat <- merge(dat, abundances[[i]],  by= "row.names", all.x= F, all.y= F) [,-1]
-  rownames(dat) <- rn
-}
-
-expression <- dat
-expression <- as.matrix(expression)
-
-# ----------------------------------------------------------------------
-# Same for the median
-# ----------------------------------------------------------------------
-library(matrixStats)
-median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(as.matrix(expression))))
-median_expression$id_reduced <- unlist(lapply(as.character(median_expression$id), function(x) ifelse(startsWith(x, "ENS"), str_split(x, fixed("."))[[1]][1], x)))
-median_expression$id <- median_expression$id_reduced
-
-median_expression['type'] <- "0"
-median_expression <- add_type(median_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
-median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
-median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
-median_expression <- median_expression[!median_expression$type == "0",]
-plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))+labs(y = "logTPM")
-
-
-length(unique(median_expression[median_expression$type == "Novel lncRNAs",]$id))
-length(unique(median_expression[median_expression$type == "Annotated lncRNAs",]$id))
-length(unique(median_expression[median_expression$type == "mRNAs",]$id))
-
-
-
-max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(as.matrix(expression))))
-max_expression$id_reduced <- unlist(lapply(as.character(max_expression$id), function(x) ifelse(startsWith(x, "ENS"), str_split(x, fixed("."))[[1]][1], x)))
-max_expression$id <- max_expression$id_reduced
-
-max_expression['type'] <- "0"
-max_expression$type
-max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
-max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
-max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
-max_expression <- max_expression[!max_expression$type == "0",]
-plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
-```
-
-
-# Separated by antisense and intergenic
-```{r cars}
-
-gff_compare_pre_lnc <- lnc_novel_compared_to_ref_stranded[lnc_novel_compared_to_ref_stranded$transcript_id %in% all_novel_lnc$transcript_id & lnc_novel_compared_to_ref_stranded$type == "transcript",]
-antisense_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "x", ]$transcript_id
-intergenic_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "u", ]$transcript_id
-
-
-intergenic_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% intergenic_ids, ]
-antisense_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% antisense_ids, ]
-
-
-length(unique(intergenic_lnc$transcript_id))
-length(unique(antisense_lnc$transcript_id))
-
-
-plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
-library(matrixStats)
-palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
-median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(as.matrix(expression))))
-median_expression$id_reduced <- unlist(lapply(as.character(median_expression$id), function(x) ifelse(startsWith(x, "ENS"), str_split(x, fixed("."))[[1]][1], x)))
-median_expression$id <- median_expression$id_reduced
-median_expression['type'] <- "0"
-
-median_expression[substr(median_expression$id,1,4) == "MSTR",]
-median_expression <- add_type(median_expression, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
-median_expression <- add_type(median_expression, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
-median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
-median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
-median_expression <- median_expression[!median_expression$type == "0",]
-
-levels <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
-plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))+labs(y = "logTPM")
-```
-
-
-
-
-# How many we predict per tool 
-
-```{r cpc2}
-candidates <- assembly_stranded
-# -------------------------------------------
-#                     CPC2 
-# -------------------------------------------
-# Load cpc2 prediction 
-cpc2 <- read.table("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly/03_novel_lncRNAs_list/03_predictions/CPC2/cpc2_pred.txt")
-names(cpc2) <- c("ID","transcript_length ","peptide_length","Fickett_score" , " pI", "ORF_integrity", "coding_probability","label")
-cpc2$transcript_id <- unlist(lapply(as.character(cpc2$ID), function(x) strsplit(x,"[(]")[[1]][1]))
-# Extract non coding predictions
-pred_nc_ids <- cpc2[cpc2$label == "noncoding",]$transcript_id
-cpc2_pre_lnc <- candidates[candidates$transcript_id %in% pred_nc_ids, ]
-
-# -----------------------------------------------
-# Remove uncorcondant pred
-cpc2$gene_id <- unlist(lapply(as.character(cpc2$transcript_id), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
-
-unconcordant_prediction <- cpc2 %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
-cpc2_pre_lnc <- cpc2_pre_lnc[!(cpc2_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
-length(unique(cpc2_pre_lnc$gene_id))
-# -----------------------------------------------
-
-
-# -------------------------------------------
-#                     CPAT 
-# -------------------------------------------
-# Compare which ones and how many overlap 
-cpat <- read.table("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly//03_novel_lncRNAs_list/03_predictions/CPAT/cpat_pred.ORF_prob.tsv", header = TRUE)
-# Cutoff defined by the paper of CPAT as best for discerning coding and lnc
-cutoff <-  0.364
-cpat$label <- ifelse(cpat$Coding_prob > cutoff, "coding", "noncoding")
-cpat$transcript_id <- unlist(lapply(as.character(cpat$ID), function(x) strsplit(x,"[(]")[[1]][1]))
-# extract lncRNAs
-cpat_nc <- cpat[cpat$label == "noncoding",]
-cpat_pre_lnc <- candidates[candidates$transcript_id %in% cpat_nc$transcript_id, ]
-
-# -----------------------------------------------
-# Remove uncorcondant pred
-cpat$gene_id <- unlist(lapply(as.character(cpat$ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
-unconcordant_prediction <- cpat %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
-cpat_pre_lnc <- cpat_pre_lnc[!(cpat_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
-length(unique(cpat_pre_lnc$gene_id))
-# -----------------------------------------------
-
-
-
-# -------------------------------------------
-#                     CNIT 
-# -------------------------------------------
-# Compare which ones and how many overlap 
-cnit <- read.table("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_rerunningassemly//03_novel_lncRNAs_list/03_predictions/CNIT/cnit_pred/CNCI2.index", header = TRUE, ,sep="\t")
-cnit$label <- cnit$index
-cnit$transcript_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) strsplit(x,"[(]")[[1]][1]))
-cnit_nc <- cnit[cnit$label == "noncoding",]
-cnit_pre_lnc <- candidates[candidates$transcript_id %in% cnit_nc$transcript_id, ]
-
-# -----------------------------------------------
-# Remove uncorcondant pred
-cnit$gene_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
-cnit$transcript_id <- cnit$ID
-unconcordant_prediction <- cnit %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
-cnit_pre_lnc <- cnit_pre_lnc[!(cnit_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
-length(unique(cnit_pre_lnc$gene_id))
-# -----------------------------------------------
-```
-
-
-# Obtain the intersection of all the predictions
-
-```{r cpc2vscpan}
-length(unique(cpat_pre_lnc$transcript_id))
-length(unique(cpc2_pre_lnc$transcript_id))
-length(unique(cnit_pre_lnc$transcript_id))
-
-length(unique(cpat_pre_lnc$gene_id))
-length(unique(cpc2_pre_lnc$gene_id))
-length(unique(cnit_pre_lnc$transcript_id))
-
-intersection <- unique(intersect(intersect(cpat_pre_lnc$transcript_id, cpc2_pre_lnc$transcript_id), cnit_pre_lnc$transcript_id))
-intersection_pre_lnc <- candidates[candidates$transcript_id %in% intersection, ]
-length(unique(intersection_pre_lnc$transcript_id))
-length(unique(intersection_pre_lnc$gene_id))
-plot_stats_annotation(intersection_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
-```
-
-
-
-
-# Visualize overlap 
-```{r cpc2vscpan}
-library(UpSetR)
-library(ComplexHeatmap)
-# example of list input (list of named vectors)
-
-listInput <- list(CPAT = unique(cpat_pre_lnc$gene_id), CPC2 = unique(cpc2_pre_lnc$gene_id))
-
-
-listInput <- list(CPAT = unique(cpat_pre_lnc$gene_id), CPC2 = unique(cpc2_pre_lnc$gene_id), CNIT = unique(cnit_pre_lnc$gene_id))
-upset(fromList(listInput), order.by = "freq", main.bar.color = c("darkorange", rep("gray23",6)),text.scale = 1.4)
-
-
-library(eulerr)
-plot(euler(listInput, shape = "ellipse"),
-     quantities = TRUE,
-     edges = list(lty = 3), 
-     legend = list(side = "right")
-    )
-
-```
 
 
 

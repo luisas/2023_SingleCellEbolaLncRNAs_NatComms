@@ -1,0 +1,10 @@
+load java/8u131 (PATH, MANPATH, JAVA_HOME, JAVA_ROOT, JAVA_BINDIR, SDK_HOME,
+JDK_HOME, JRE_HOME) 
+Set INTEL compilers as MPI wrappers backend 
+
+The following have been reloaded with a version change:
+  1) intel/2017.4 => intel/2017.1
+
+load nextflow/19.03.0 (PATH) 
+load R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+load SINGULARITY/3.5.2 (PATH) 

@@ -401,15 +401,16 @@ plot_stats_benchmark <- function(pcvslnc){
     arrange(desc(group)) %>%
     mutate(prop = value / sum(data$value) *100) %>%
     mutate(ypos = cumsum(prop)- 0.5*prop )
-  
+  data$label <- ifelse(data$group == "x", "antisense", "intergenic")
+  data$label <- paste(data$label, round(data$prop, digits = 2 ) , sep = "\n")
   # Basic piechart
   plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
     geom_bar(stat="identity", width=1, color="white") +
     coord_polar("y", start=0) +
     theme_void() + 
     theme(legend.position="none") +
-    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
-    scale_fill_brewer(palette="Set1")
+    geom_text(aes(y = ypos, label = label), color = "white", size=6) +
+    scale_fill_manual(values=c("orange","#994C00"))
   return(plotassembly)
 }
 

@@ -16,8 +16,8 @@ args = commandArgs(trailingOnly=TRUE)
 file <- args[1]
 # Where the result file should be saved
 outfile <- args[2]
-# Boolean: should it execute the ranked corretion or not
-correction <- args[3]
+
+dir.create(dirname(file.path(outfile)), showWarnings = FALSE)
 
 
 # Read in the Seurat object
@@ -66,7 +66,7 @@ while (i <= n_perm){
   
   spec_scores <- parLapply(cl, rownames(expression_matrix_permuted), function(gene) calc_score_gene(expression_matrix_permuted, gene))
   final <- Reduce("rbind", spec_scores)
-  saveRDS(final, file.path(dirname(outfile), paste("Permutations_",i,".rds", sep = "")))
+  saveRDS(final, file.path(dirname(outfile), paste("Permutations_prop_",i,".rds", sep = "")))
   
   i <- i+1
 }

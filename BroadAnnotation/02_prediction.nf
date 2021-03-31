@@ -12,27 +12,39 @@ log.info "=============================================="
 // ------------------------------------------------------------
 // ------------ INPUT PARAMETERS ------------------------------
 // ------------------------------------------------------------
-
 params.prefix_data = "/gpfs/projects/bsc83/Data"
-params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation_NEW/"
+params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation_Feb2021/"
+
+// BaseFolders
+params.prefix = "rheMac10_EBOV-Kikwit_UCSC"
+params.prefix_data = "/gpfs/projects/bsc83/Data"
 params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
 
-files = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/bams/*.bam")
+
+// Reference assembly
+reference_assembly = Channel.fromPath("${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit_UCSC.fa")
+// Reference annotation
+params.reference_annotated = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs-new/annotation.gtf"
+
+// BAM files for expression
+files = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/bams-new/*.bam")
                 .ifEmpty("No bams found")
                 .map { tuple(it.baseName, it) }
+files.into{ bams1; bams2; }
 
+stringtiefiles = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs-new/gtfs/*.gtf")
+                .ifEmpty("No assemblies found")
 
-files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing; filtered_merged_bams_5}
 
 
 
 params.data_dir = "${params.output_dir}/"
 params.lnc_novel_compared_to_ref= "${params.data_dir}/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf"
 params.assembly ="${params.data_dir}/01_stringtie_assembly_merged/stringtie_merged_reference_guided.gtf"
-params.reference_annotated = "${params.output_dir_preliminary}/gene_annotations/UCSC/rheMac10_EBOV-Kikwit_UCSC.gtf"
-reference_assembly = Channel.fromPath("${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit_UCSC.fa")
 
-// // SCRIPTS
+/*
+*   SCRIPTS
+*/
 extractNovel_script = Channel.fromPath("${baseDir}/scripts/03_concordant_and_merge.R").collect()
 prefilter_script = Channel.fromPath("${baseDir}/scripts/01_prefilter_script.R").collect()
 expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
@@ -41,13 +53,52 @@ mrnas_predicted = Channel.fromPath("${params.mrnas_predicted}").collect()
 assembly = Channel.fromPath("${params.assembly}").collect()
 gtf2bed = Channel.fromPath("${baseDir}/scripts/gtf2bed.R").collect()
 gtf_ref_1 = Channel.fromPath("${params.reference_annotated}").collect()
+gtf_ref_1.into{gtf_ref; gtf_ref_2; annotation; annotation2 }
 ref = Channel.fromPath("${params.reference_annotated}").collect()
-
 cpatmodel= Channel.fromPath("${params.output_dir_preliminary}/Human_logitModel.RData").collect()
 cpathexamer= Channel.fromPath("${params.output_dir_preliminary}/Human_Hexamer.tsv").collect()
 cpat_files = Channel.fromPath("${params.output_dir_preliminary}/cpat*").collect()
 
-gtf_ref_1.into{gtf_ref; gtf_ref_2; }
+
+
+// Merge separate assemblies
+process StringTie_Merge_Reference_Guided{
+
+  cpus 1
+  storeDir "${params.output_dir}/01_stringtie_assembly_merged/"
+
+
+  input:
+  file stringtie_gtfs from stringtiefiles.collect()
+  file reference_gtf from annotation.collect()
+
+  output:
+  file "stringtie_merged_reference_guided.gtf" into (merged_denovo_assembly, merged_denovo_assembly_2)
+
+  script:
+  """
+  stringtie --merge -p ${task.cpus} -o stringtie_merged_reference_guided.gtf -G ${reference_gtf} ${stringtie_gtfs}
+  """
+}
+
+
+process gffCompare2{
+
+  storeDir "${params.output_dir}/01_stringtie_assembly_merged/01_gffCompare"
+
+  input:
+  file merged_gtf from merged_denovo_assembly.collect()
+  file reference_gtf from annotation2.collect()
+
+  output:
+  file("merged*") into gff_compareall
+  file("merged.annotated.gtf") into gff_compare_output_channel2
+  script:
+  """
+  gffcompare -R -r ${reference_gtf} -o merged ${merged_gtf}
+  """
+}
+
 // /*
 // * Extract only the novel (unkown and antisense) lncRNAs compared to the reference.
 // * Also remove non concordant predictions.
@@ -72,10 +123,11 @@ process prefilter{
    Rscript ${prefilter_script} ${lnc_novel_compared_to_ref} ${assembly} ${ref} prefilter_candidates.gtf
    """
 }
-//
-// /*
-// * Append novel concordant to the reference before quantification
-// */
+
+
+/*
+* Append novel concordant to the reference before quantification
+*/
 process mergeWithAnnotation {
      storeDir "${params.output_dir}/${output_dir_sub}/00_prefilter_candidates/"
 
@@ -103,7 +155,7 @@ process mergeWithAnnotation {
    input:
    file gtf from novel_and_reference.collect()
    set complete_id,
-       file(bampair) from filtered_merged_bams_4
+       file(bampair) from bams1
 
    output:
    file("${complete_id}.gene_abundances.tsv") into fpkm_channel
@@ -115,10 +167,10 @@ process mergeWithAnnotation {
    mv t_data.ctab ${complete_id}_t_data.ctab
    """
  }
-//
-//
- expression = fpkm_channel.collect()
- expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
+
+
+expression = fpkm_channel.collect()
+expression_script = Channel.fromPath("${baseDir}/scripts/02_filterExpressed.R").collect()
 
 
 
@@ -259,12 +311,13 @@ process getFinalAnnotation {
 
 process stringtie{
    cpus 1
-   storeDir "${params.output_dir}/04_quantification/"
+   publishDir "${params.output_dir}/05_quantification_fr/", mode: 'copy'
+   //storeDir "${params.output_dir}/05_quantification_fr/"
 
    input:
    set file(gtf), file(gtf_names) from novel_final.collect()
    set complete_id,
-       file(bampair) from filtered_merged_bams_5
+       file(bampair) from bams2
 
    output:
    file("*") into expression_channel
@@ -272,7 +325,7 @@ process stringtie{
    script:
    """
    # Calc the counts for the umi_dedup
-   stringtie -eB -G ${gtf_names} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
+   stringtie -eB --fr -G ${gtf_names} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
    mv t_data.ctab ${complete_id}_t_data.ctab
    """
 }

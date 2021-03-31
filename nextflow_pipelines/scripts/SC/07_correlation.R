@@ -20,7 +20,7 @@ de_lnc_all<- readRDS("/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRN
 de_lnc <- unique(unlist(de_lnc_all))
 
 
-calc_correlation_genes <- function(gene1_vector,gene2_vector,gene1, gene2, type = "pearson"){
+calc_correlation_genes <- function(gene1_vector,gene2_vector,gene1, gene2, type = "spearman"){
   mask <- gene1_vector !=0 & gene2_vector !=0
   # calculate the correlation coefficient
   if(sum(mask)>50){ 

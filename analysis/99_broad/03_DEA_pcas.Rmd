@@ -1,0 +1,105 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+
+
+# -------------------------------------
+#       DEA: PCAs exploring
+# -------------------------------------
+
+```{r results='hide', message=FALSE, warning=FALSE}
+library(edgeR)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library("wesanderson")
+library(RColorBrewer)
+
+
+# 0. Palettes & themes 
+
+pal1 <- wes_palette("Darjeeling1", 5, type = "discrete")
+pal2 <- wes_palette("Darjeeling2", 5, type = "discrete")
+colfunc <- colorRampPalette(c("grey", "red"))
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
+# 1. Input Variables and Files
+tissue <- "Lymph node"
+outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
+dge <-readRDS(file.path("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/", tissue, "dge.rds"))
+```
+
+
+
+# Compute PCAs
+
+```{r prcomp}
+
+cpm <- cpm(dge, log = T, norm = T)
+
+# Select top 5k Variable genes 
+V <- apply(cpm, 1, var)
+selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
+M <- t(cpm[selectedGenes,])
+
+# Compute PCA 
+sample_pca <- prcomp(M)
+pc_scores <- sample_pca$x
+pc_scores <- pc_scores %>% 
+  # convert to a tibble retaining the sample names as a new column
+  as_tibble(rownames = "sample")
+
+# Add metadata for later plotting
+metadata_tissue$sample <- metadata_tissue$X
+metadata_tissue$subtissue <- unlist(lapply(metadata_tissue$biosample,  function(x) str_split(x, "-")[[1]][2]))
+df_pca <- merge(pc_scores, metadata_tissue, by="sample")
+```
+
+
+# Draw PCAs
+
+```{r pcas}
+# Draws a PCA separating(coloring) for the given variable
+draw_pca <- function(df_pca, variable, c = F, pal = pal1, pointsize = 2 ){
+  p <- df_pca %>% 
+  ggplot(aes(x = PC1,  y = PC2, col = eval(parse(text = variable)))) +
+  geom_point(alpha = 0.9, size = pointsize)+theme_paper
+  
+  if(!c){
+    p <- p+scale_color_manual(values = pal)
+  }
+  p <- p+ggtitle(variable)+theme(title = element_text(size = 18))
+  return(p)
+}
+
+draw_pca(df_pca, "infection_status", pal = brewer.pal(9, "Set1") )
+draw_pca(df_pca, "sex")
+draw_pca(df_pca, "weight", c = T)
+draw_pca(df_pca, "batch.extraction", pal = pal2[2:5])
+
+draw_pca(df_pca, "id.individual", c = T )
+draw_pca(df_pca, "subtissue", c = F,pal = brewer.pal(3, "Set3"))
+
+draw_pca(df_pca, "pc.viral.reads", c = T, pointsize = 2.5)+scale_colour_steps2()+ggtitle("Percentage viral reads")
+draw_pca(df_pca, "id.cohort", pal = colfunc(8) )
+
+
+# Try binning 
+df <- df_pca
+df$perc <- df$pc.viral.reads*100
+df$perc <- df$perc + 0.0001
+df$perc_bin <- cut(df$perc, seq(0, 40, 5))
+df$perc_bin <- as.character(df$perc_bin)
+draw_pca(df, "perc_bin", c = T, pointsize = 2.5)+ggtitle("Percentage viral reads")
+
+```
+
+
+
+

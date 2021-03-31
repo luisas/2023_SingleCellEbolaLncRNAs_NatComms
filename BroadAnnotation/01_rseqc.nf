@@ -6,52 +6,54 @@ log.info "=============================================="
 log.info " Merge stringtie assemblies and perform prediction "
 log.info "=============================================="
 
-
-// BaseFolders
-params.prefix = "rheMac10_EBOV-Kikwit_UCSC"
+// Directories
 params.prefix_data = "/gpfs/projects/bsc83/Data"
-params.output_dir_preliminary = "${params.prefix_data}/Ebola/01_bulk_RNA-Seq_lncRNAs_annotation/01_PreliminaryFiles_rheMac10/"
-params.output_dir_name = "01_RNA-Seq_ribodepl"
-params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation/"
+params.output_dir = "${params.prefix_data}/Ebola/99_BroadAnnotation_Feb2021/"
+params.output_dir_sub = "gene_annotations"
+
+// SCRIPTS
+gtf2genepred = Channel.fromPath("${baseDir}/scripts/gtfToGenePred").collect()
+genepred2bed = Channel.fromPath("${baseDir}/scripts/genePredToBed").collect()
+
+// Annotation
+params.reference_annotated = "/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs-new/annotation.gtf"
+annotation = Channel.fromPath("${params.reference_annotated}").collect()
 
 
-// Reference annotation
-params.reference_annotated = "${params.output_dir_preliminary}/gene_annotations/UCSC/rheMac10_EBOV-Kikwit_UCSC.gtf"
-gtfChannel = Channel.fromPath("${params.reference_annotated}")
-params.bed = "${params.output_dir_preliminary}/gene_annotations/UCSC/rheMac10_EBOV-Kikwit_UCSC.bed12"
-gtfChannel_ucsc = Channel.fromPath("${params.output_dir_preliminary}/gene_annotations/rheMac10_EBOV-Kikwit_UCSC.gtf")
-
-params.reference_fasta = "${params.output_dir_preliminary}/reference_assembly/rheMac10_EBOV-Kikwit_UCSC.fa"
-ref_fasta = Channel.fromPath("${params.reference_fasta}")
-
-gtfChannel.into{gtfChannel1; gtfChannel2; gtfChannel3; gtfChannel4;gtfChannel5;  }
-
-// Stringtie Files
-stringTie_channel = Channel.fromPath("${params.prefix_data}/Ebola/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/stringtie2-gtfs/*.gtf")
-
-
-params.known_mrna = "${params.output_dir_preliminary}/Homo_sapiens.GRCh38.83_antisense.lincRNA_learning5k.fa"
-params.known_lncrna = "${params.output_dir_preliminary}/Homo_sapiens.GRCh38.83_protein_coding_learning5k.fa"
-
-files = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/bams/*")
+// Bam files
+bams = Channel.fromPath("/gpfs/projects/bsc83/Data/Ebola/00_RawData/BroadTranscriptomesComplete/bams-new/*")
                 .ifEmpty("No bams found")
                 .map { tuple(it.baseName, it) }
 
+params.scripts="${baseDir}/scripts/"
+gtfToGenePred_script_ch = Channel
+                      .fromPath("${params.scripts}/gtfToGenePred")
+genePredToBed_script_ch = Channel
+                      .fromPath("${params.scripts}/genePredToBed")
 
-files.into{ bams; }
+process gtf2bed{
+   storeDir "${params.output_dir}/${params.output_dir_sub}/"
 
-bed_channel = Channel.fromPath("${params.bed}")
+   input:
+   file gtfToGenePred_script from gtfToGenePred_script_ch
+   file genePredToBed_script from genePredToBed_script_ch
+   file annotation
 
-Channel.fromPath("${params.known_mrna}").set{ known_mrna_channel}
-Channel.fromPath("${params.known_lncrna}").set{ known_lncrna_channel }
+   output:
+   file("${annotation.baseName}.bed12") into bed_channel
 
-
-scriptConversion =  Channel.fromPath("${baseDir}/scripts/convert_annotation.R").collect()
+   script:
+   """
+   ./${gtfToGenePred_script} ${annotation} ${annotation.baseName}.bed
+   ./${genePredToBed_script} ${annotation.baseName}.bed ${annotation.baseName}.bed12
+   """
+}
 
 
 process runRSeQC{
 
-  storeDir "${params.output_dir}/03b_rseqc/$dataset_name/$tissue/$dayPostInfection/$sample/rseqc"
+  cpus 8
+  storeDir "${params.output_dir}/02_rseqc/${complete_id}"
 
   input:
 

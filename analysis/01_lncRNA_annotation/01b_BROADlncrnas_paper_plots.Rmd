@@ -1,0 +1,693 @@
+---
+title: "01_lncrnas_plots_paper"
+author: "Luisa Santus"
+date: "4/23/2020"
+output: html_document
+  keep_md: true
+---
+
+## 01 lncRNAs annotation summary
+
+
+### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
+library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
+
+# Reoccurring paths
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+# Human reference for comparison
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_lncrna.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
+
+# Macaque reference
+ref <- import("/home/luisas/Desktop/cluster/data/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs-new/annotation.gtf")
+#lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+#mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+#mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+#mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+
+matching <- read.table("/home/luisas/Desktop/slncky-master/annotations/ensemblSource.txt")
+lnc_ids <- matching[matching$V2 == "lncRNA",]$V1
+pc_ids <- matching[matching$V2 == "protein_coding",]$V1
+
+lnc_gene_ids <- ref[ref$type == "transcript" & ref$transcript_id %in% lnc_ids, ]$gene_id
+pc_gene_ids <- ref[ref$type == "transcript" & ref$transcript_id %in% pc_ids, ]$gene_id
+
+lncRNAs_ref <- ref[ref$gene_id %in% lnc_gene_ids, ]
+mRNAs_ref <- ref[ref$gene_id %in% pc_gene_ids, ]
+
+
+
+
+
+all <- import(file.path("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021//03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+```
+### Comparison of exon length, transcript length and number ofe exons distributions
+
+
+```{r stats}
+# How many novel lncRNAs do i identify (Genes)
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+length(unique(all_novel_lnc$gene_id))
+length(unique(all_novel_lnc$transcript_id))
+plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+
+#export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
+```
+
+
+
+
+# ---------------------------------------------------
+#        Separate by intergenic and antisense 
+# --------------------------------------------------
+```{r cpc2vscpan}
+gffcompare <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/01_stringtie_assembly_merged/01_gffCompare/merged.annotated.gtf")
+
+
+# Check everything is allright 
+length(unique(all_novel_lnc$transcript_id))
+length(unique(all_novel_lnc$gene_id))
+
+length(unique(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id,]$transcript_id))
+
+plot_stats_benchmark(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",])
+
+gff_compare_pre_lnc <- gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",]
+antisense_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "x", ]$transcript_id
+intergenic_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "u", ]$transcript_id
+
+
+intergenic_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% intergenic_ids, ]
+length(unique(intergenic_lnc$gene_id))
+length(unique(intergenic_lnc$transcript_id))
+
+antisense_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% antisense_ids, ]
+length(unique(antisense_lnc$gene_id))
+length(unique(antisense_lnc$transcript_id))
+
+plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+
+```
+
+
+```{r expression}
+
+palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
+
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
+
+
+dir_counts_ref <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/04_quantification/"
+
+
+abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
+
+# Read all files
+abundances <- list()
+for(i in 1:length(abundance_files)) {
+  file <- readr::read_tsv(abundance_files[i])
+  # Sum up values for double entries (https://github.com/gpertea/stringtie/issues/192)
+  file <- file %>% dplyr::group_by(`Gene ID`)%>% dplyr::summarise(TPM = sum(TPM))
+  abundances[[i]] <- data.frame(file$TPM, row.names =file$`Gene ID` )
+}
+
+# Summarize all TPMs from all quantification files 
+rn <- rownames(abundances[[1]])
+dat <- abundances[[1]]
+for(i in 2:length(abundances)) {
+  dat <- merge(dat, abundances[[i]],  by= "row.names", all.x= F, all.y= F) [,-1]
+  rownames(dat) <- rn
+}
+
+expression <- dat
+
+expression <- as.matrix(expression)
+# ----------------------------------------------------------------------
+# Extract expression ALL
+# ----------------------------------------------------------------------
+max_expression <- data.frame(id=rownames(expression), expr=log(rowMaxs(as.matrix(expression))))
+max_expression['type'] <- "0"
+max_expression$type
+max_expression <- add_type(max_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+max_expression <- add_type(max_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+max_expression <- add_type(max_expression, mRNAs_ref$gene_id, "mRNAs")
+max_expression <- max_expression[!max_expression$type == "0",]
+plot_expression(max_expression, palette_expression)+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))
+
+
+# ----------------------------------------------------------------------
+# Same for the median
+# ----------------------------------------------------------------------
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(as.matrix(expression))))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, all_novel_lnc$gene_id, "Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+plot_expression(median_expression, palette_expression, title = "Median Expression")+theme(plot.title = element_text(size = 26), axis.text = element_text(size = 18),axis.title.y  = element_text(size = 18))+labs(y = "logTPM")
+
+median_expression_novel <- median_expression[median_expression$type == "Novel lncRNAs",]$expr
+median_expression_annot <- median_expression[median_expression$type == "Annotated lncRNAs",]$expr
+median_expression_pc <- median_expression[median_expression$type == "mRNAs",]$expr
+wilcox.test(median_expression_novel, median_expression_pc)
+wilcox.test(median_expression_novel, median_expression_annot)
+wilcox.test(median_expression_pc, median_expression_annot)
+
+#level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+#ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
+#                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
+
+palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
+median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
+median_expression['type'] <- "0"
+median_expression <- add_type(median_expression, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+median_expression <- add_type(median_expression, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+median_expression <- add_type(median_expression, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
+median_expression <- median_expression[!median_expression$type == "0",]
+
+levels <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))+labs(y = "logTPM")
+
+```
+
+
+
+```{r tissuespecificity}
+x <- abundance_files[1]
+matrix_correspondence <- read_csv("/home/luisas/Desktop/cluster/data/00_RawData/BroadTranscriptomesComplete/stringtie2-gtfs/Master_Sample-Keys_TotalRNA_EBOV - Master_Sample-Keys_TotalRNA_EBOV.csv")
+samples <- unlist(lapply(abundance_files, function(x) str_split(rev(str_split(x,"/")[[1]])[1], '.gene')[[1]][1]))
+df <- data.frame(id = samples, stringsAsFactors = F)
+df$id <- unlist(lapply(df$id, function(x) ifelse(substr(x,1,2) == "A0", str_split(x,"_")[[1]][1], x )))
+df
+```
+
+# ---------------------------------------------------------------------
+#                            METADATA
+# Order and read in metadata to assign correct tissue to each sample
+# ---------------------------------------------------------------------
+
+
+# Read in Metadata 
+```{r tissuespecificity}
+# Get metadata for each sample 
+
+metadata <- read.csv("../sample_metadata_clean.csv", stringsAsFactors = F)
+
+metadata$infection_status <- ifelse(as.double(gsub("D", "", metadata$id.cohort))>0, "Infected", "Not Infected")
+saveRDS(metadata, "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/metadata_full.rds")
+
+sample_names <- unlist(lapply(abundance_files, function(x) str_split(basename(x), "_dedup")[[1]][1]))
+
+# -------------------------
+#    Annotate Zyagen 
+# -------------------------
+zyagen_sample_names <- sample_names[startsWith(sample_names, "Zyagen")]
+df_summary_zyagen <- data.frame(sample_name=zyagen_sample_names, stringsAsFactors = F) 
+# Add dpi 
+df_summary_zyagen$dpi <- unlist(lapply(df_summary_zyagen$sample_name, function(x) str_split(x, "_")[[1]][2]))
+# Add tissue and animal id
+tissue_animalid <- unlist(lapply(df_summary_zyagen$sample_name, function(x) str_split(x, "_")[[1]][3]))
+df_summary_zyagen$tissue <- unlist(lapply(tissue_animalid, function(x) str_split(x, "-")[[1]][1]))
+df_summary_zyagen$animal_id <- unlist(lapply(tissue_animalid, function(x) str_split(x, "-")[[1]][2]))
+
+
+# -------------------------
+#     Missing
+# -------------------------
+# Check which ones are still missing 
+missing <- sample_names[!(sample_names %in% metadata$file_identifiers) & !(sample_names %in% zyagen_sample_names)  ]
+df_missing <- data.frame(missing_id= missing, stringsAsFactors = F)
+df_missing$short_id <- unlist(lapply(df_missing$missing_id, function(x) ifelse(substr(x,1,2) == "A0", str_split(x,"_")[[1]][1], x )))
+df_missing$FoundInMasterSample <- ifelse(df_missing$short_id %in% matrix_correspondence$ID.Processing, "found", "not found")
+write_csv(df_missing,"/home/luisas/Desktop/missing_metadata_broad.csv")
+
+
+sample_names
+RA_id_mapping
+metadata
+```
+
+
+```{r tissuespecificity}
+#--------------------------
+#    Quick summary #samples
+# ------------------------
+
+# Number of samples (369) 
+length(unique(sample_names))
+
+# Number of files in metadata sheet (310)
+length(unique(metadata$X))
+
+# Number of samples in metadata (288) + Zyagen (16) --> 304
+length(unique(sample_names[(sample_names %in% metadata$file_identifiers) ]))
+length(unique(df_summary_zyagen$sample_name))
+
+# For now i am using only the 304
+metadata_reduces <- metadata[metadata$X %in% sample_names, c("X", "id.cohort","tissue", "id.individual") ]
+names(metadata_reduces) <- names(df_summary_zyagen)
+
+metadata_complete <- rbind(metadata_reduces, df_summary_zyagen)
+rownames(metadata_complete) <- metadata_complete$sample_name
+
+```
+
+# Only retain the samples which have clear metadata
+```{r metadata}
+
+sample_with_metadata <- sample_names[sample_names %in% metadata_complete$sample_name]
+metadata_complete$sample_group <- ifelse(startsWith(metadata_complete$sample_name, "Zyagen"), "Zyagen", "Batch")
+metadata_complete$tissue <- gsub("Adrenal Gland", "Adrenal", metadata_complete$tissue)
+metadata_complete$tissue <- gsub("LN", "Lymph node", metadata_complete$tissue)
+
+
+# ------------------------------------
+#  To double check here 
+# ------------------------------------
+length(colnames(expression))
+colnames(expression) <- sample_names
+tissues <- metadata_complete[sample_names,]$tissue
+sample_group <- metadata_complete[sample_names,]$sample_group
+dpi <- metadata_complete[sample_names,]$dpi
+
+# Store information about tissues and samples 
+colnames(expression) <- paste(paste(tissues,sample_group, sep="-"), dpi, sep = "-")
+```
+
+
+# Get all samples from Lymph-node
+
+```{r tissuespecificity}
+
+table(metadata_complete[metadata_complete$tissue == "Lymph node",]$dpi)
+
+dir <- "/home/luisas/Desktop/cluster/data/00_RawData/BroadTranscriptomesComplete/bams-new/"
+bams <- iterate_files(dir, "*.bam$")
+
+
+patterns <- paste(metadata_complete[metadata_complete$tissue == "Lymph node",]$sample_name, collapse = "|")
+bams_tissue <- data.frame(bams[grepl(patterns, bams)])
+
+write.(bams_tissue, "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/Lymphnode_bams.csv")
+
+t <- read.csv("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/Lymphnode_bams.csv")
+
+
+
+saveRDS(metadata_complete,"/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/metadata_complete.rds")
+
+quantification_list
+counts
+table(seqnames(gene_annotation))
+
+colnames(metadata)
+
+table(metadata$animal.number)
+metadata
+
+
+table(is.na(metadata_tissue$id.individual))
+
+table(metadata_tissue$date.broad.extract)
+```
+
+
+# -------------------------------------------------------------------------
+#   Check when a gene is expressed (log(TPM)> 1)
+# ------------------------------------------------------------------------
+```{r tissuespecificity}
+# The expression file has TPMs --> log
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
+grouped_expression<- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
+n_tissues_expresseing_gene <- rowSums(grouped_expression)
+```
+# -----------------------------------------
+#   PLOT GENES EXPRESSED PER TISSUE
+# ---------------------------------------
+
+```{r tissuespecificity}
+
+# Create DF for plotting
+df <- as.data.frame(as.data.frame(grouped_expression))
+df$id <- rownames(df)
+
+# Add gene type
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+# Melt and create correct data structure for plotting 
+df_melt <- melt(df)
+names(df_melt) <- c("gene", "type", "tissue", "count")
+
+# Only genes expressed
+df_melt <-df_melt[df_melt$count > 0,]
+
+# Summarized
+df_melt <- df_melt %>% dplyr::group_by(type, tissue) %>%  dplyr::count()
+
+df_melt$sample_group <- unlist(lapply(df_melt$tissue, function(x) str_split(x, "-")[[1]][2]))
+df_melt$tissue <- unlist(lapply(df_melt$tissue, function(x) str_split(x, "-")[[1]][1]))
+df_melt <- df_melt[(df_melt$sample_group)!= "NA",]
+
+
+# 1. PLOT GENES EXPRESSED PER TISSUE
+tot_annotated_lncrnas <- length(unique(lncRNAs_ref$gene_id))
+
+ggplot(df_melt, aes(x = tissue, col = type, fill = type, y = n))+geom_bar(alpha = 0.7, stat = "identity", position="dodge")+theme_paper + ylab("#Genes expressed") + xlab("Tissue")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+facet_wrap(~ sample_group)+ggtitle("Genes expressed per tissue")
+
+ggplot(df_melt_nopc, aes(x = tissue, col = type, fill = type, y = n))+geom_bar(alpha = 0.7, stat = "identity")+theme_paper + ylab("#Genes expressed") + xlab("Tissue")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+facet_wrap(~ sample_group)+ggtitle("Genes expressed per tissue")
+
+ggplot(df_melt, aes(x = tissue, col = type, fill = type, y = n))+geom_bar(alpha = 0.7, stat = "identity")+theme_paper + ylab("#Genes expressed") + xlab("Tissue")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+facet_wrap(~ sample_group)+ggtitle("Genes expressed per tissue")
+
+# Save object for later 
+lncrnas_expression_df <- df_melt
+
+df[grepl("MSTRG.17",df$id),]
+```
+
+
+
+# ---------------------------------------
+#          STATS: mapped reads
+#              Broad
+# ---------------------------------------
+
+# 1. Read in bam_stat files 
+```{r cars}
+dir <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/02_rseqc/"
+stat_files_broad <- iterate_files(dir, "*.bam_stat.txt")
+
+get_mapped <- function(file){
+  print(file)
+  lines <- readLines(file)
+  total_reads <- as.double(rev(strsplit(lines[grep(pattern = "Reads mapped in proper pairs", x = lines)], " ")[[1]])[1])
+  df <- data.frame(mapped_reads = total_reads, source = "Broad", sample_name = gsub("_dedup.bam_stat.txt","",basename(file)), stringsAsFactors = F)
+  return(df)
+}
+
+mapped_broad <- Reduce("rbind", lapply(stat_files_broad, get_mapped))
+complete_df_broad <- join(metadata_complete, mapped_broad, by= "sample_name")
+complete_df_broad_original <- complete_df_broad
+
+# 1. Plot number of samples
+tot_n_samples <- nrow(complete_df_broad)
+dataset_n_samples <- as.data.frame(complete_df_broad %>% group_by(sample_group) %>% dplyr::count())
+ggplot(complete_df_broad, aes(x = tissue, fill = sample_group ))+geom_bar(width = 0.7)+theme_paper+scale_fill_brewer(palette = "Set2")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("#Samples")+xlab("")+ggtitle(paste("Total number of samples: ", tot_n_samples, sep = " "))
+
+ggplot(complete_df_broad, aes(x = tissue, fill = tissue ))+geom_bar(width = 0.7)+theme_paper+scale_fill_brewer(palette = "Set3")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("#Samples")+xlab("")+ggtitle(paste("Total number of samples: ", tot_n_samples, sep = " "))
+
+
+# 2. Plot number of mapped reads per tissue
+nb.cols <- 12
+mycolors <- colorRampPalette(brewer.pal(8, "Set3"))(nb.cols)
+# Average mapped reads per tissue
+ylab <- c(20,40,60,80,100)
+lex_order <- function(text){
+  sapply(strsplit(text, split=" "), function(i) paste(sort(i), collapse=" "))
+}
+complete_df_broad$sample_name <- as.factor(complete_df_broad$sample_name)
+complete_df_broad$sample_name = with(complete_df_broad, factor(sample_name, levels=sample_name[(order(ave(tissue,mapped_reads, FUN=sort),mapped_reads))]))
+ggplot(complete_df_broad, aes( x =  sample_name, fill = tissue, y = mapped_reads))+geom_bar(stat = "identity", width= 0.8)+theme_paper+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("# Mapped reads")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )+ facet_grid(~sample_group, scales = "free_x", space= "free_x")+scale_y_continuous( labels = paste0(ylab, "M"),breaks = 10^6 * ylab)+scale_fill_brewer(palette = "Set3")
+
+
+ggplot(complete_df_broad, aes( x =  tissue, fill = tissue,col = tissue, y = mapped_reads))+geom_boxplot(alpha=0.5)+theme_paper+scale_fill_manual(values = mycolors)+scale_color_manual(values = mycolors)+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("# Mapped reads")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )+ facet_grid(~sample_group, scales = "free_x", space= "free_x")+scale_y_continuous( labels = paste0(ylab, "M"),breaks = 10^6 * ylab)
+
+
+ggplot(complete_df_broad_original, aes( x =  tissue, fill = tissue,col = tissue, y = mapped_reads))+geom_boxplot(alpha=0.8)+theme_paper+scale_fill_manual(values = mycolors)+scale_color_manual(values = mycolors)+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("# Mapped reads")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )+scale_y_continuous( labels = paste0(ylab, "M"),breaks = 10^6 * ylab)
+
+```
+
+
+
+
+# Check if number of expressed lncRNAs correlates
+
+```{r cars}
+
+summary_lnc_tissue <- df_melt %>% dplyr::group_by(type, tissue) %>%  dplyr::summarise(n = sum(n))
+
+# Per Tissue: how many genes are found expressed vs how many samples 
+samples_per_tissue<- as.data.frame(complete_df_broad %>% group_by(tissue) %>% dplyr::count())
+names(samples_per_tissue) <- c("tissue","samples")
+
+# Coverage
+sumcoverage_per_tissue<- as.data.frame(complete_df_broad %>% group_by(tissue) %>% dplyr::summarise(sum_mappedreads = sum(mapped_reads), avg = mean(mapped_reads)))
+
+df_summary_tissue_samples <- merge(samples_per_tissue, summary_lnc_tissue, by ="tissue")
+df_summary_tissue_samples <- merge(df_summary_tissue_samples, sumcoverage_per_tissue, by ="tissue")
+
+ggplot(df_summary_tissue_samples, aes(y = n, x = samples, col = tissue, fill = tissue, size = n))+geom_point((aes(size =(n))))+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+ scale_size_continuous(range = c(0, 10))+xlab("#Samples")+ylab("#Genes expressed")+scale_color_brewer(palette = "Set3")
+
+
+ggplot(df_summary_tissue_samples[df_summary_tissue_samples$type != "mRNAs",], aes(y = n, x = samples, col = tissue, fill = tissue, size = n))+geom_point((aes(size =(n))))+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+ scale_size_continuous(range = c(0, 10))+xlab("#Samples")+ylab("#Genes expressed")+scale_color_brewer(palette = "Set3")
+
+
+
+# Now coverage 
+ggplot(df_summary_tissue_samples, aes(y = n, x = samples, col = tissue, fill = tissue, size = sum_mappedreads))+geom_point((aes(size =(sum_mappedreads))))+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+ scale_size_continuous(range = c(0, 10))+xlab("#Samples")+ylab("#Genes expressed")+scale_color_brewer(palette = "Set3")
+
+ggplot(df_summary_tissue_samples, aes(y = n, x = samples, col = tissue, fill = tissue, size = avg))+geom_point((aes(size =(avg))))+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+ scale_size_continuous(range = c(0, 10))+xlab("#Samples")+ylab("#Genes expressed")+scale_color_brewer(palette = "Set3")
+
+```
+
+
+
+```{r cars}
+# Check per tissue, in how many samples a lncRNA is expressed
+# In how many samples per tissue is a gene expressed
+# DF: gene, tissue, how many samples per tissue have the gene expressed
+
+colnames(expressed_booleans) <- unlist(lapply(colnames(expressed_booleans), function(x) str_split(x,"-")[[1]][1]))
+
+# Check in HOW MANY samples the gene is expressed not only IF it is expressed
+grouped_expression_samples <- t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))
+df_n_samples_expressed <- melt(grouped_expression_samples)
+names(df_n_samples_expressed) <- c("gene", "tissue", "n")
+df_n_samples_expressed$tissue <- as.character(df_n_samples_expressed$tissue)
+# Add infromation about gene type
+
+df<- merge(samples_per_tissue, df_n_samples_expressed, by ="tissue")
+names(df) <- c("tissue", "samples", "id", "n")
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+
+df_expression <- df %>% group_by(tissue,type) %>% dplyr::summarise(avg = mean(n))
+
+df_expression
+ggplot(df_expression , aes(x =tissue,  y = avg, col = tissue, fill = tissue))+geom_bar(stat = "identity")+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+scale_color_manual(values = mycolors)+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("Average #Samples")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )+scale_color_brewer(palette = "Set3")+scale_fill_brewer(palette = "Set3")
+
+ggplot(df , aes(x =type,  y = n, col = tissue, fill = tissue))+geom_boxplot(alpha = 0.2)+theme_paper+ facet_grid(~type, scales = "free_x", space= "free_x")+scale_fill_manual(values = mycolors)+scale_color_manual(values = mycolors)+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+ylab("Average #Samples")+xlab("")+theme(axis.text.x = element_blank(), axis.ticks.x =element_blank() )
+
+
+```
+
+
+# PCA 
+```{r cars}
+library(stats)
+library(ggplot2)
+
+# Subselect genes 
+tpm_pc <- expression[rownames(expression) %in% mRNAs_ref$gene_id,]
+tpm_lnc <- expression[rownames(expression) %in% c(all_novel_lnc$gene_id, lncRNAs_ref$gene_id),]
+tpm_lnc_ref <- expression[rownames(expression) %in% lncRNAs_ref$gene_id ,]
+tpm_lnc_novel <- expression[rownames(expression) %in% all_novel_lnc$gene_id ,]
+
+
+# Create PCA function from tpm matrix
+
+do_pca <- function(tpm){
+  V <- apply(tpm, 1, var)
+selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
+
+
+#transpose the matrix 
+M <- t(tpm[selectedGenes,])
+# transform the counts to log2 scale 
+M <- log2(M + 1)
+
+
+# Remove the ones not having the tissue info 
+M_c <- M[unlist(lapply(rownames(M), function(x) strsplit(x, "-")[[1]][1])) != "NA",]
+
+rownames(M_c)
+
+#compute PCA 
+sample_pca <- prcomp(M_c)
+pc_scores <- sample_pca$x
+pc_scores <- pc_scores %>% 
+  # convert to a tibble retaining the sample names as a new column
+  as_tibble(rownames = "sample")
+
+
+complete_df_broad$sample<- as.character(complete_df_broad$sample_name)
+
+df_pca <- merge(pc_scores, complete_df_broad, by="sample")
+
+
+metadata_complete
+
+df_pca %>% 
+  # create the plot
+  ggplot(aes(x = PC1, y = PC2, col = tissue, fill = tissue, alpha = 0.2)) +
+  geom_point( )+theme_paper
+}
+
+
+do_pca(tpm_pc)+ggtitle("Top 3k PC genes")+ stat_ellipse()
+do_pca(tpm_lnc_novel)+ggtitle("Top 3k novel lncRNAs")+ stat_ellipse()
+do_pca(tpm_lnc_ref)+ggtitle("Top 3k annotated lncRNAs")+ stat_ellipse()
+
+
+
+
+
+```
+
+
+
+```{r cars}
+library("wesanderson")
+pal <- wes_palette("Darjeeling1", 5, type = "discrete")
+df$perc <- df$n*100/df$samples
+df$perc <- df$perc + 0.0001
+df$perc <- ifelse(df$perc>99.9, 99.9, df$perc)
+df$perc_bin <- cut(df$perc, seq(0, 100, 20))
+df$perc_bin <- as.character(df$perc_bin)
+
+df$perc_bin <- gsub("0]", "<20%",substr(df$perc_bin, 5, 6))
+df$perc_bin <- gsub("40", "<40%",df$perc_bin)
+df$perc_bin <- gsub("60", "<60%",df$perc_bin)
+df$perc_bin <- gsub("80", "<80%",df$perc_bin)
+df$perc_bin <- gsub("10", "<100%",df$perc_bin)
+
+df$type <- ifelse(df$type == "Intergenic Novel lncRNAs", "Novel lncRNAs", df$type)
+df$type <- ifelse(df$type == "Antisense Novel lncRNAs", "Novel lncRNAs", df$type)
+
+df$type <- factor( df$type, levels = c("Annotated lncRNAs", "Novel lncRNAs", "mRNAs"))
+
+df$perc_bin <- factor(df$perc_bin, levels = (rev(c("<20%", "<40%", "<60%", "<80%", "<100%"))))
+
+
+ylab <- seq(2,20,2)
+
+ggplot(df[df$n > 0,], aes(x = tissue,  fill = perc_bin))+geom_bar(stat ="count")+theme_paper+scale_fill_manual(values=rev(pal))+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+xlab("")+ylab("")+ facet_wrap(.~type, scales = "free_y")+theme(
+   strip.background = element_rect(
+     color="darkgrey", fill="grey", size=1, linetype="solid"
+     )
+   )+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)
+
+
+ggplot(df, aes(x = tissue,  fill = perc_bin))+geom_bar(stat ="count")+theme_paper+scale_fill_manual(values=rev(pal))+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+xlab("")+ylab("")+ facet_wrap(.~type)+theme(
+   strip.background = element_rect(
+     color="darkgrey", fill="grey", size=1, linetype="solid"
+     )
+   )+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)
+
+
+df[df$type == "Intergenic Novel lncRNAs" & df$tissue == "Lymph node" & df$n > 1,]
+df[grepl("MSTRG.4699", df$id),]
+
+all[all$gene_id == "MSTRG.101067", ]
+
+ref[grepl("MST",ref$gene_id),]
+
+complete_df_broad_original[complete_df_broad_original$tissue == "Lymph node",]
+```
+
+
+# --------------------------------------------------------------------------------------
+# -----------------------------
+#    Also, Plot tissue specificity
+# -----------------------------
+
+
+```{r tissuespecificity}
+table(df$type)
+
+# Create DF for plotting
+df <- as.data.frame(as.data.frame(n_tissues_expresseing_gene))
+df$id <- rownames(df)
+
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+dim(df)
+
+type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
+palette <- c("#E8C2D8", "#D4549C", "#8195D7")
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[3])
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
+b
+
+
+df$type <- "0"
+df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+type <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+palette <-c("orange","#994C00", "#D4549C", "#8195D7")
+
+tl0 <-barplot_tissues(df,"Intergenic Novel lncRNAs",palette[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+
+tl1 <-barplot_tissues(df,"Antisense Novel lncRNAs",palette[2])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[3]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette[4])
+b <- ggarrange( tl0,tl1,tl2,tl3,  ncol=1, nrow=4)
+
+b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
+b
+
+```
+
+
+

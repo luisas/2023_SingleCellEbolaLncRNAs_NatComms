@@ -102,6 +102,9 @@ antisense_lnc <- all_novel_lnc[all_novel_lnc$transcript_id %in% antisense_ids, ]
 length(unique(antisense_lnc$gene_id))
 length(unique(antisense_lnc$transcript_id))
 
+length(unique(antisense_lnc$gene_id))/(length(unique(antisense_lnc$gene_id))+length(unique(intergenic_lnc$gene_id)))
+
+
 plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
 
 

@@ -37,7 +37,6 @@ get_Seurat_object <- function(file){
 
 # Load the PBMC dataset
 files <- iterate_files(data_dir, ".dge.txt.gz")
-length(unique(files_umis))
 files_umis <- files[!str_detect(files, "reads" )]
 
 

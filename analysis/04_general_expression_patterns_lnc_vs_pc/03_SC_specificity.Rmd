@@ -16,6 +16,7 @@ library(ggpubr)
 library(rtracklayer)
 library(MatchIt)
 library(gridExtra)
+library(reshape2)
 library(SingleCellExperiment)
 
 # Set themes and palette
@@ -27,20 +28,14 @@ col_mrna = "#2e88bf"
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
 # Load objects
-robjectsdir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/"
+robjectsdir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
 all_lncrnas <- readRDS(file.path(robjectsdir, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir,"annotated_mrnas.rds"))
 
 # Select object on which to calculate Specificity score
 # Neutrophils or not? 
-file <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD//03_prep/03_immune.combined.ready_no_neut.rds")
+file <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
 immune.combined <- readRDS(file)
-
-
-# Load results of the specificity score
-spec_min_corrected <- readRDS(file.path(robjectsdir, "00_specres_corrected_min_noneut.rds"))
-spec_min_notcorrected <- readRDS(file.path(robjectsdir, "00_specres_notcorrected_min_noneut.rds"))
-spec_min_corrected_new <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/specificity_real.rds")
 
 # Load stats ( about # cells, and median expression )
 df_lnc <- readRDS(file.path(robjectsdir,"df_lnc.rds"))
@@ -49,10 +44,17 @@ df_mrna <- readRDS(file.path(robjectsdir,"df_mrna.rds"))
 df_mrna_celltype <- readRDS(file.path(robjectsdir,"df_mrna_celltype.rds"))
 df_n_cells <- rbind(df_lnc, df_mrna)
 df_celltype <- rbind(df_mrna_celltype,df_lnc_celtype )
+saveRDS(df_celltype, file.path(robjectsdir,"df_celltype.rds"))
 
+
+# Load stats ( about # cells, and median expression )
+df_lnc_celtype_z <- readRDS(file.path(robjectsdir,"df_celltype_lnc_withzeros.rds"))
+df_mrna_celltype_z <- readRDS(file.path(robjectsdir,"df_mrna_celltype_withzeros.rds"))
+df_celltype_z <- rbind(df_mrna_celltype_z,df_lnc_celtype_z )
+saveRDS(df_celltype_z, file.path(robjectsdir,"df_celltype_z.rds"))
 
 # Load gene sets ( Marker and Housekeeping )
-marker.genes <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/03_prep/marker.genes.rds")
+marker.genes <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds")
 
 housekeeping_genes <- c("RRN18S", "RPLP0", "GAPDH", "ACTB", "PGK1", "RPL13A", "ARBP", "B2M", "YWHAZ", "SDHA", "TFRC", "GUSB", "HMBS", "HPRT1", "TBP")
 
@@ -77,415 +79,352 @@ get_df_summary <-function(spec_res){
   rownames(df_test) <- df_test$`Row.names`
   return(df_test)
 }
-```
 
-
-# Try with normalization and FC super basic
-```{r cars}
-# ----------------------------------------------------------------
-#   In order to rertieve the number of cells in which they express 
-# ----------------------------------------------------------------
-
-
-
-spec_min_corrected_new <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/specificity_real.rds")
-spec_min_corrected_df <- get_df_summary(spec_min_corrected)
-spec_min_notcorrected_df <- get_df_summary(spec_min_notcorrected)
-spec_min_corrected_new_df <- get_df_summary(spec_min_corrected_new)
-
-
-# How many lnc do i find in the object 
-spec_res <- spec_min_corrected
-spec_res <- df_test <-spec_min_corrected_df
-df_test$score_range <- range01(df_test$score)
-df_test$log <- log(df_test$score)
-df_test
-```
-
-```{r cars}
-# ---------------------------------------------------------
-#                    Plot Markers 
-# ---------------------------------------------------------
-# Boxplot showing specificity score and where marke genes and houskeeping genes lie
-my_comparisons <- list(c("lnc", "novel"), c("lnc", "pc"), c("pc", "novel"))
-marker_genes_plot <- function(df_test, title){
-  highlight_df <- df_test[rownames(df_test) %in% marker.genes, ]
-  highlight_df_hk <- df_test[rownames(df_test) %in% housekeeping_genes_3k, ]
-
-  p1 <- ggboxplot(df_test, x = "type", y = "score",  col="type", fill = "type", alpha= 0.5 ) +
-                theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-                scale_fill_manual(values = rev(palette_plot_percentage))+
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)+
-                labs(y = "Specificity score", x = "")+theme(axis.text.x = "")
-  p1 <- p1+geom_point(data=highlight_df, aes(x=type,y=score), color='red',size=1)+ggtitle(title)+geom_point(data=highlight_df_hk, aes(x=type,y=score), color='#009900',size=1)+theme_sc
+calc_mean_and_percentage_cell <- function(expression_matrix_permuted,ident = "", df, threshold = 1 ){
+  
+  # When not calculated on a specific cell-type, ident == ""
+  # Otherwise it corresponds to the cell-type 
+  # Only subsetting when doing the calculation on a specific cell-type
+  if(ident != ""){
+    expression_matrix <- expression_matrix_permuted[,colnames(expression_matrix_permuted)==ident]
+  }
+  
+  # Selecting normalized data 
+  # expression_matrix <- as.matrix(subset@assays$RNA@data)
   
   
-    p2 <- ggboxplot(df_test, x = "type", y = "score",  col="type", fill = "type", alpha= 0.5) +
-                theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-                scale_fill_manual(values = rev(palette_plot_percentage))+ 
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)+
-                labs(y = "Specificity score", x = "")+theme(axis.text.x = "")
-  p2 <- p2+geom_point(data=highlight_df, aes(x=type,y=log), color='red',size=1)+ggtitle(title)+geom_point(data=highlight_df_hk, aes(x=type,y=log), color='#009900',size=1)+theme_sc
-  return(list(p1,p2))
+  # -------------------- TOTAL NUMBER OF CELLS ----------------------
+  # Cells are columns and genes are rows.
+  # The total number of cells is the same for each gene. 
+  # Tot_cells:= a vector as long as the number of genes present in the matrix. 
+  # All values are the same: the total number of columns ( cells ) in the matrix. 
+  tot_cells <- rep(ncol(expression_matrix), nrow(expression_matrix))
+  
+  
+  # ---------------- NUMBER OF CELLS SHOWING EXPRESSION ----------------
+  # Count the number of cells per gene showing some expression
+  # Only select cells that are expressed (> threshold) 
+  # Assign NAs to other cells, just for ease of calculation later
+  # and compute the number of cells that show some expression 
+  expression_matrix[expression_matrix < threshold] <- NA
+  not_na_cells <- tot_cells- rowCounts(expression_matrix, value = NA)
+  perc_cells_expressing <- not_na_cells/tot_cells
+  
+  
+  # ---------------- CALCULATE MEAN, MEDIAN, MAX, MIN EXPRESSION and VARIANCE ------------
+  # Per gene, calculate the above mentioned metrics, EXCLUSIVELY on the 
+  # cells where the gene shows expression 
+  meanexpr <- rowMeans(expression_matrix, na.rm = TRUE)
+  medianexpr <- rowMedians(expression_matrix, na.rm = TRUE)
+  maxexpr <- rowMaxs(expression_matrix, na.rm = TRUE)
+  minexpr <- rowMins(expression_matrix, na.rm = TRUE)
+  var <- rowVars(expression_matrix, na.rm = TRUE)
+  
+  # Vector of all gene ids 
+  gene_id <- rownames(expression_matrix)
+  
+  # Save 
+  dfo <- deparse(substitute(df))
+  df_new <- data.frame(gene_id = gene_id, meanexpr = meanexpr,medianexpr = medianexpr, perc_cells_expressing = perc_cells_expressing, maxexpr = maxexpr, var = var, n_cells = not_na_cells, tot_cells
+                       = tot_cells)
+  df_new$minexpr <- minexpr
+  df_new$ident <- as.factor(ident)
+  df_complete <- rbind(df, df_new)
+  assign(dfo, df_complete, envir = .GlobalEnv);
 }
 
-
-
-
-# Only consider houskeeping genes expressed in at least 3k cells
-housekeeping_genes_3k <- df_test[housekeeping_genes, ][!is.na(df_test[housekeeping_genes, ]$n_cells) & df_test[housekeeping_genes, ]$n_cells>3000,]$gene
-
-
-my_comparisons <- list( c("lnc", "pc"))
-marker_genes_plot(df_test,"Min Corrected" )
-
-
-
-# ------------------------------------------------
-# PLOT: Separate Novel and Annotated Lnc
-# ------------------------------------------------
-my_comparisons <- list(c("lnc", "novel"), c("lnc", "pc"), c("pc", "novel"))
-palette_plot_percentage <- c("orange", palette_plot_percentage)
-df_test[marker.genes, ]$type <- "pc"
-df_test[substr(df_test$gene,1,5) == "MSTRG",]$type <- "novel"
-marker_genes_plot(df_test, "")
-table(df_test$type)
 ```
 
-# ---------------------------------------------------------------------------------------------------
-# The specificity score is correlated with the number of cells in which the gene is expressed
-# ---------------------------------------------------------------------------------------------------
-```{r cars}
-
-ggscatter(df_test, x = "log", y = "perc_cells_expressing", 
-          add = "reg.line", conf.int = T, 
-          cor.coef = TRUE, cor.method = "spearman", size=0.3, col = "#999999",add.params = list(color = "red", size = 0.3))+theme_sc+labs(x = "Specificity Score", y = "Number of cells")+theme_paper
-
-```
-
-```{r cars}
-
-comparison_spec_number <- rbind(table(df_test[df_test$log > 0.25, ]$type),table(df_test$type))
-
-comparison_spec_number[1,]/comparison_spec_number[2,]
-```
-
-
-
-
-# ----------------------------------------------------------
-#         Visual examples of top and lowest scores 
-# ----------------------------------------------------------
-
-```{r cars}
-df_test_max <- df_test[df_test$log %in% tail(sort(df_test$log),6), ]
-df_test_min <- df_test[df_test$log %in% head(sort(df_test$log),6), ]
-df_test_max_lnc <- df_test[df_test$type == "lnc",]
-df_test_max_lnc <- df_test_max_lnc[df_test_max_lnc$log %in% tail(sort(df_test_max_lnc$log),6),]
-df_test_max_pc <- df_test[df_test$type == "pc",]
-df_test_max_pc <- df_test_max_pc[df_test_max_pc$log %in% tail(sort(df_test_max_pc$log),6),]
-
-
-# Plot top specificity genes in LNC
-lapply(df_test_max_lnc$gene, function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols= c("gray", col_lnc))+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-
-# Plot top specificity genes in PC
-lapply(df_test_max_pc$gene, function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols = c("gray", col_mrna ))+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-#lapply(marker.genes, function(gene) FeaturePlot(immune.combined, gene, pt.size=1.2, order = T )+theme_sc)
-#lapply(housekeeping_genes_3k, function(gene) FeaturePlot(immune.combined, gene, order = T )+theme_sc)
-
-lapply(df_test_max$gene, function(gene) FeaturePlot(immune.combined, gene, order = T )+theme_sc+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-
-# The ones that have the min specificity score
-lapply(df_test_min$gene, function(gene) FeaturePlot(immune.combined, gene, order = T )+theme_sc+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-```
 
 # -------------------------------------------------
 # -------------------------------------------------
-#             MATCHING
+#             FuNCTIONS
 # -------------------------------------------------
 # -------------------------------------------------
 
 # Match by the percentage of cells expressing
-```{r matchmedian}
-palette_plot_percentage <- c(col_lnc, col_mrna)
-
-set.seed(123)
-
-c <- df_test[complete.cases(df_test),]
-c$type = ifelse(c$type == "lnc", 1, 0)
-table(c$type)
-table(df_test$type)
-# match expression 
-mi_median <- matchit(type ~ perc_cells_expressing,c)
-matches_median <- get_matches(mi_median, c)
-
-# Calculate p-value 
-#perc_cells_0 <- matches_median[matches_median$type == 0,]$log
-#perc_cells_1 <- matches_median[matches_median$type == 1,]$log
-#t.test(perc_cells_0, perc_cells_1)
-
-
-matches_median$type = ifelse(matches_median$type == 0, "mrna", "lnc")
-n_matches <- length(unique(matches_median[matches_median$type == "lnc",]$gene_id))
-matches_median$type <- as.factor(matches_median$type)
-
-# Plot 
-scatter_plot_matching <- ggplot(matches_median, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
-          scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+xlab("Specificity Score")
-
-scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
-scatter_plot_matching_withboxplot
-
-
-# Match by the score
+```{r matchplot}
 
 
 
-
-c <- df_test[complete.cases(df_test),]
-c$type = ifelse(c$type == "lnc", 1, 0)
-table(c$type)
-table(df_test$type)
-# match expression 
-mi_median <- matchit(type ~ score,c)
-matches_median <- get_matches(mi_median, c)
-
-
-
-matches_median$type = ifelse(matches_median$type == 0, "mrna", "lnc")
-n_matches <- length(unique(matches_median[matches_median$type == "lnc",]$gene_id))
-matches_median$type <- as.factor(matches_median$type)
-
-# Plot 
-scatter_plot_matching <- ggplot(matches_median, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
-          scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+theme(legend.position = "")
-
-scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
-scatter_plot_matching_withboxplot
-
-
-
-```
-
-
-
-
-
-
-
-
-
-
-# -------------------------------------------------
-#            Permutation analysis
-# -------------------------------------------------
-
-In order to exclude the hypothesis that the number of cells drives the higher specificity score obtained for lnc, 
-
-```{r matchmedian}
-
-
-# -----------------------------
-#       Read in permutation file
-# -----------------------------
-permutation_files <- iterate_files("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/","Permutations*")
-perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjectsOLD/05_stats/00_specificity_permutation/Permutations_100.rds")
-# Permuted
-perm <- get_df_summary(perm)
-perm <- perm[perm$score != Inf,]
-
-
-# Create unique dataframe from permutation and real data
-df <- data.frame( score = perm$score , type = "Permuted Cell-types", genetype =perm$type, perc_cells= perm$n_cells )
-df1 <- data.frame(score = df_test$score, type = "Real Data ", genetype =df_test$type, perc_cells= df_test$n_cells)
-df_tot <- rbind(df, df1)
-
-# Log 
-df_tot$log <- log(df_tot$score)
-
-# Range the score (All together, is it fine?)
-df_tot$score_range <- range01(df_tot$score)
-
-threshold <- max(df_tot[df_tot$type == "Permuted Cell-types",]$score_range)
-
-
-# Compare Lnc and PC between permuted and real 
-# I want them to be UNSIGNIFICANT in the permuted and SIGNIFICANT in the real 
-my_comparisons <- list( c("lnc", "pc"))
-
-ggboxplot(df_tot, x = "genetype", y = "score_range",  col="genetype", fill = "genetype", alpha= 0.5, facet.by = "type", short.panel.labs = T) +
-                theme_paper+scale_color_manual(values = (palette_plot_percentage))+
-                scale_fill_manual(values = (palette_plot_percentage))+
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)
-
-```
-
-
-# Investigate what is going on 
-
-```{r matchmedian}
-
-
-spec_res <- df_test <-spec_min_notcorrected_df
-df_test$log <- log(df_test$score)
-
-df_test$score <- range01(df_test$score)
-housekeeping_genes_3k <- df_test[housekeeping_genes, ][!is.na(df_test[housekeeping_genes, ]$n_cells) & df_test[housekeeping_genes, ]$n_cells>3000,]$gene
-#df_test[housekeeping_genes_3k,]$score < threshold
-#df_test <- df_test[df_test$score > threshold,]
-
-my_comparisons <- list( c("lnc", "pc"))
-marker_genes_plot(df_test,"Min Corrected" )
-
-df_test
-
-
-
-
-marker_genes_plot <- function(df_test, title){
-  highlight_df <- df_test[rownames(df_test) %in% marker.genes, ]
-  highlight_df_hk <- df_test[rownames(df_test) %in% housekeeping_genes_3k, ]
-
-  p1 <- ggboxplot(df_test, x = "type", y = "score",  col="type", fill = "type", alpha= 0.5 ) +
-                theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-                scale_fill_manual(values = rev(palette_plot_percentage))+
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)+
-                labs(y = "Specificity score", x = "")+theme(axis.text.x = "")
-  p1 <- p1+geom_point(data=highlight_df, aes(x=type,y=score), color='red',size=1)+ggtitle(title)+geom_point(data=highlight_df_hk, aes(x=type,y=score), color='#009900',size=1)+theme_sc
+match_plots <- function(df_test){
+  set.seed(123)
+  c <- df_test[complete.cases(df_test),]
+  #c$type = ifelse(c$type == "lncRNAs", 1, 0)
+  c$type = ifelse(c$type == "lnc", 1, 0)
+  # Match % cells 
+  mi_perc <- matchit(type ~ perc_cells_expressing,c)
+  matches_perc <- get_matches(mi_perc, c)
+  matches_perc$type = ifelse(matches_perc$type == 0, "PC genes", "lncRNAs")
+  n_matches <- length(unique(matches_perc[matches_perc$type == "lncRNAs",]$gene_id))
+  matches_perc$type <- as.factor(matches_perc$type)
+  
+  # Plot 
+  scatter_plot_matching <- ggplot(matches_perc, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
+            scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+xlab("Specificity Score")+ylab("Prop cells")
+  
+  scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
+  scatter_plot_matching_withboxplot
   
   
-    p2 <- ggboxplot(df_test, x = "type", y = "log",  col="type", fill = "type", alpha= 0.5) +
-                theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-                scale_fill_manual(values = rev(palette_plot_percentage))+ 
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)+
-                labs(y = "Specificity score", x = "")+theme(axis.text.x = "")
-  p2 <- p2+geom_point(data=highlight_df, aes(x=type,y=log), color='red',size=1)+ggtitle(title)+geom_point(data=highlight_df_hk, aes(x=type,y=log), color='#009900',size=1)+theme_sc
-  return(list(p1,p2))
+  # Match by the score
+  c <- df_test[complete.cases(df_test),]
+  #c$type = ifelse(c$type == "lncRNAs", 1, 0)
+  c$type = ifelse(c$type == "lnc", 1, 0)
+  
+  # match expression 
+  mi_median <- matchit(type ~ score,c)
+  matches_score <- get_matches(mi_median, c)
+  
+  matches_score$type = ifelse(matches_score$type == 0, "PC genes", "lncRNAs")
+  n_matches <- length(unique(matches_score[matches_score$type == "lncRNAs",]$gene_id))
+  matches_score$type <- as.factor(matches_score$type)
+  
+  # Plot 
+  scatter_plot_matching2 <- ggplot(matches_score, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
+            scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+theme(legend.position = "")+ylab("Prop cells")
+  
+  scatter_plot_matching_withboxplot2<- ggExtra::ggMarginal(scatter_plot_matching2,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
+  scatter_plot_matching_withboxplot2
+  
+  return(list(scatter_plot_matching_withboxplot, scatter_plot_matching_withboxplot2))
 }
 
 
-df_lnc <- df_test[df_test$type == "lnc" ,]
-df_lnc[rev(order(df_lnc$score)), c("gene", "score","B","T","Myeloid")]
+stats_specificity <- function(specificity_scores, perm, plots = F){
+  # -----------------------------
+  #       Read in permutation file
+  # -----------------------------
+  # Permuted
+  perm <- get_df_summary(perm)
+  perm <- perm[perm$score != Inf,]
+  perm$permutation <- "Permutation"
+  perm$type <- ifelse(perm$type == "lnc", "lncRNAs", "PC genes")
+  
+  # -----------------------------
+  #     Load real Specificity Scores
+  # -----------------------------
+  specificity_scores_summary <- get_df_summary(specificity_scores)
+  specificity_scores_summary$permutation <- "Real"
+  specificity_scores_summary$type <- ifelse(specificity_scores_summary$type == "lnc", "lncRNAs", "PC genes")
+  
+  df_tot <- rbind(specificity_scores_summary, perm)
+  
+  
+  # Extract genes to highglight
+  housekeeping_genes_3k <- specificity_scores_summary[housekeeping_genes, ][!is.na(specificity_scores_summary[housekeeping_genes, ]$n_cells) & specificity_scores_summary[housekeeping_genes, ]$n_cells>3000,]$gene
+  highlight_df <- specificity_scores_summary[rownames(specificity_scores_summary) %in% marker.genes, ]
+  highlight_df_hk <- specificity_scores_summary[rownames(specificity_scores_summary) %in% housekeeping_genes_3k, ]
+  
+  # ------------------ PLOT 1: permutaiton and markers ------------------------------
+  # Compare Lnc and PC between permuted and real 
+  # I want them to be UNSIGNIFICANT in the permuted and SIGNIFICANT in the real 
+  my_comparisons <- list( c("lncRNAs", "PC genes"))
+  
+  p1b <- ggboxplot(df_tot, x = "type", y = "score",  col="type", fill = "type", alpha= 0.5, facet.by = "permutation", short.panel.labs = T) +
+                  theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
+                  scale_fill_manual(values = rev(palette_plot_percentage))+
+                  theme(legend.position = "none")+
+                  stat_compare_means(comparisons = my_comparisons)+xlab("")+ylab("Specificity Score")+theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  quantiles = quantile(df_tot$perc_cells_expressing) 
+  df_tot <- within(df_tot, quartile <- as.integer(cut(df_tot$perc_cells_expressing, quantiles)))
+  df_tot$quartile <- as.character(df_tot$quartile)
+  p1b <- ggboxplot(df_tot, x = "quartile", y = "score",  col="type", fill = "type", alpha= 0.5) +
+                  theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
+                  scale_fill_manual(values = rev(palette_plot_percentage))+
+                  theme(legend.position = "none")+
+                  xlab("")+ylab("Specificity Score")+theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+  
+  # Add Markers
+  p1 <- p1b+geom_point(data=highlight_df, aes(x=type,y=score), color='red',size=2)+
+    geom_point(data=highlight_df, aes(x=type,y=score), color='black',size=0.5)+
+    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='dark grey',size=2)+
+    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='black',size=0.5)
+  p1
+  
+  
+  
+  # ------------------ PLOT 2: Visualize relation to % of cells  ------------------------------
+  p2 <- ggscatter(specificity_scores_summary, x = "score", y = "perc_cells_expressing",  conf.int = T, 
+            cor.coef = TRUE, cor.method = "spearman", size=0.3, col = "#999999",add.params = list(color = "red", size = 0.3))+theme_sc+labs(x = "Specificity Score", y = "Number of cells")+theme_paper
+  
+  p2
+  # ------------------ PLOT 3: Cumulative distribution  ------------------------------
+  p3 <- ggplot(df_tot, aes(x = score, col = type)) + stat_ecdf(geom = "step",size = 1.1)+scale_color_manual(values = palette_plot_percentage)+xlab("")+ylab("Score")+theme_paper+ coord_flip()+geom_hline(yintercept=0.9, color = "red", lty = 3)
+  
+  p3
+  
+  # ------------------ PLOT 4: Examples  ------------------------------
+  
+  if(plots == T){
+      # Create subsets for plotting
+    df_test_max <- specificity_scores_summary[specificity_scores_summary$score %in% tail(sort(specificity_scores_summary$score),6), ]
+    df_test_min <- specificity_scores_summary[specificity_scores_summary$score %in% head(sort(specificity_scores_summary$score),6), ]
+    df_test_max_lnc <- specificity_scores_summary[specificity_scores_summary$type == "lncRNAs",]
+    df_test_max_lnc <- df_test_max_lnc[df_test_max_lnc$score %in% tail(sort(df_test_max_lnc$score),6),]
+    df_test_max_pc <- specificity_scores_summary[specificity_scores_summary$type == "PC genes",]
+    df_test_max_pc <- df_test_max_pc[df_test_max_pc$score %in% tail(sort(df_test_max_pc$score),6),]
+    
+    # Plot top specificity genes in LNC
+    p4 <- lapply(as.character(df_test_max_lnc$gene), function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols= c("gray", col_lnc))+theme_sc+labs(title = gsub("-unknown","", gene)))
+    print("aalskh")
+    # Plot top specificity genes in PC
+    p5 <- lapply(as.character(df_test_max_pc$gene), function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols = c("gray", col_mrna ))+theme_sc+labs(title = gsub("-unknown","", gene)))
+    print("aalskh")
+    # The ones that have the min specificity score
+    p6 <- lapply(as.character(df_test_min$gene), function(gene) FeaturePlot(immune.combined, gene, order = T )+theme_sc+theme_sc+labs(title = gsub("-unknown","", gene)))
+    print("aalskh")
+    return(list(p1,p2,p3,p4,p5,p6))
+  }else{
+    return(list(p1,p2,p3))
+  }
 
-
-df_pc <- df_test[df_test$type == "pc" ,]
-df_pc[rev(order(df_pc$score)), ]
-
-df_tot[df_tot]
-# Visualize some interesting genes 
-gene <- "ENSMMUG00000054218-unknown"
-gene <- "C3AR1"
-df_pc[rev(order(df_pc$score)), c("gene", "score","B","T","Myeloid")]
-df_lnc[rev(order(df_lnc$score)), c("gene", "score","B","T","Myeloid")]
-FeaturePlot(immune.combined, gene, pt.size = 0.8, sort.cell= T ) 
+}
 
 ```
 
+# -----------------------------------
+#        TAU  - IN VIVO 
+# -----------------------------------
+```{r matchmedian}
+library(tispec)
+df_celltype_z <-  readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/df_celltype_z.rds")
+df_celltype_permutation <-  readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/df_celltype_permutation.rds")
 
-```{r test spec score with prop}
-gene <- "AAGAB"
-FeaturePlot(immune.combined, gene, pt.size = 0.8, sort.cell= T ) 
+identities <- unique(df_celltype_z$ident)
 
-final
+calc_tau <- function(m, byRow = TRUE) {
+  if(!byRow){
+    m <- t(m)
+  }
+  
+  row_maxes <- apply(m, 1, max)
+  
+  m <- m / row_maxes
+  tau <- Matrix::rowSums(1 - m) / (ncol(m) - 1)
+  tau[is.na(tau)] <- 0
+  return(tau)
+}
+
+n_cells_threshold <- 30
+
+# REAL 
+m_exp <- acast(df_celltype_z, gene_id~ident, value.var="meanexpr")
+n_cells <- acast(df_celltype_z, gene_id~ident, value.var="n_cells")
+mask <- rowSums(n_cells) > n_cells_threshold
+m_exp[is.na(m_exp)] <- 0
+m_exp <- m_exp[mask,]
+tauExp_real <- calc_tau(m_exp)
+
+# PERM 
+m_exp_perm <- acast(df_celltype_permutation, gene_id~ident, value.var="meanexpr")
+n_cells <- acast(df_celltype_permutation, gene_id~ident, value.var="n_cells")
+mask <- rowSums(n_cells) > n_cells_threshold
+m_exp_perm[is.na(m_exp_perm)] <- 0
+m_exp_perm <- m_exp_perm[mask,]
+tauExp_perm <- calc_tau((m_exp_perm)) 
+perm <- data.frame(gene = as.character(names(tauExp_perm)), score = tauExp_perm)
+
+
+
+specificity_scores <- data.frame(gene = as.character(names(tauExp_real)), score = tauExp_real, stringsAsFactors = F)
+specificity_scores[specificity_scores$gene %in%marker.genes,]
+specificity_scores[specificity_scores$gene %in%housekeeping_genes,]
+
+
+# Plot Stats
+stats_specificity(specificity_scores, perm, plots = F )
+match_plots(get_df_summary(specificity_scores))
+df_test <- get_df_summary(specificity_scores)
+
+# Visualize some of the examples 
+lnctau <- specificity_scores[all_lncrnas,]
+lnctau[(order(lnctau$score, decreasing =T)),]
+FeaturePlot(immune.combined, "MSTRG.167322-unknown")
+
+
+
+cuts <- seq(0,1, by=0.0001)
+specificity_scores_summary <- within(specificity_scores_summary, quartile <- as.integer(cut(specificity_scores_summary$perc_cells_expressing, cuts)))
+
+quartiles_with_enough_cells <- unlist(lapply(unique(specificity_scores_summary$quartile), function(x) ifelse(length(unique(specificity_scores_summary[specificity_scores_summary$quartile == x & specificity_scores_summary$type =="lncRNAs" , ]$gene)) > 30,x,NA)))
+quartiles_with_enough_cells <- quartiles_with_enough_cells[!is.na(quartiles_with_enough_cells)]
+
+
+specificity_scores_summary_filt <- specificity_scores_summary[specificity_scores_summary$quartile %in% quartiles_with_enough_cells,]
+
+ggboxplot(specificity_scores_summary_filt, x = "quartile", y = "score",  col="type", fill = "type", alpha= 0.5) +
+                  theme_paper+scale_color_manual(values = (palette_plot_percentage))+
+                  scale_fill_manual(values = (palette_plot_percentage))+
+                  ylab("Specificity Score")
+
+
+
+sp_plot <- specificity_scores_summary_filt %>% dplyr::group_by(type,quartile) %>% dplyr::tally()
+x <- 3
+length(unique(specificity_scores_summary[specificity_scores_summary$quartile == x & specificity_scores_summary$type =="lncRNAs" , ]$gene))
 ```
 
 
 
-# TEST OTHER SCORE
+# --------------------------------------------
+# --------------------------------------------
+#               Approach 1 b
+#      simple % cell ranged
+# --------------------------------------------
+# --------------------------------------------
 
-
-
-# -------------------------------------------------
-#            Permutation analysis
-# -------------------------------------------------
-
-In order to exclude the hypothesis that the number of cells drives the higher specificity score obtained for lnc, 
 
 ```{r matchmedian}
 
+perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/Permutations_propmodranged_1.rds")
+specificity_scores <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/04_specificity_propmod_ranged.rds")
+specificity_scores<- specificity_scores[!is.na(specificity_scores$gene),c("gene", "score")]
+perm<- perm[!is.na(perm$gene),c("gene", "score")]
+rownames(specificity_scores) <- as.character(specificity_scores$gene)
 
-# -----------------------------
-#       Read in permutation file
-# -----------------------------
-perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity_permutation_prop/Permutations_1.rds")
-# Permuted
-perm <- get_df_summary(perm)
-perm <- perm[perm$score != Inf,]
-
-
-spec_min_corrected_new <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity_permutation_prop/specificity_real.rds")
-spec_min_corrected_new_df <- get_df_summary(spec_min_corrected_new)
+# Plot Stats
+stats_specificity(specificity_scores, perm)
+# Plot Matching analysis 
+match_plots(get_df_summary(specificity_scores))
 
 
-# How many lnc do i find in the object 
-spec_res <- df_test <-spec_min_corrected_new_df
-df_test$score_range <- range01(df_test$score)
-df_test$log <- log(df_test$score)
-df_test
+specificity_scores
+
+specificity_scores_summary <- get_df_summary(specificity_scores)
+specificity_scores_summary$permutation <- "Real"
+specificity_scores_summary$type <- ifelse(specificity_scores_summary$type == "lnc", "lncRNAs", "PC genes")
 
 
-# Create unique dataframe from permutation and real data
-df <- data.frame( score = perm$score , type = "Permuted Cell-types", genetype =perm$type, perc_cells= perm$n_cells )
-df1 <- data.frame(score = df_test$score, type = "Real Data ", genetype =df_test$type, perc_cells= df_test$n_cells)
-df_tot <- rbind(df, df1)
+max(specificity_scores_summary[specificity_scores_summary$n_cells > (specificity_scores_summary$tot_cells-10000),]$score)
+
+gene <- "B2M"
+FeaturePlot(immune.combined, gene)
+specificity_scores_summary[gene, ]$score
 
 
-
-# Compare Lnc and PC between permuted and real 
-# I want them to be UNSIGNIFICANT in the permuted and SIGNIFICANT in the real 
-my_comparisons <- list( c("lnc", "pc"))
-
-ggboxplot(df_tot, x = "genetype", y = "score",  col="genetype", fill = "genetype", alpha= 0.5, facet.by = "type", short.panel.labs = T) +
-                theme_paper+scale_color_manual(values = (palette_plot_percentage))+
-                scale_fill_manual(values = (palette_plot_percentage))+
-                theme(legend.position = "none")+
-                stat_compare_means(comparisons = my_comparisons)
-
-
-ggplot(df_tot, aes(x = score, col = genetype)) + stat_ecdf(geom = "step")+scale_color_manual(values = palette_plot_percentage)+xlab("")+ylab("Score")+theme_paper
-
-ggecdf(df_tot, y = "score",
-   color = "genetype",
-   palette = c("#00AFBB", "#E7B800"))
+  perm <- get_df_summary(perm)
+  perm <- perm[perm$score != Inf,]
+  perm$permutation <- "Permutation"
+  perm$type <- ifelse(perm$type == "lnc", "lncRNAs", "PC genes")
+  
+df_perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/df_celltype_permutation.rds")
+df <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/df_celltype.rds")
 
 
 
 
-
-
-# Visualize relation to % of cells 
-ggscatter(df_tot, x = "score", y = "perc_cells", 
-          add = "reg.line", conf.int = T, 
-          cor.coef = TRUE, cor.method = "spearman", size=0.3, col = "#999999",add.params = list(color = "red", size = 0.3))+theme_sc+labs(x = "Specificity Score", y = "Number of cells")+theme_paper
-
-
-# Create subsets for plotting
-df_test_max <- df_test[df_test$score %in% tail(sort(df_test$score),6), ]
-df_test_min <- df_test[df_test$score %in% head(sort(df_test$score),6), ]
-df_test_max_lnc <- df_test[df_test$type == "lnc",]
-df_test_max_lnc <- df_test_max_lnc[df_test_max_lnc$score %in% tail(sort(df_test_max_lnc$score),6),]
-df_test_max_pc <- df_test[df_test$type == "pc",]
-df_test_max_pc <- df_test_max_pc[df_test_max_pc$score %in% tail(sort(df_test_max_pc$score),6),]
-
-# Plot top specificity genes in LNC
-lapply(df_test_max_lnc$gene, function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols= c("gray", col_lnc))+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-# Plot top specificity genes in PC
-lapply(df_test_max_pc$gene, function(gene) FeaturePlot(immune.combined, gene, pt.size=0.8, order = T, cols = c("gray", col_mrna ))+theme_sc+labs(title = gsub("-unknown","", gene)))
-
-# The ones that have the min specificity score
-lapply(df_test_min$gene, function(gene) FeaturePlot(immune.combined, gene, order = T )+theme_sc+theme_sc+labs(title = gsub("-unknown","", gene)))
+perm[order(perm$score, decreasing = T),]
+gene <- "ENSMMUG00000060356-unknown"
+df_perm[df_perm$gene_id == gene, ]
+df[df$gene_id == gene, ]
+FeaturePlot(immune.combined, gene)
+tauExp_perm[gene]
+df_perm[]
+ ggscatter(perm[perm$n_cells > 50,], x = "score", y = "perc_cells_expressing",  conf.int = T, 
+            cor.coef = TRUE, cor.method = "spearman", size=0.3, col = "#999999",add.params = list(color = "red", size = 0.3))+theme_sc+labs(x = "Specificity Score", y = "Number of cells")+theme_paper
 
 ```
+
 
 

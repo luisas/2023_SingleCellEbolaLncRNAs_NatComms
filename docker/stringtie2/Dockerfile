@@ -27,10 +27,10 @@ RUN apt-get update && apt-get install -y software-properties-common && 	apt-get 
 
 
 # Stringtie
-RUN wget https://github.com/gpertea/stringtie/releases/download/v2.1.3b/stringtie-2.1.3b.Linux_x86_64.tar.gz && \
-    tar zxf stringtie-2.1.3b.Linux_x86_64.tar.gz && \
-    cp ./stringtie-2.1.3b.Linux_x86_64/stringtie /usr/bin/
-RUN rm -rf stringtie-2.1.3b.Linux_x86_64.tar.gz
+RUN wget https://github.com/gpertea/stringtie/releases/download/v2.1.4/stringtie-2.1.4.Linux_x86_64.tar.gz && \
+    tar zxf stringtie-2.1.4.Linux_x86_64.tar.gz && \
+    cp ./stringtie-2.1.4.Linux_x86_64/stringtie /usr/bin/
+RUN rm -rf stringtie-2.1.4.Linux_x86_64.tar.gz
 
 
 # Gff compare

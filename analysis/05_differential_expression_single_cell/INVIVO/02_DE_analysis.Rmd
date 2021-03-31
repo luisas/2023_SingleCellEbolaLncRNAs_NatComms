@@ -18,6 +18,7 @@ library(stringr)
 library(rtracklayer)
 library(ComplexHeatmap)
 library(RColorBrewer)
+library(ggplot2)
 library(scales)
 
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
@@ -146,8 +147,8 @@ de_celltype_mrna <- unlist(lapply(celltypes, function(celltype){
 
 # Lists with gene names only - prepare for heatmap 
 # ---------------------------------------------------------------------------------------------------------------------------------------------
-de_lists_lnc_my <- list(lnc_Monocyte_late$primerid, lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid )
-names(de_lists_lnc_my) <- c("lnc_Monocyte_late", "lnc_Monocyte_middle", "lnc_Monocyte_early")
+de_lists_lnc_my <- list(lnc_Myeloid_late$primerid, lnc_Myeloid_middle$primerid, lnc_Myeloid_early$primerid )
+names(de_lists_lnc_my) <- c("lnc_Myeloid_late", "lnc_Myeloid_middle", "lnc_Myeloid_early")
 
 de_lists_lnc_T <- list(lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid )
 names(de_lists_lnc_T) <- c("lnc_T_late", "lnc_T_middle", "lnc_T_early")
@@ -160,8 +161,8 @@ de_lists_lnc_B <- de_lists_lnc_B[unlist(lapply(1:length(de_lists_lnc_B), functio
 de_lnc_all <- c(de_lists_lnc_my, de_lists_lnc_T, de_lists_lnc_B)
 
 
-de_lists_mrna_my <- list(mrna_Monocyte_late$primerid, mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid )
-names(de_lists_mrna_my) <- c("mrna_Monocyte_late", "mrna_Monocyte_middle", "mrna_Monocyte_early")
+de_lists_mrna_my <- list(mrna_Myeloid_late$primerid, mrna_Myeloid_middle$primerid, mrna_Myeloid_early$primerid )
+names(de_lists_mrna_my) <- c("mrna_Myeloid_late", "mrna_Myeloid_middle", "mrna_Myeloid_early")
 
 de_lists_mrna_T <- list(mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid )
 names(de_lists_mrna_T) <- c("mrna_T_late", "mrna_T_middle", "mrna_T_early")
@@ -176,12 +177,12 @@ de_mrna_all <- c(de_lists_mrna_my, de_lists_mrna_T, de_lists_mrna_B)
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 
 
-de_lists_lnc <- list(lnc_Monocyte_late$primerid,lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid,lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid, lnc_B_late$primerid, lnc_B_middle$primerid, lnc_B_early$primerid )
-names(de_lists_lnc) <- c("lnc_monocyte_late", "lnc_monocyte_middle", "lnc_monocyte_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
+de_lists_lnc <- list(lnc_Myeloid_late$primerid,lnc_Myeloid_middle$primerid, lnc_Myeloid_early$primerid,lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid, lnc_B_late$primerid, lnc_B_middle$primerid, lnc_B_early$primerid )
+names(de_lists_lnc) <- c("lnc_Myeloid_late", "lnc_Myeloid_middle", "lnc_Myeloid_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
 
 
-de_lists_mrna <- list(mrna_Monocyte_late$primerid,mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid,mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid, mrna_B_late$primerid, mrna_B_middle$primerid, mrna_B_early$primerid )
-names(de_lists_mrna) <- c("mrna_monocyte_late", "mrna_monocyte_middle", "mrna_monocyte_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
+de_lists_mrna <- list(mrna_Myeloid_late$primerid,mrna_Myeloid_middle$primerid, mrna_Myeloid_early$primerid,mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid, mrna_B_late$primerid, mrna_B_middle$primerid, mrna_B_early$primerid )
+names(de_lists_mrna) <- c("mrna_Myeloid_late", "mrna_Myeloid_middle", "mrna_Myeloid_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
 
 de_all_genes <- unique(unlist(c(unlist(de_lists_mrna), unique(de_lists_lnc))))
 saveRDS(de_all_genes, file.path(robjectsdir, "de_all_genes.rds"))
@@ -206,7 +207,7 @@ de_all$direction <- factor(de_all$direction, c("down", "up"))
 de_all$stage <- factor(de_all$stage, c("early", "middle", "late"))
 
 
-#saveRDS(de_all, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+saveRDS(de_all, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
 ```
 
 
@@ -215,7 +216,7 @@ de_all$stage <- factor(de_all$stage, c("early", "middle", "late"))
 # -----------------------------------------------
 ```{r heatmap}
 df_de <- lnc_de_all %>% dplyr::group_by(type,subtype, celltype) %>% dplyr::summarise(n=n_distinct(primerid))
-df_de$y_pos <- c(16+10,35+30,10+10,10,30,10)
+df_de$y_pos <- c(11+10,27+20,5+10,10,27,7)
 
 
 ggplot(df_de , aes(x = celltype,y=n, col = subtype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_manual(values=c( "grey", "black"))+theme_paper+ylab("Number of DE LncRNAs")+xlab("")+theme(legend.position = "")+
@@ -242,9 +243,9 @@ do_go <- function(list, keytype = "SYMBOL"){
 mrna_all_up <- mrna_de_all[mrna_de_all$coef > 0,]
 mrna_all_down <- mrna_de_all[mrna_de_all$coef < 0,]   
 
-# Monocytes late 
-do_go(unique(mrna_Monocyte_late[mrna_Monocyte_late$coef >0, ]$primerid))
-do_go(unique(mrna_Monocyte_late[mrna_Monocyte_late$coef <0, ]$primerid))
+# Myeloids late 
+do_go(unique(mrna_Myeloid_late[mrna_Myeloid_late$coef >0, ]$primerid))
+do_go(unique(mrna_Myeloid_late[mrna_Myeloid_late$coef <0, ]$primerid))
 
 # B late 
 do_go(unique(mrna_B_late[mrna_B_late$coef >0, ]$primerid))
@@ -267,20 +268,22 @@ do_go(unique(mrna_T_late[mrna_T_late$coef <0, ]$primerid))
 
 set.seed(123)
 
-stats_complete <- rbind( mast_Monocyte_all,mast_B_all,mast_T_all  )
+stats_complete <- rbind( mast_Myeloid_all,mast_B_all,mast_T_all  )
 
 # Convert into matrix
 m <-xtabs(coef~primerid+comparison, stats_complete)
 attr(m, "class") <- NULL
 
-m <- m[,c("Monocyte_early" ,"Monocyte_middle","Monocyte_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+m <- m[,c("Myeloid_early" ,"Myeloid_middle","Myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
 
 m_significance<-xtabs(fdr~primerid+comparison, stats_complete)
 attr(m_significance, "class") <- NULL
-m_significance <- m_significance[,c("Monocyte_early" ,"Monocyte_middle","Monocyte_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
+m_significance <- m_significance[,c("Myeloid_early" ,"Myeloid_middle","Myeloid_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
 
 saveRDS(stats_complete, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds")
+saveRDS(m, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds")
 
+m
 ```
 
 
@@ -348,7 +351,7 @@ ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = c
 
 ```{r colocation}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/Mono_lnc_FC.png", width = 1300, height = 1100)
-FC_heatmap_subset_celltype(m, "Monocyte", unique(unlist(de_lists_lnc_my)), "Monocyte",brewer.pal(3, "Set2")[3] )
+FC_heatmap_subset_celltype(m, "Myeloid", unique(unlist(de_lists_lnc_my)), "Myeloid",brewer.pal(3, "Set2")[3] )
 dev.off()
 ```
 
@@ -365,7 +368,7 @@ dev.off()
 ```
 ```{r colocation}
 png(filename = "/home/luisas/Desktop/cluster/data/Mono_pc_FC.png", width = 1300, height = 1100)
-FC_heatmap_subset_celltype(m, "Monocyte", unique(unlist(de_lists_mrna_my)), "Monocyte",brewer.pal(3, "Set2")[3] )
+FC_heatmap_subset_celltype(m, "Myeloid", unique(unlist(de_lists_mrna_my)), "Myeloid",brewer.pal(3, "Set2")[3] )
 dev.off()
 ```
 
@@ -393,68 +396,102 @@ dev.off()
 orthologs <- read.table("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.top.txt")
 names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alignScore","exonID","locusID","indelRate(exon)" ,"indelRate(intron)","lncExonsAligned","orthExonsAligned","spliceConserved","spliceTotal","category(mmul10)","category(hg38)")
 
+sign_pathway <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+
+ref_human <- import("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf")
+df_ref_human <- unique(data.frame(gene = ref_human[ref_human$type == "transcript",]$gene_id, transcript= ref_human[ref_human$type == "transcript",]$transcript_id, stringsAsFactors = F))
+rownames(df_ref_human) <- df_ref_human$transcript
+
+df_ref_mac <- unique(data.frame(gene = ref[ref$type == "transcript",]$gene_id, transcript= ref[ref$type == "transcript",]$transcript_id, stringsAsFactors = F))
+rownames(df_ref_mac) <- df_ref_mac$transcript
+
+
 # Prepare columns we might need later
 ref_transcripts <- ref[ref$type == "transcript",]
-
 orthologs$gene_id <- unlist(lapply(orthologs$lnc, function(x) ref_transcripts[ref_transcripts$transcript_id == x , ]$gene_id))
-orthologs_lnc <- orthologs[orthologs$gene_id %in% gsub("-unknown", "",unlist(de_lnc_all)),]
+orthologs_lnc <- orthologs[orthologs$gene_id %in% gsub("-unknown", "",all_lncrnas),]
+
+
+orthologs_lnc$lnc <- unlist(lapply(orthologs_lnc$lnc, function(x) str_split(gsub( "MSTRG.", "MSTRG-",x), fixed("."))[[1]][1]))
+orthologs_lnc$lnc <- gsub( "MSTRG-", "MSTRG.",orthologs_lnc$lnc)
+
+
+orthologs_lnc$de <- ifelse(df_ref_mac[orthologs_lnc$lnc,]$gene %in% gsub("-unknown", "",(lnc_de_all$primerid)), "DE", "Not DE")
+table(orthologs_lnc$de)
+orthologs_lnc_de<- orthologs[orthologs$gene_id %in% gsub("-unknown", "",(lnc_de_all$primerid)),]
 orthologs_lnc$ortholog_tr <- unlist(lapply(orthologs_lnc$ortholog, function(x) str_split(x, fixed("."))[[1]][1]))
 
-length(unique(orthologs_lnc[,c( "gene_id")]))
-length(unique(orthologs_lnc[,c( "lnc")]))
-
-table(substr(unique(orthologs_lnc[,c( "gene_id")]),1,3))
-
-
-# Check that the biotype in human are lnc
-ref_human <- import("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf")
-human_orth <- ref_human[ref_human$type == "transcript" & ref_human$transcript_id %in% orthologs_lnc$ortholog_tr, ]
-
+orthologs_lnc$human_gene <- df_ref_human[orthologs_lnc$ortholog_tr, ]$gene
+orthologs_lnc$immlnc <- ifelse(orthologs_lnc$human_gene %in% sign_pathway$lncRNA_id, "ImmLnc", "Not in ImmLnc" ) 
+# For the lncRNAs, for which we can find an ortholog, that was already reported in ImmLnc as involved in immune response
+orthologs_lnc_de <- orthologs_lnc[orthologs_lnc$de == "de",]
 ```
+
+# SUPER SUMMARY STATS
 
 ```{r }
-# ------------------------------------------
-# Check overlap with pan cancer lncRNA analysis
-# ------------------------------------------
 
-sign_pathway <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-sign_cell <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Immunecell_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-sign_cancer <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/LncRNA_Cancer_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-
-
-de_ortholgs_immlnc <- sign_pathway[sign_pathway$lncRNA_id %in% human_orth$gene_id,]
-de_ortholgs_cancer <- sign_cancer[sign_cancer$lncRNA_id %in% human_orth$gene_id,]
-de_ortholgs_cell <- sign_cell[sign_cell$lncRNA_id %in% human_orth$gene_id,]
+# ------------------
+#      GENERAL 
+# ------------------
+# How many lncRNAs are DE in total ? ( and PC )
+length(unique(lnc_de_all$primerid))
+length(unique(mrna_de_all$primerid))
+# How many lncRNAs DE are novel ? 
+table(substr(unique(lnc_de_all$primerid),1,3))
 
 
-de_ortholgs_immlnc_reduced <- data.frame(id = de_ortholgs_immlnc$lncRNA_id, 
-                                         pathway = de_ortholgs_immlnc$immune_pathway, 
-                                         pval = de_ortholgs_immlnc$p_adjust, 
-                                         cancer  = de_ortholgs_immlnc$cancer_type,   stringsAsFactors = F
-                                         )
+# -----------------
+#      ORTHOLOG
+# ------------------
+# Which percentage of expressed lncRNAs (found in object) have a human ortholog? 
+lnc_with_human_ortholog <- unique(as.character(orthologs$gene_id))[unique(as.character(orthologs$gene_id)) %in% gsub("-unknown", "", all_lncrnas)]
+length(unique(lnc_with_human_ortholog))
+length(lnc_with_human_ortholog)/length(unique(all_lncrnas))
+
+df_summary_ortholog <- data.frame(ortholog  = c("ortholog", "no_ortholog"), value = c(length(lnc_with_human_ortholog),length(unique(all_lncrnas))-length(lnc_with_human_ortholog)) )
+df_summary_ortholog$type <- "All"
+
+ggplot(df_summary_ortholog, aes(x="", y=value, fill=ortholog)) +
+  geom_bar(stat="identity", width=1) +
+  theme_paper +theme_void()  +
+  geom_text(aes(y = c(200,800), label = value), color = "white", size=6) +
+  scale_fill_brewer(palette="Set1")
+
+
+# Which percentage of DE lncRNAs have a human ortholog? 
+de_lnc_with_human_ortholog <- unique(as.character(orthologs$gene_id))[unique(as.character(orthologs$gene_id)) %in% gsub("-unknown", "", lnc_de_all$primerid)]
+length(de_lnc_with_human_ortholog)/length(unique(lnc_de_all$primerid))
+
+df_summary_ortholog_de <- data.frame(ortholog  = c("ortholog", "no_ortholog"), value = c(length(de_lnc_with_human_ortholog),length(unique(lnc_de_all$primerid))-length(de_lnc_with_human_ortholog)) )
+
+ggplot(df_summary_ortholog_de, aes(x="", y=value, fill=ortholog)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0)+theme_paper +theme_void()  +
+  geom_text(aes(y = c(20,60), label = value), color = "white", size=6) +
+  scale_fill_brewer(palette="Set1")
 
 
 
+# Which percentage of lncRNAs, that have an human ortholog, are found by ImmLnc?
+table(orthologs_lnc$immlnc)
 
-unique_pathways <-de_ortholgs_immlnc_reduced %>% group_by(id, pathway) %>% tally()
-unique_pathways$n <- as.double(unique_pathways$n)
+# Which percentage of DE lncRNAs, that have an human ortholog, are found by ImmLnc?
+orthologs_lnc$annot <- ifelse(substr(orthologs_lnc$lnc,1,3) == "MST", "novel","annot")
+orthologs_lnc_reduced <- unique(orthologs_lnc[,c("gene_id", "de", "immlnc")])
+ortholog_summary <- orthologs_lnc_reduced %>% dplyr::group_by( de, immlnc) %>% dplyr::summarise(n = n()) %>% dplyr::mutate(freq = n / sum(n))
 
-nb.cols <- length(unique(unique_pathways$pathway))
-mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+orthologs_lnc$gene_id
 
-ggplot(distinct(unique_pathways), aes(y = pathway, fill = pathway, col = pathway))+geom_bar()+theme_paper+theme(legend.position = "")+scale_fill_manual(values = mycolors)+scale_color_manual(values = mycolors)
+ggplot(ortholog_summary, aes(x = de, fill = immlnc, y = n))+geom_bar(stat="identity")+theme_paper+scale_fill_manual(values= c("#000033","grey"))+xlab("")+ylab("# Genes")
+ggplot(ortholog_summary, aes(x = de, fill = immlnc, y = freq))+geom_bar(stat="identity")+theme_paper+scale_fill_manual(values= c("#000033","grey"))+xlab("")+ylab("Proportion genes")
 
 
-# How many of the ones also found in ImmLnc are also DE 
-Immlnc_id <- distinct(unique_pathways)$id
 
-length(orthologs_lnc$ortholog_tr)
-
-orthologs_lnc$human_gene_id <- unlist(lapply(orthologs_lnc$ortholog_tr, function(x) ref_human[ref_human$type == "transcript" & ref_human$transcript_id == x, ]$gene_id))
-
-orthologs_lnc[orthologs_lnc$human_gene_id %in% Immlnc_id, ]
 
 ```
+
 
 
 # ---------------------------------------------------------------
@@ -495,12 +532,12 @@ venn.diagram(
 # -------------------------------------------
 # overlap stage specific genes
 # -------------------------------------------
-early_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_early, de_lists_lnc_B$lnc_B_early, de_lists_lnc_my$lnc_Monocyte_early))
-middle_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_middle, de_lists_lnc_B$lnc_B_middle, de_lists_lnc_my$lnc_Monocyte_middle))
-late_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_late, de_lists_lnc_B$lnc_B_late, de_lists_lnc_my$lnc_Monocyte_late))
+early_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_early, de_lists_lnc_B$lnc_B_early, de_lists_lnc_my$lnc_Myeloid_early))
+middle_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_middle, de_lists_lnc_B$lnc_B_middle, de_lists_lnc_my$lnc_Myeloid_middle))
+late_de_lnc <- unique(c(de_lists_lnc_T$lnc_T_late, de_lists_lnc_B$lnc_B_late, de_lists_lnc_my$lnc_Myeloid_late))
 
 venn.diagram(
-  x = list( unlist(unique(early_de)), unlist(unique(middle_de)),unlist(unique(late_de))),
+  x = list( unlist(unique(early_de_lnc)), unlist(unique(middle_de_lnc)),unlist(unique(late_de_lnc))),
   category.names = c( "Early DE lncRNAs" , "Middle DE lncRNAs ","Late DE lncRNAs" ),
   filename = '/home/luisas/Desktop/cluster/data/plots/venns/venn_diagram_stagessignature_de_lnc',
   output = TRUE ,
@@ -563,7 +600,7 @@ middle_de_pc <- unique(c(de_lists_mrna_T$mrna_T_middle, de_lists_mrna_B$mrna_B_m
 late_de_pc <- unique(c(de_lists_mrna_T$mrna_T_late, de_lists_mrna_B$mrna_B_late, de_lists_mrna_my$mrna_myeloid_late))
 
 venn.diagram(
-  x = list( unlist(unique(early_de)), unlist(unique(middle_de)),unlist(unique(late_de))),
+  x = list( unlist(unique(early_de_pc)), unlist(unique(middle_de_pc)),unlist(unique(late_de_pc))),
   category.names = c( "Early DE mRNAs" , "Middle DE mRNAs ","Late DE mRNAs" ),
   filename = '/home/luisas/Desktop/cluster/data/plots/venns/venn_diagram_stagessignature_de_pc',
   output = TRUE ,

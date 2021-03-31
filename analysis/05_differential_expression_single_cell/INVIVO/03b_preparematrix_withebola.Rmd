@@ -29,69 +29,31 @@ source("../../utils/02_sc_utils.R")
 # IN VIVO 
 immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
 
-dim(immune.combined)
-
-col_lnc = "#870052"
-col_mrna = "#2e88bf"
-de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
-de_lnc <- de_all[de_all$type == "lnc", ]
-# get DE lnc names
+de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_genes.rds")
 
 
 robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 
-
+de_all <- data.frame(primerid = de_all, stringsAsFactors = F)
 de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
-de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
-
-
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
-
-
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
-get_ortholog <- function(gene_id){
-  transcripts_of_gene <- ref[ref$gene_id == gene_id, ]$transcript_id
-  return(orthologs[orthologs$lnc %in% transcripts_of_gene,])
-}
-gene_id <- "MSTRG.132172"
-
-transcripts_of_gene <- ref[ref$gene_id == gene_id, ]$transcript_id
-
-
-get_gene_id <-function(transcript_id){
-  return(unique(ref[!is.na(ref$transcript_id) & ref$transcript_id == transcript_id,]$gene_id))
-}
-
-get_gene_id("ENSMMUT00000093663")
-
-gene_ids <- apply(orthologs,1,function(x) get_gene_id(x[1]) )
-orthologs$gene_id <- gene_ids
-saveRDS(orthologs,"/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneids.rds" )
-
-
-distances <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/colocation_lnc_pc_de.rds")
-distances$gene <-  gsub("-unknown", "",distances$gene)
-distances$second <-  gsub("-unknown", "",distances$second)
+de_lnc<- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
 ```
 
 # Prepare the matrixes to calculate the networks on. One per celltype, only DE genes. 
 
 ```{r a}
-myeloids <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+myeloids <- immune.combined[,Idents(immune.combined)=="Myeloid"]
 b <- immune.combined[,Idents(immune.combined)=="B"]
 t <- immune.combined[,Idents(immune.combined)=="T"]
 
-ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep = "")
+de_myeloids <- myeloids[rownames(myeloids) %in% de_all$primerid,]
+de_b <- b[rownames(b) %in% de_all$primerid,]
+de_t <- t[rownames(t) %in% de_all$primerid,]
 
-de_myeloids_ebola <- myeloids[rownames(myeloids) %in% c(de_all$primerid,ebola_genes)]
-de_b_ebola <- b[rownames(b) %in% c(de_all$primerid,ebola_genes)]
-de_t_ebola <- t[rownames(t) %in% c(de_all$primerid,ebola_genes),]
-
-exprMatr_myeloids_de_ebola <- de_myeloids_ebola@assays$integrated@data
-exprMatr_b_de_ebola <- de_b_ebola@assays$integrated@data
-exprMatr_t_de_ebola <- de_t_ebola@assays$integrated@data
+exprMatr_myeloids_de <- de_myeloids@assays$integrated@data
+exprMatr_b_de <- de_b@assays$integrated@data
+exprMatr_t_de <- de_t@assays$integrated@data
 
 
 universe_myeloids <- unique(rownames(myeloids))

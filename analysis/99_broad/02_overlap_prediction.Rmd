@@ -1,0 +1,122 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer)
+library(dplyr)
+library(ggplot2)
+library(plyr)
+library(ggpubr)
+
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+```
+
+## Read in all predictions from CPC2, CNIT and CPAT
+
+```{r cpc2}
+# -------------------------------------------
+#                     CPC2 
+# -------------------------------------------
+candidates <- import("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021//03_novel_lncRNAs_list/02_novel_expressed/candidates.gtf")
+# Load cpc2 prediction 
+cpc2 <- read.table("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/03_novel_lncRNAs_list/03_predictions/CPC2/cpc2_pred.txt")
+names(cpc2) <- c("ID","transcript_length ","peptide_length","Fickett_score" , " pI", "ORF_integrity", "coding_probability","label")
+# Extract transcript ids 
+cpc2$transcript_id <- unlist(lapply(as.character(cpc2$ID), function(x) strsplit(x,"[(]")[[1]][1]))
+# Extract non coding predictions
+pred_nc_ids <- cpc2[cpc2$label == "noncoding",]$transcript_id
+cpc2_pre_lnc <- candidates[candidates$transcript_id %in% pred_nc_ids, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cpc2$gene_id <- unlist(lapply(as.character(cpc2$transcript_id), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+
+unconcordant_prediction <- cpc2 %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cpc2_pre_lnc <- cpc2_pre_lnc[!(cpc2_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cpc2_pre_lnc$gene_id))
+# -----------------------------------------------
+
+
+# -------------------------------------------
+#                     CPAT 
+# -------------------------------------------
+# Compare which ones and how many overlap 
+cpat <- read.table("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/03_novel_lncRNAs_list/03_predictions//CPAT/cpat_pred.ORF_prob.tsv", header = TRUE)
+# Cutoff defined by the paper of CPAT as best for discerning coding and lnc
+cutoff <-  0.364
+cpat$label <- ifelse(cpat$Coding_prob > cutoff, "coding", "noncoding")
+cpat$transcript_id <- unlist(lapply(as.character(cpat$ID), function(x) strsplit(x,"[(]")[[1]][1]))
+# extract lncRNAs
+cpat_nc <- cpat[cpat$label == "noncoding",]
+cpat_pre_lnc <- candidates[candidates$transcript_id %in% cpat_nc$transcript_id, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cpat$gene_id <- unlist(lapply(as.character(cpat$ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+unconcordant_prediction <- cpat %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cpat_pre_lnc <- cpat_pre_lnc[!(cpat_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cpat_pre_lnc$gene_id))
+# -----------------------------------------------
+
+
+
+# -------------------------------------------
+#                     CNIT 
+# -------------------------------------------
+# Compare which ones and how many overlap 
+cnit <- read.table("/home/luisas/Desktop/cluster/data//99_BroadAnnotation_Feb2021/03_novel_lncRNAs_list/03_predictions/CNIT/cnit_pred/CNCI2.index", header = TRUE, ,sep="\t")
+cnit$label <- cnit$index
+cnit$transcript_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) strsplit(x,"[(]")[[1]][1]))
+cnit_nc <- cnit[cnit$label == "noncoding",]
+cnit_pre_lnc <- candidates[candidates$transcript_id %in% cnit_nc$transcript_id, ]
+
+# -----------------------------------------------
+# Remove uncorcondant pred
+cnit$gene_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) paste(unlist(strsplit(x, "[.]"))[1:2], collapse = ".")))
+cnit$transcript_id <- cnit$ID
+unconcordant_prediction <- cnit %>%  dplyr::group_by(gene_id) %>% dplyr::summarise(Unique_Elements =  dplyr::n_distinct(label)) %>%  dplyr::filter( Unique_Elements > 1)
+cnit_pre_lnc <- cnit_pre_lnc[!(cnit_pre_lnc$gene_id %in% unconcordant_prediction$gene_id)]
+length(unique(cnit_pre_lnc$gene_id))
+# -----------------------------------------------
+```
+
+
+
+
+
+```{r cpc2vscpan}
+length(unique(cpat_pre_lnc$transcript_id))
+length(unique(cpc2_pre_lnc$transcript_id))
+length(unique(cnit_pre_lnc$transcript_id))
+
+intersection <- unique(intersect(intersect(cpat_pre_lnc$transcript_id, cpc2_pre_lnc$transcript_id), cnit_pre_lnc$transcript_id))
+intersection_pre_lnc <- candidates[candidates$transcript_id %in% intersection, ]
+length(unique(intersection_pre_lnc$transcript_id))
+length(unique(intersection_pre_lnc$gene_id))
+#plot_stats_annotation(intersection_pre_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
+
+```
+
+
+# Visualize overlap 
+
+```{r cpc2vscpan}
+library(UpSetR)
+library(ComplexHeatmap)
+# example of list input (list of named vectors)
+listInput <- list(CPAT = unique(cpat_pre_lnc$gene_id), CPC2 = unique(cpc2_pre_lnc$gene_id), CNIT = unique(cnit_pre_lnc$gene_id))
+upset(fromList(listInput), order.by = "freq", main.bar.color = c("darkorange", rep("gray23",6)),text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15))
+```
