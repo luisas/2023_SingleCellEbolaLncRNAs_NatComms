@@ -300,7 +300,6 @@ plot_corr_gene_box("SNHG6", 40)
 gene_gas5 <- paste(unique(ref[ref$transcript_id %in% unique(transcripts_de_orthologs[transcripts_de_orthologs$orthologGeneSymbol == "SNHG6", ]$lnc),]$gene_id), "-unknown", sep = "")
 plot_corr(expression_matrix, gene_gas5, sig_correlations_lnc_infected_24[sig_correlations_lnc_infected_24$gene == gene_gas5,]$rho)
 
-
 ```
 
 

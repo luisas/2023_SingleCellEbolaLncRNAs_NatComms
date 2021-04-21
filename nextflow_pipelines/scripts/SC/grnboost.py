@@ -12,7 +12,16 @@ if __name__ == '__main__':
     ex_matrix = pd.read_csv(sys.argv[1], sep=',')
     print("1) Gene expression matrix has been succesfully read")
 
-    network = grnboost2(expression_data=ex_matrix)
+    local_cluster = LocalCluster(n_workers=1,
+                                 threads_per_worker=24,
+                                 memory_limit='96GB')
+    custom_client = Client(local_cluster)
+
+    network = grnboost2(expression_data=ex_matrix, client_or_address=custom_client, seed=777)
+    
+    client.close()
+    local_cluster.close()
+    
     print("2) Network has been succesfully created")
 
     network.to_csv(sys.argv[2], sep='\t', index=False, header=False)

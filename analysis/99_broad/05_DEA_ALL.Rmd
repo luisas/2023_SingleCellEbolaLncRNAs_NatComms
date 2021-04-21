@@ -1,0 +1,178 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+
+
+# -------------------------------------
+#       DEA
+# -------------------------------------
+
+```{r results='hide', message=FALSE, warning=FALSE}
+library(edgeR)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library("wesanderson")
+library(RColorBrewer)
+library(org.Mmu.eg.db)
+library(rtracklayer)
+
+
+# 0. Palettes & themes 
+pal1 <- wes_palette("Darjeeling1", 5, type = "discrete")
+pal2 <- wes_palette("Darjeeling2", 5, type = "discrete")
+colfunc <- colorRampPalette(c("grey", "red"))
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
+# 1. Input Variables and Files
+tissue <- "Lymph node"
+outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
+
+# Sade objects
+my_data <- readRDS(paste0(outpath,tissue,".voom_limma.data_objects.rds"))
+
+dge <- my_data[["dge"]] 
+v <- my_data[["v"]] 
+fit <- my_data[["fit"]] 
+
+FDRTHRESHOLD <- 0.05
+
+
+ref_ensembl <- import("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf")
+
+get_names <- function(ids, ref_e  = ref_ensembl){
+  ids <- unlist(lapply(ids, function(x) strsplit(x,".", fixed = T)[[1]][1]))
+  names <- ref_e[ref_e$gene_id %in% ids, ]$gene_name
+  names <- names[!is.na(names)]
+  return(unique(names)) 
+}
+
+do_go <- function(list, universe, keytype="SYMBOL", title = ""){
+  ego <- clusterProfiler::enrichGO(gene = get_names(list),OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =get_names(universe))
+  if(!is.null(ego)){
+    return(clusterProfiler::dotplot(ego, showCategory = 5)+ggtitle(title))
+  }else{
+    return(NA)
+  }
+}
+
+```
+
+
+
+# Explore dataset
+
+```{r prcomp}
+
+tissues <-unique(metadata$tissue)
+
+outpath_tissues <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/")
+mydatas <- iterate_files(outpath_tissues, "*.voom_limma.data_objects.rds")
+
+
+
+
+
+
+
+
+get_summary <- function(tissue, outpath = outpath_tissues){
+  
+  my_data <- readRDS(mydatas[grepl(tissue, mydatas)])
+  print(mydatas[grepl(tissue, mydatas)])
+  dge <- my_data[["dge"]] 
+  v <- my_data[["v"]] 
+  fit <- my_data[["fit"]] 
+  efit <- my_data[["efit"]] 
+
+  res_late <- topTable(efit, coef = "LatevsBaseline", adjust.method = "fdr", confint = TRUE, n = Inf)
+  sig_de_late <- res_late[res_late$adj.P.Val < FDRTHRESHOLD, ]
+  
+  res_middle <- topTable(efit, coef = "MiddlevsBaseline", adjust.method = "fdr", confint = TRUE, n = Inf)
+  sig_de_middle <- res_middle[res_middle$adj.P.Val < FDRTHRESHOLD, ]
+  
+  res_early <- topTable(efit, coef = "EarlyvsBaseline", adjust.method = "fdr", confint = TRUE, n = Inf)
+  sig_de_early <- res_early[res_early$adj.P.Val < FDRTHRESHOLD, ]
+  
+  
+  # Numbers 
+  df_late <- summarize_genes(rownames(sig_de_late), nopc = F )[[1]]
+  df_late$stage <- "Late"
+  df_middle <- summarize_genes(rownames(sig_de_middle), nopc = F )[[1]]
+  df_middle$stage <- "Middle"
+  df_early <- summarize_genes(rownames(sig_de_early), nopc = F )[[1]]
+  df_early$stage <- "Early"
+  df_all <- rbind(df_late, df_middle, df_early)
+  df_all$stage <- factor(df_all$stage, levels = c("Early", "Middle", "Late"))
+
+  df_all$tissue <- tissue
+  return(df_all)
+}
+
+
+
+summarize_genes <- function(exprs_genes, lnc_ids = lnc_gene_ids, pc_ids = pc_gene_ids, nopc = F ){
+  genes_type <- data.frame(gene_id = exprs_genes) 
+  genes_type$type <- "Other"
+  genes_type[genes_type$gene_id %in% pc_ids, ]$type <- "Protein Coding"
+  if(any(genes_type$gene_id %in% lnc_ids)){
+    genes_type[genes_type$gene_id %in% lnc_ids, ]$type <- "LncRNAs - Annotated"
+  }
+  if(any(grepl("MSTR",genes_type$gene_id))){
+  genes_type[grepl("MSTR",genes_type$gene_id), ]$type <- "LncRNAs -Novel"
+  }
+  if(nopc == T){
+    genes_type <- genes_type[!(genes_type$type %in% c("Protein Coding", "Other")), ]
+  }
+  
+  p <- ggplot(genes_type, aes(x = type, fill = type))+geom_bar(stat= "count", position = "dodge")+scale_fill_manual(values = pal1)+ggtitle(paste("Total number of genes ", nrow(genes_type), sep = ": "))+xlab("")+theme(axis.text.x=element_text(angle = 28, hjust = 1))+ylab("")+theme_minimal()
+  return(list(genes_type,p))
+}
+
+
+tissues_available <- unlist(lapply(mydatas, function(x) strsplit(basename(x), ".",fixed = T)[[1]][1]))
+df <- Reduce("rbind", lapply(tissues_available, get_summary))
+
+df <- df[df$type != "Other",]
+df <- df[df$tissue != "Whole blood",]
+df <- df[df$tissue != "Skin",]
+
+ggplot(df, aes(x = tissue, fill = type))+geom_bar(position = "dodge", stat = "count")+theme_paper+scale_fill_manual(values = pal1)+facet_grid(. ~ tissue, scales = "free_x")+theme(axis.text.x = element_blank())
+
+ggplot(df[!(df$type %in% c("Protein Coding", "Other")),], aes(x = tissue, fill = type))+geom_bar(position = "dodge", stat = "count")+theme_paper+scale_fill_manual(values = pal1)+facet_grid(. ~ tissue, scales = "free_x")+theme(axis.text.x = element_blank())+scale_fill_manual(values =c( "pink", "red"))
+
+
+
+
+df_summary_tissue_samples <- distinct(df_summary_tissue_samples[, c("tissue", "sum_mappedreads")])
+
+ggplot(df_summary_tissue_samples[df_summary_tissue_samples$tissue %in% df$tissue,], aes(x = tissue, y = sum_mappedreads, fill = tissue))+geom_bar(stat="identity")+theme_paper
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

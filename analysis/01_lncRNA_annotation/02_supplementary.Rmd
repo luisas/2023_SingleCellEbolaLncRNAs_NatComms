@@ -17,6 +17,10 @@ library(ggplot2)
 library(plyr)
 library(ggpubr)
 
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
 # Import Utils
 source(file.path("../utils/01_lncrna_annotation_utils.R"))
 

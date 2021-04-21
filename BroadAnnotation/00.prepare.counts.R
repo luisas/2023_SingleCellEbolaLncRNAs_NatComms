@@ -6,16 +6,22 @@ suppressMessages(library(edgeR))
 suppressMessages(library(limma))
 suppressMessages(library(dplyr))
 suppressMessages(library(reshape))
+suppressMessages(library(stringr))
 #suppressMessages(library(variancePartition))
 
 options(stringsAsFactors = F)
 #tissue <- args[1]
-tissue <- "Lymph node"
+#tissue <- "Lymph node"
+tissue <- args[1]
 quantification_dir <- "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/06_quantification/"
 # ---------------------------
 #       Pre-selection 
 # ---------------------------
 
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
 
 # 0. Select Tissue
 outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
@@ -39,6 +45,8 @@ metadata_complete$subtissue <- unlist(lapply(metadata_complete$biosample,  funct
 metadata_complete$infection_status <- factor(metadata_complete$infection_status, levels = c("Not Infected", "Infected"))
 metadata_complete$sex <- factor(metadata_complete$sex)
 metadata_complete$batch.extraction <- factor(metadata_complete$batch.extraction)
+metadata_complete$sample_name <- metadata_complete$X
+
 
 saveRDS(metadata_complete, "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/metadata_full.rds")
 

@@ -1697,7 +1697,8 @@ hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
 }
 
 
-FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title){
+FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title, orthologs, reported_lncpedia, reported_immlnc, close_isg = close_isg,
+                                       close_broad = close_broad, legend = F){
   
   # Only select the correct celltype
   columns_keep <- colnames(m)[unlist(lapply(colnames(m), function(column) strsplit(column, "_")[[1]][1] == celltype))]
@@ -1707,13 +1708,14 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
   rownames(m) <- gsub("-unknown","",rownames(m))
   de_lnc_all <- gsub("-unknown","",de_lnc_all)
   m <- m[rownames(m) %in% de_lnc_all,, drop = FALSE]
+
   
   column_ha <- HeatmapAnnotation( 
     comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
     show_annotation_name = FALSE, 
     gap = unit(16, "points"),
     
-    col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
+    col = list(celltype = c("Monocyte" = brewer.pal(3, "Set2")[3],
                             "T" = brewer.pal(3, "Set2")[1],
                             "B" = brewer.pal(3, "Set2")[2]),
                comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
@@ -1724,37 +1726,71 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
     annotation_height =  unit(c(1), "cm")
   )
   labels_orth <- ifelse(rownames(m) %in% orthologs$gene_id, "Ortholog found in human", "na")
-  row_ha_type <- rowAnnotation(genetype =ifelse(substring(rownames(m), 1,3)=="MST", "MST", "ENS"),ortholog =labels_orth, show_legend = FALSE,
+  #isg_labels <- ifelse(rownames(m) %in% close_isg$lnc, close_isg[rownames(m), ]$close, "na")
+  
+  genetypes <- ifelse(substring(rownames(m), 1,3)=="MST", "MST", "ENS")
+  get_isg <- function(gene){
+    if(gene %in% close_isg_summary$lnc){
+      return(close_isg_summary[close_isg_summary$lnc == gene,]$close)
+    }else{
+      return("")
+    }
+  }
+  close_isg_names <- unlist(lapply(rownames(m), get_isg))
+  close_isg <- ifelse(close_isg_names == "", "na", "closeisg")
+  close_broad <- ifelse(rownames(m) %in% close_broad, "closebroad", "na")
+  
+  rownames(m) <- ifelse(rownames(m) %in% orthologs$gene_id, (rownames(m)), "")
+  rownames(m) <- unlist(lapply(rownames(m), get_orthologname_))
+  reported_lncpedia <- ifelse(rownames(m) %in% reported_lncpedia, "reported lncpedia", "na")
+  reported_immlnc <- ifelse(rownames(m) %in% reported_immlnc, "reported immlnc", "na")
+
+  row_ha_type <- rowAnnotation(genetype =genetypes,ortholog =labels_orth, reported_immlnc = reported_immlnc,reported_lncpedia = reported_lncpedia, show_legend = FALSE,
                                show_annotation_name = FALSE,
-                               col = list(genetype = c("ENS" = brewer.pal(3, "Paired")[3],
-                                                       "MST" = "purple"
-                               ), ortholog = c("na" = "white", "Ortholog found in human" = "orange")))
-  
-  
-  
-  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(18, "cm"), 
+                               col = list(genetype = c("ENS" = "grey",
+                                                       "MST" = "black"
+                               ), ortholog = c("na" = "white", "Ortholog found in human" = "orange"),
+                               reported_lncpedia = c("na" = "white", "reported lncpedia" = "light blue"),
+                               reported_immlnc = c("na" = "white", "reported immlnc" = "navy")
+                               ))
+
+  row_ha_typel <- rowAnnotation(foo = anno_text(close_isg_names) , close_isg = close_isg,
+                               close_broad = close_broad, show_legend = FALSE,
+                               show_annotation_name = FALSE,
+                               col = list(
+                               close_isg = c("na" = "white", "closeisg" = "red"),
+                               close_broad = c("na" = "white", "closebroad" = "purple")
+                               ))
+  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(17, "cm"), 
                show_column_dend = FALSE,
                heatmap_height = unit(30, "cm"),
                cluster_columns = FALSE,
                cluster_rows = TRUE,
                cluster_row_slices = FALSE,
+               rect_gp = gpar(col = "white", lwd = 1),
                show_column_names = FALSE,
                show_row_names = TRUE,
-               row_names_gp = gpar(fontsize = 25),
+               row_names_gp = gpar(fontsize = 15),
                row_title_rot = 0,
                right_annotation = row_ha_type, 
+               left_annotation = row_ha_typel,
                top_annotation = column_ha,
                column_title = title, 
-               column_title_gp = gpar(fill = color_title, fontsize =40, border = NA), 
-               show_heatmap_legend = FALSE
+               column_title_gp = gpar(fill = color_title, fontsize =30, border = NA), 
+               show_heatmap_legend = legend
                
   )
-  # Add legend
-  leg_comparison <- Legend(at = c("Baseline", "Early", "Middle", "Late"), title = "Stage", legend_gp = gpar(fill = brewer.pal(8,"Pastel2")[5:9]), size = unit(30, "mm"))
-  leg_annot <- Legend(at = c("Novel", "Annotated"), title = "GeneType", legend_gp = gpar(fill = brewer.pal(3,"Paired")[1:3]),size = unit(30, "mm"))
-  
-  hm_wlegend <- draw(h,annotation_legend_list = c(leg_comparison, leg_annot))
   
   return(draw(h))
 }
+
+
+get_orthologname_ <- function(string, orthologs_ = orthologs){
+  d <-orthologs_[gsub("-unknown", "", orthologs_$gene_id) == sub("-unknown", "",string), ]
+  if(nrow(d)==0){
+    return(gsub("-unknown", "", string) )
+  }
+  return(unique(as.character(d$orthologGeneSymbol)))
+}
+
 

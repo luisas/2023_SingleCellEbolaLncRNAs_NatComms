@@ -10,18 +10,16 @@ options(future.globals.maxSize = 10000 * 1024^2)
 
 args = commandArgs(trailingOnly=TRUE)
 
+# Read in Seurat Object 
 file = args[1]
 myeloids <- readRDS(file)
 expression_matrix <- myeloids@assays$RNA@data
 
-
-robjectsdir <- "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload"
+# Output directory 
+#robjectsdir <- "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload"
 robjectsdir <- args[2]
-lnc <- readRDS("/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/lnc.rds")
-pc <- readRDS("/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/pc.rds")
-
-# Only calculate for the DE genes 
-
+dir.create(robjectsdir, recursive = T,  showWarnings = F)
+genes <- unique(rownames(myeloids))
 
 
 calc_correlation_viralload <- function(gene1_vector,viral_load,gene1, type = "spearman"){
@@ -33,31 +31,14 @@ calc_correlation_viralload <- function(gene1_vector,viral_load,gene1, type = "sp
   df$gene <- gene1
   return(df)
   }
-  else{
-    return(NA)
-  }
-  
 }
 
-viral_load <- myeloids$viral_load 
+viral_load <- myeloids$viraload 
 
-
-correlations <- mclapply(unique(lnc), function(gene) calc_correlation_viralload(expression_matrix[rownames(expression_matrix) == gene, ], viral_load, gene),  mc.cores = 48)
-correlations_pc <- mclapply(unique(pc), function(gene) calc_correlation_viralload(expression_matrix[rownames(expression_matrix) == gene, ], viral_load, gene),  mc.cores = 48)
-
+correlations <- mclapply(unique(genes), function(gene) calc_correlation_viralload(expression_matrix[rownames(expression_matrix) == gene, ], viral_load, gene),  mc.cores = 48)
 
 correlations_df <- do.call(rbind, correlations)
-correlations_pc_df <- do.call(rbind, correlations_pc)
 
-saveRDS(correlations_df, file.path(robjectsdir, paste("spearman-correlations_lnc.rds")))
-saveRDS(correlations_pc_df, file.path(robjectsdir, paste("spearman-correlations_pc.rds")))
-
-
-
-
-
-
-
-
+saveRDS(correlations_df, file.path(robjectsdir, paste("ViralLoad_spearman-correlations_standard.rds")))
 
 

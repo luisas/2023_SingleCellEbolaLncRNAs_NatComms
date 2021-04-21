@@ -13,6 +13,7 @@ args = commandArgs(trailingOnly=TRUE)
 #file = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/src/scripts/Analysis/results/seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet.rds")
 file = file.path(args[1])
 robjectsdir  = file.path(args[2])
+dir.create(robjectsdir, recursive = T,  showWarnings = F)
 
 
 immune.combined <- readRDS(file)

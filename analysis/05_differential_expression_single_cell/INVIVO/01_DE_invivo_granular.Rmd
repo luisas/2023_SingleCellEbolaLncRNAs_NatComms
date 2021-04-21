@@ -1,0 +1,88 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(scales)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+
+source("../../utils/02_sc_utils.R")
+theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# Output paths
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE/")
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.infectionstatus_neut.rds")
+
+ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep ="")
+saveRDS(ebola_genes, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/ebola_genes.rds")
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
+# LncRNAs
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+
+# Corrected q-value .05
+FDRTHRESHOLD<- 0.05
+# Fold-Change of 30%
+FCTHRESHOLD <- log(1.23)
+```
+
+```{r colocation}
+DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+```
+```{r colocation}
+
+mono <- subset(immune.combined, ident = "Monocyte")
+mono <- RunPCA(mono, npcs = 30, verbose = FALSE)
+mono <- RunUMAP(mono, reduction = "pca", dims = 1:20)
+mono <- FindNeighbors(mono, reduction = "pca",dims = 1:20 )
+mono <- FindClusters(mono, resolution = 0.5)
+
+DimPlot(mono, reduction = "umap", label = TRUE, label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+
+# Identify markers with DE 
+#pbmc.markers <- FindAllMarkers(mono, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+#pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+
+
+neut <- c("CD14", "IL1B")
+monocytes <- c("CD163", "CFD")
+cDC <- c("FLT3", "DQA1")
+pDC <- c("IRFB", "GZMB")
+marker.genes <- c(monocytes, cDC, pDC, neut)
+
+FeaturePlot(mono, neut)
+FeaturePlot(mono, monocytes)
+FeaturePlot(mono, cDC)
+FeaturePlot(mono, pDC)
+
+DotPlot(mono,features = marker.genes)
+
+
+mono <- RenameIdents(mono, `0` = "Monocyte", `1` = "Monocyte", `2` = "Monocyte", 
+   `3` = "Monocyte", `4` = "Monocyte", `5` = "Monocyte", `6` = "Monocyte",  `7` = "cDC",  `8` = "pDC", `9` = "Monocyte")
+
+DimPlot(mono, reduction = "umap", label = TRUE, cols =brewer.pal(8, "Set3"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+
+
+
+```

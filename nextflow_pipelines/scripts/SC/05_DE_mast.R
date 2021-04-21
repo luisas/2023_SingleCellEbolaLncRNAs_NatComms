@@ -10,19 +10,15 @@ options(future.globals.maxSize = 10000 * 1024^2)
 
 args = commandArgs(trailingOnly=TRUE)
 
-file = file.path("/home/luisas/Desktop/cluster/proj/code/ebola/src/scripts/Analysis/results/seurat_pbmc_rhemac10_merged_aftercellandgeneqc_afterScrublet.rds")
 file = file.path(args[1])
 robjectsdir  = file.path(args[2])
 
 dir.create(robjectsdir, showWarnings = FALSE)
-
-
 immune.combined <- readRDS(file)
 
 # -----------------------
 #   General MAST model 
 # -----------------------
-
 get_mast_model  <- function(subset, relevel = "bystander", contarst = "conditioninfected"){
   # Convert to single cell experiment
   subset <- as.SingleCellExperiment(subset)
@@ -63,8 +59,7 @@ get_mast_model  <- function(subset, relevel = "bystander", contarst = "condition
 # --------------------------------------
 #   MAST each celltype stage vs baseline 
 # --------------------------------------
-
-mast_stateVSbaseline_perCelltype <- function(immune.combined , celltype, stages, robjectsdir, prefix = "MAST_invivo_model_", ebola_genes = ebola_genes){
+mast_stateVSbaseline_perCelltype <- function(immune.combined , celltype, stages, robjectsdir, prefix = "MAST_invivo_model_"){
   # Create the right subset (Only cells of selectedcelltype)
   subset <- subset(immune.combined, idents = celltype)
   # And cells of the comparison groups
@@ -78,19 +73,16 @@ mast_stateVSbaseline_perCelltype <- function(immune.combined , celltype, stages,
 }
 
 
-
-
 # Prepare which are the comparisons we are interested in 
 celltypes <- unique(Idents(immune.combined))
 ref_comparison <- "baseline"
 comparisons <- list( "late", "middle", "early")
 
 
-
 # Run the comparison 
 for( celltype in celltypes){
   for(comparison in comparisons){
-    mast_stateVSbaseline_perCelltype(immune.combined, celltype, c(ref_comparison, comparison),robjectsdir, "MAST_invivo_model_", ebola_genes)
+    mast_stateVSbaseline_perCelltype(immune.combined, celltype, c(ref_comparison, comparison),robjectsdir, "MAST_invivo_model_")
   }
 }
 

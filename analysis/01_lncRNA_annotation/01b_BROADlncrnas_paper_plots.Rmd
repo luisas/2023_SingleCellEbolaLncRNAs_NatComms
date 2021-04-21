@@ -61,6 +61,16 @@ plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_huma
 
 
 #export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
+
+names <- c("Novel lncRNAs", "Annotated lncRNAs", "Protein Coding")
+gen <- c("lncRNAs", "lncRNAs", "Protein Coding")
+n<-c(length(unique(all_novel_lnc$gene_id)), length(unique(lnc_ids)), length(unique(pc_ids)))
+df <- data.frame(names,n , gen)
+
+
+df$names <- factor(df$names, levels =  c("Novel lncRNAs", "Annotated lncRNAs", "Protein Coding"))
+ylab <- seq(10,50,10)
+ggplot(df, aes(x = gen, y = n, fill = names))+geom_bar(stat="identity", alpha = 0.8)+theme_paper+xlab("")+ylab("")+theme(axis.text.x = element_blank())+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)+scale_fill_manual(values = c("red", "pink", "navy"))
 ```
 
 
@@ -236,10 +246,41 @@ df_missing$FoundInMasterSample <- ifelse(df_missing$short_id %in% matrix_corresp
 write_csv(df_missing,"/home/luisas/Desktop/missing_metadata_broad.csv")
 
 
-sample_names
-RA_id_mapping
-metadata
+RA_id_mapping <-
+  c("RA0223-Liver_S8" = "A0059",  # ln 61 - "RA0223_Liver-L"
+    "RA0223_PBMC_D003_S7" = "A0455", # ln 457 - "RA0223_PBMC-D3"
+    "RA0449-D003_S105_L002" = "A0456", # ln 458 ' "RA0449_PBMC-D3"
+    "RA0449_PBMC_D003_S8" = "A0329", # ln 331 - "RA0449_WholeBlood-D3"
+    "RA0452-D005_S7_L001" = "A0338", # ln 340 - "RA0452_WholeBlood-D5"
+    "RA0452_PBMC_D005_S10" = "A0458", # ln 460 - "RA0452_PBMC-D5"
+    "RA0700-Blood-BL_S3" = "A0304", # ln 306 - "RA0700_WholeBlood-BL" OR ln 307 ("A0305") __ambiguous__ -- FIND BARCODE -- FIXED: was both mixed, fix RA0700_WholeBlood-Dm04, RA0700_WholeBlood-Dm30
+    "RA0700-Blood-D7-NEC_S2" = "A0306",  # ln 308 - "RA0700_WholeBlood-D7-NEC"
+    "RA0700-Liver_S9" = "A0045", # ln 47 - "RA0700_Liver-L"
+    "RA0717-D004_S104_L002" = "A0457", # TO BE VERIFIED -- FIND BARCODE; almost certainly that sample; unclear if diff prep; treat as diff
+    "RA0717-Liver_S10" = "A0031", # ln 33 - "RA0717_Liver-L"
+    "RA0717_PBMC_D004_S9" = "A0457", # ln 459 - "RA0717_PBMC-D4"
+    "RA0850-Liver_S11" = "A0017", # ln 19 - "RA0850_Liver-L"
+    "RA1074-D006_S6_L001" = "A0459", # TO BE VERIFIED -- FIND BARCODE; almost certainly that sample; unclear if diff prep; treat as diff
+    "RA1074_PBMC_D006_S11" = "A0459", # ln 461 - "RA1074_PBMC-D6"
+    "RA1082-Blood-BL_S5" = "A0295", # ln 297 OR ln 298 ("A0296") __ambiguous__ -- FIND BARCODE -- FIXED: was both, RA1082_WholeBlood-Dm30b, RA1082_WholeBlood-Dm30a
+    "RA1082-Blood-D0_S4" = "A0297", # ln 299
+    "RA1325-D006_S5_L001" = "A0460", # probably resequencing or reprep of the sample below; treat as separate and discard low quality
+    "RA1325_PBMC_D006_S12" = "A0460", # ln 462
+    "RA1779-Liver_S7" = "A0073", # ln 75 ("RA1779_Liver-L")
+    "RA1803-D006_S4_L001" = "A0461", # TO BE VERIFIED -- FIND BARCODE ; almost certainly that sample; unclear if diff prep; treat as diff
+    "RA1803-Liver_S12" = "A0003", # ln 5 ("RA1803_Liver-L")
+    "RA1803_PBMC_D006_S13" = "A0461", # ln 463 ("RA1803_PBMC-D6")
+    "RA1818-Blood-D6-NEC_S1" = "A0309", # ln 311 ("RA1818_WholeBlood-D6-NEC")
+    "RA1819_WB_D-14_S2" = "A0299", # ln 301 ("RA1819_WholeBlood-BL")
+    "RA1819_WB_D-28_S1" = "A0298", # ln 300 ("RA1819_WholeBlood-BL")
+    "RA1819_WB_D000_S3" = "A0300", # ln 302 ("RA1819_WholeBlood-D0")
+    "RA1856_WB_D-14_S5" = "A0302", # ln 304 ("RA1856_WholeBlood-BL")
+    "RA1856_WB_D-28_S4" = "A0301", # ln 303 ("RA1856_WholeBlood-BL")
+    "RA1856_WB_D000_S6" = "A0303" # ln 305 ("RA1856_WholeBlood-D0")
+  )
+
 ```
+
 
 
 ```{r tissuespecificity}
@@ -302,27 +343,12 @@ bams <- iterate_files(dir, "*.bam$")
 patterns <- paste(metadata_complete[metadata_complete$tissue == "Lymph node",]$sample_name, collapse = "|")
 bams_tissue <- data.frame(bams[grepl(patterns, bams)])
 
-write.(bams_tissue, "/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/Lymphnode_bams.csv")
 
 t <- read.csv("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/Lymphnode_bams.csv")
 
 
 
 saveRDS(metadata_complete,"/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/metadata_complete.rds")
-
-quantification_list
-counts
-table(seqnames(gene_annotation))
-
-colnames(metadata)
-
-table(metadata$animal.number)
-metadata
-
-
-table(is.na(metadata_tissue$id.individual))
-
-table(metadata_tissue$date.broad.extract)
 ```
 
 
@@ -351,6 +377,10 @@ df <- add_type(df, all_novel_lnc$gene_id, "Novel lncRNAs")
 df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
 df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
 df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+
+df <- add_type(df, intergenic_lnc$gene_id, "Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Novel lncRNAs")
+
 df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
 df <- df[!df$type == "0",]
 
@@ -506,6 +536,20 @@ ggplot(df , aes(x =type,  y = n, col = tissue, fill = tissue))+geom_boxplot(alph
 
 ```
 
+# PCA 
+```{r cars}
+library(stats)
+library(ggplot2)
+
+tissue <- "Brain"
+outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
+
+iterate_files("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/", "*genecounts.rds")
+
+counts <- readRDS(file.path(outpath, paste(tissue, "_genecounts.rds", sep = "")))
+```
+
+
 
 # PCA 
 ```{r cars}
@@ -518,11 +562,10 @@ tpm_lnc <- expression[rownames(expression) %in% c(all_novel_lnc$gene_id, lncRNAs
 tpm_lnc_ref <- expression[rownames(expression) %in% lncRNAs_ref$gene_id ,]
 tpm_lnc_novel <- expression[rownames(expression) %in% all_novel_lnc$gene_id ,]
 
-
+tpm <- tpm_pc
 # Create PCA function from tpm matrix
-
 do_pca <- function(tpm){
-  V <- apply(tpm, 1, var)
+V <- apply(tpm, 1, var)
 selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
 
 
@@ -544,13 +587,8 @@ pc_scores <- pc_scores %>%
   # convert to a tibble retaining the sample names as a new column
   as_tibble(rownames = "sample")
 
-
 complete_df_broad$sample<- as.character(complete_df_broad$sample_name)
-
 df_pca <- merge(pc_scores, complete_df_broad, by="sample")
-
-
-metadata_complete
 
 df_pca %>% 
   # create the plot
@@ -562,10 +600,6 @@ df_pca %>%
 do_pca(tpm_pc)+ggtitle("Top 3k PC genes")+ stat_ellipse()
 do_pca(tpm_lnc_novel)+ggtitle("Top 3k novel lncRNAs")+ stat_ellipse()
 do_pca(tpm_lnc_ref)+ggtitle("Top 3k annotated lncRNAs")+ stat_ellipse()
-
-
-
-
 
 ```
 
@@ -594,7 +628,7 @@ df$type <- factor( df$type, levels = c("Annotated lncRNAs", "Novel lncRNAs", "mR
 df$perc_bin <- factor(df$perc_bin, levels = (rev(c("<20%", "<40%", "<60%", "<80%", "<100%"))))
 
 
-ylab <- seq(2,20,2)
+ylab <- seq(1,20,2)
 
 ggplot(df[df$n > 0,], aes(x = tissue,  fill = perc_bin))+geom_bar(stat ="count")+theme_paper+scale_fill_manual(values=rev(pal))+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+xlab("")+ylab("")+ facet_wrap(.~type, scales = "free_y")+theme(
    strip.background = element_rect(
@@ -603,21 +637,7 @@ ggplot(df[df$n > 0,], aes(x = tissue,  fill = perc_bin))+geom_bar(stat ="count")
    )+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)
 
 
-ggplot(df, aes(x = tissue,  fill = perc_bin))+geom_bar(stat ="count")+theme_paper+scale_fill_manual(values=rev(pal))+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))+xlab("")+ylab("")+ facet_wrap(.~type)+theme(
-   strip.background = element_rect(
-     color="darkgrey", fill="grey", size=1, linetype="solid"
-     )
-   )+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)
 
-
-df[df$type == "Intergenic Novel lncRNAs" & df$tissue == "Lymph node" & df$n > 1,]
-df[grepl("MSTRG.4699", df$id),]
-
-all[all$gene_id == "MSTRG.101067", ]
-
-ref[grepl("MST",ref$gene_id),]
-
-complete_df_broad_original[complete_df_broad_original$tissue == "Lymph node",]
 ```
 
 

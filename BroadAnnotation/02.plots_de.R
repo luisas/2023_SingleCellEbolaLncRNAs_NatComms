@@ -1,0 +1,127 @@
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+suppressMessages(library(edgeR))
+suppressMessages(library(stringr))
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(RColorBrewer))
+suppressMessages(library("wesanderson"))
+options(stringsAsFactors = F)
+# 0. Palettes & themes 
+
+pal1 <- wes_palette("Darjeeling1", 5, type = "discrete")
+pal2 <- wes_palette("Darjeeling2", 5, type = "discrete")
+colfunc <- colorRampPalette(c("grey", "red"))
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))+theme(plot.title = element_text(hjust = 0.5))
+
+
+# 1. Input Variables and Files
+tissue <-  args[1]
+outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
+dge <-readRDS(file.path("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/", tissue, "dge.rds"))
+
+# 2. Read in metadata
+metadata <-  readRDS("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/metadata_full.rds")
+# Only keep samples for which i have both counts and metadata
+metadata_tissue <- metadata[metadata$tissue %in% tissue, ]
+
+# Only retain samples with more than 3M reads
+metadata_tissue <- metadata_tissue[(metadata_tissue$hostReadCount > 3* 10^6),]
+
+
+cpm <- cpm(dge, log = T, norm = T)
+
+# Select top 5k Variable genes 
+V <- apply(cpm, 1, var)
+selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
+M <- t(cpm[selectedGenes,])
+
+# Compute PCA 
+sample_pca <- prcomp(M)
+pc_scores <- sample_pca$x
+pc_scores <- pc_scores %>% 
+  # convert to a tibble retaining the sample names as a new column
+  as_tibble(rownames = "sample")
+
+# Add metadata for later plotting
+metadata_tissue$sample <- metadata_tissue$X
+
+metadata_tissue$subtissue <- unlist(lapply(metadata_tissue$biosample,  function(x) str_split(x, "-")[[1]][2]))
+df_pca <- merge(pc_scores, metadata_tissue, by="sample")
+
+
+# Draws a PCA separating(coloring) for the given variable
+draw_pca <- function(df_pca, variable, c = F, pal = pal1, pointsize = 2 ){
+  p <- df_pca %>% 
+    ggplot(aes(x = PC1,  y = PC2, col = eval(parse(text = variable)))) +
+    geom_point(alpha = 0.9, size = pointsize)+theme_paper
+  
+  if(!c){
+    p <- p+scale_color_manual(values = pal)
+  }
+  p <- p+ggtitle(variable)+ theme(legend.position="bottom", legend.text = element_text(size = 10))+theme( axis.text = element_text(size = 12),axis.title = element_text(size = 11), title = element_text(size = 13))
+  return(p)
+}
+
+
+
+plots_path <- file.path(outpath, "plots")
+dir.create(plots_path, recursive = T,  showWarnings = F)
+pcas_path <- file.path(plots_path, "pcas")
+
+
+var <- "infection_status"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var, pal = rev(brewer.pal(9, "Set1")[1:2] ))
+dev.off()
+
+
+var <- "batch.extraction"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var )
+dev.off()
+
+
+var <- "sex"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var)
+dev.off()
+
+
+var <- "weight"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, "weight", c = T)
+dev.off()
+
+
+var <- "id.individual"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var, c = T )
+dev.off()
+
+
+var <- "id.cohort"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var, pal = colfunc(length(unique(df_pca$id.cohort))) )
+dev.off()
+
+
+
+var <- "subtissue"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var, c = F,pal = brewer.pal(3, "Set3"))
+dev.off()
+
+var <- "pc.viral.reads"
+jpeg(file=file.path(pcas_path, paste(tissue,var, "PCA.jpeg", sep = "_")), width=3.25,height=3.25,units="in", res = 600)
+dir.create(pcas_path, recursive = T,  showWarnings = F)
+draw_pca(df_pca, var, c = T, pointsize = 2.5)+scale_colour_steps2()+ggtitle("Percentage viral reads")
+dev.off()

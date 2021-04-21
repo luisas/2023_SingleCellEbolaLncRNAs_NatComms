@@ -10,7 +10,8 @@ options(stringsAsFactors = F)
 
 # 0. Select Tissue
 tissue <- c("Lymph node")
-lateonly <- TRUE
+tissue <- args[1]
+
 
 outpath <- paste0("/home/luisas/Desktop/cluster/data/99_BroadAnnotation_Feb2021/05_DEA/Tissues/",tissue,"/")
 dir.create(outpath, recursive = T,  showWarnings = F)
@@ -76,8 +77,8 @@ traits <- c("stage")
 str(metadata_tissue[,c("X",covariates, traits, "id.individual")])
 
 
-fml_args_mod <- paste(c( traits, covariates), collapse = " + ")
-mod <- model.matrix( as.formula(paste(" ~  0+", paste(fml_args_mod,collapse = " "))), data =  metadata_tissue)
+fml_args_mod <- paste(c(traits, covariates), collapse = " + ")
+mod <- model.matrix( as.formula(paste(" ~ 0+", paste(fml_args_mod,collapse = " "))), data =  metadata_tissue)
 
 
 # Voom
@@ -105,13 +106,12 @@ vfit <- contrasts.fit(fit, contrasts=contr.matrix)
 efit <- eBayes(vfit)
 summary(decideTests(efit))
 
-topTable(efit)
 
 # Add objects to data
 my_data[["dge"]] <- dge
 my_data[["v"]] <- v
 my_data[["fit"]] <- fit
-
+my_data[["efit"]] <- efit
 
 # Save objects
 saveRDS(my_data,
