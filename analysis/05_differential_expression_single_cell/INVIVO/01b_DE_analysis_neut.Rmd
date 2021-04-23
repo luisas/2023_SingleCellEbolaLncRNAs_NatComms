@@ -8,7 +8,7 @@ output: html_document
 
 # Differential expression analysis IN VIVO 
 
-```{r a}
+```{r Imports}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(Seurat)
@@ -48,8 +48,6 @@ immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs
 # Ortholgs
 orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
 
-
-
 # Check LncPedia
 lncpedia_immune <- import("../../lncpedia_immune.gtf")
 lncpedia_infection <- import("../../lncpedia_infection.gtf")
@@ -66,15 +64,12 @@ reported_immlnc <- immlnc$lncRNA_symbol
 FDRTHRESHOLD<- 0.05
 # Fold-Change of 30%
 FCTHRESHOLD <- log(1.23)
-
 ```
 
 # --------------------------------------------------
 # Read in DE analysis files
 # --------------------------------------------------
-
 ```{r readfilesDE}
-
 files <- iterate_files(robjectsdir, "MAST_invivo_model_*")
 get_celltype <- function(x){strsplit(basename(x), "_")[[1]][4]}
 get_stage <- function(x){strsplit(strsplit(basename(x), "_")[[1]][5], '.', fixed = T )[[1]][1]}
@@ -109,13 +104,7 @@ mast_objects_celltype_all <- unlist(lapply(celltypes, function(celltype){
 # mast_B_early
 ```
 
-
-
-# --------------------------------------------------
-# Select which ones are DE 
-# --------------------------------------------------
-
-```{r a}
+```{r SelectDE}
 # -------------------------------------------------------------------------
 # Select genes
 # -------------------------------------------------------------------------
@@ -246,45 +235,11 @@ DimPlot(immune.combined, split.by = "group", cols = c(brewer.pal(4, "Set2")))+th
 DimPlot(neut, group.by = "group", cols = rev(c(brewer.pal(4, "Set1"))))+ggtitle("Neutrophils colored by infection stage")
 ```
 
-
 # -----------------------------------------------
-#      Visualize the numbers  
+#     STATS DE 
 # -----------------------------------------------
-```{r heatmap}
-df_de <- lnc_de_all %>% dplyr::group_by(type,subtype, celltype) %>% dplyr::summarise(n=n_distinct(primerid))
-df_de$y_pos <- c(11+10,27+20,5+10,10,6,6)
 
-
-immune.combined$group <- factor(immune.combined$group, levels = c("baseline", "early", "middle", "late"))
-
-ggplot(df_de , aes(x = celltype,y=n, col = subtype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_manual(values=c( "grey", "black"))+theme_paper+ylab("Number of DE LncRNAs")+xlab("")+theme(legend.position = "")+
-  geom_text(aes(y=y_pos, label=n), vjust=1.6, color="white", size=6)
-
-
-ggplot(mrna_de_all %>% dplyr::group_by(type, celltype) %>% dplyr::summarise(n=n_distinct(primerid)), aes(x = celltype,y=n, col = celltype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")+theme_paper+ylab("Number of DE PC genes")+xlab("")+theme(legend.position = "")+geom_text(aes(y=n, label=n), vjust=1.6, color="white", size=6)
-
-# How many DE lncRNAs
-length(unique(lnc_de_all$primerid))
-length(unique(mrna_de_all$primerid))
-```
-
-
-# Alternative visualization instead of HeatMap
-```{r heatmap}
-
-candid <- unique(lnc_de_all$primerid)
-plot.data <- Dotplot_data(immune.combined, features = candid, group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data$name <- unlist(lapply(plot.data$features.plot, get_orthologname))
-plot.data$id <- factor(plot.data$id, levels = c("baseline", "early", "middle", "late"))
-plot.data$labels <- (plot.data$id)
-
-#ggplot(plot.data, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-#heatmap_celltypes(plot.data)
-
-```
-
-# Check for DE genes mrnas
-```{r heatmap}
+```{r goPC}
 
 do_go <- function(list, keytype = "SYMBOL"){
   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =  org.Mmu.eg.db, keyType = keytype,ont = "BP",universe =unique(rownames(immune.combined)))
@@ -309,15 +264,25 @@ do_go(unique(mrna_T_late[mrna_T_late$coef >0, ]$primerid))
 do_go(unique(mrna_T_late[mrna_T_late$coef <0, ]$primerid))
 ```
 
+```{r VisualizeDEnumbers}
+df_de <- lnc_de_all %>% dplyr::group_by(type,subtype, celltype) %>% dplyr::summarise(n=n_distinct(primerid))
+df_de$y_pos <- c(11+10,27+20,5+10,10,6,6)
 
 
+immune.combined$group <- factor(immune.combined$group, levels = c("baseline", "early", "middle", "late"))
+
+ggplot(df_de , aes(x = celltype,y=n, col = subtype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_manual(values=c( "grey", "black"))+theme_paper+ylab("Number of DE LncRNAs")+xlab("")+theme(legend.position = "")+
+  geom_text(aes(y=y_pos, label=n), vjust=1.6, color="white", size=6)
 
 
-# -----------------------------------------------
-#       Prepare table of significantly DE genes 
-# -----------------------------------------------
+ggplot(mrna_de_all %>% dplyr::group_by(type, celltype) %>% dplyr::summarise(n=n_distinct(primerid)), aes(x = celltype,y=n, col = celltype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_brewer(palette = "Set2")+scale_color_brewer(palette = "Set2")+theme_paper+ylab("Number of DE PC genes")+xlab("")+theme(legend.position = "")+geom_text(aes(y=n, label=n), vjust=1.6, color="white", size=6)
 
-```{r heatmap}
+# How many DE lncRNAs
+length(unique(lnc_de_all$primerid))
+length(unique(mrna_de_all$primerid))
+```
+
+```{r prepareDEMatrix}
 
 set.seed(123)
 
@@ -336,12 +301,9 @@ m_significance <- m_significance[,c("Monocyte_early" ,"Monocyte_middle","Monocyt
 saveRDS(stats_complete, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE_neut//stats_complete.rds")
 saveRDS(m, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE_neut//m.rds")
 
-
 ```
 
-
-```{r heatmap}
-
+```{r fullHeatmap}
 # -------------------------------------------------------------------------
 # Create Heatmap(s)
 # -------------------------------------------------------------------------
@@ -362,14 +324,9 @@ length(de_lists_mrna)
 
 heatmap_mrna <- h1 %v% hms_mrna[[1]]%v%hms_mrna[[2]]%v%hms_mrna[[3]]%v%hms_mrna[[4]]%v%hms_mrna[[5]]%v%hms_mrna[[6]]%v%hms_mrna[[7]]%v%hms_mrna[[8]]
 heatmap_mrna
-
-colnames(m)
 ```
 
-# ----------------------------------------------
-#  Directionality of dysregulation 
-# ------------------------------------------------
-```{r heatmap}
+```{r directionalityOfDysregulation}
 
 de_stats_direction_plot <- de_all %>% group_by(primerid, celltype,stage,type) %>% dplyr::summarise(direction = toString((direction)))
 de_stats_direction_plot <- de_all %>% group_by(primerid, celltype,stage,type,subtype) %>% dplyr::summarise(direction = toString((direction)))
@@ -389,8 +346,6 @@ ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = 
 ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype+subtype)+scale_fill_manual(values = rev(c("#FF6B6B", "#6BABFF")))+ylab("Number of DE lncRNAs")+xlab("")+theme(legend.position = "")
 
 
-
-
 de_stats_direction_plot <- de_all %>% group_by(primerid, celltype,type) %>% dplyr::summarise(direction = toString((direction)))
 de_stats_direction_plot <- de_all %>% group_by(primerid, celltype,type,subtype) %>% dplyr::summarise(direction = toString((direction)))
 
@@ -401,75 +356,70 @@ ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = c
 
 ```
 
+# Alternative visualization instead of HeatMap
+```{r plotData}
+candid <- unique(lnc_de_all$primerid)
+plot.data <- Dotplot_data(immune.combined, features = candid, group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data$name <- unlist(lapply(plot.data$features.plot, get_orthologname))
+plot.data$id <- factor(plot.data$id, levels = c("baseline", "early", "middle", "late"))
+plot.data$labels <- (plot.data$id)
 
-```{r colocation}
+#ggplot(plot.data, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+#heatmap_celltypes(plot.data)
+```
+
+# ---------------------
+#     Heatmaps individual 
+# ---------------------
+```{r heatmapTlnc}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/T_lnc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_lnc_T)), "T",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc, close_isg_summary, unique(close_broad), legend = T)
 dev.off()
 ```
-```{r colocation}
+```{r heatmapBlnc}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/B_lnc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_lnc_B)), "B",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc, close_isg_summary, unique(close_broad), legend = T )
 dev.off()
 ```
-
-```{r colocation}
+```{r heatmapMonolnc}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/Mono_lnc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "Monocyte", unique(unlist(de_lists_lnc_my)), "Monocyte",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc, close_isg_summary, unique(close_broad), legend = T )
 dev.off()
-
-columns_keep <- colnames(m)[unlist(lapply(colnames(m), function(column) strsplit(column, "_")[[1]][1] == "Monocyte"))]
-
-
-min(m[unique(unlist(de_lists_lnc_my)),columns_keep])
 ```
 
-
-
-
-```{r colocation}
+```{r heatmapMonolncExpr}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/Mono_lnc_expr.png", width = 1300, height = 1100)
 m_expr <- acast(plot.data, features.plot~labels, value.var="avg.exp.scaled")
 colnames(m_expr) <- paste("Monocyte", colnames(m_expr), sep = "_")
 FC_heatmap_subset_celltype(m_expr, "Monocyte", unique(unlist(de_lists_lnc_my)), "Monocyte",brewer.pal(3, "Set2")[3],orthologs, lncpedia, reported_immlnc,close_isg_summary, unique(close_broad), legend = T )
 dev.off()
 ```
-
-
-
-```{r colocation}
+```{r heatmapTlncExpr}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/T_lnc_expr.png", width = 1300, height = 1100)
 m_expr <- acast(plot.data, features.plot~labels, value.var="avg.exp.scaled")
 colnames(m_expr) <- paste("T", colnames(m_expr), sep = "_")
 FC_heatmap_subset_celltype(m_expr, "T", unique(unlist(de_lists_lnc_T)), "T",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc,close_isg_summary, unique(close_broad), legend =T ) 
 dev.off()
 ```
-
-```{r colocation}
+```{r heatmapBlncExpr}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/B_lnc_expr.png", width = 1000, height = 1100)
 m_expr <- acast(plot.data, features.plot~labels, value.var="avg.exp.scaled")
 colnames(m_expr) <- paste("B", colnames(m_expr), sep = "_")
 FC_heatmap_subset_celltype(m_expr, "B", unique(unlist(de_lists_lnc_T)), "B",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc,close_isg_summary, unique(close_broad), legend = T )
 dev.off()
-
-min(m_expr)
 ```
 
-
-
-```{r colocation}
+```{r heatmapMonopc}
 png(filename = "/home/luisas/Desktop/cluster/data/Mono_pc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "Myeloid", unique(unlist(de_lists_mrna_my)), "Myeloid",brewer.pal(3, "Set2")[3],orthologs, lncpedia, reported_immlnc, close_isg_summary, unique(close_broad))
 dev.off()
 ```
-
-```{r colocation}
+```{r heatmapTpc}
 png(filename = "/home/luisas/Desktop/cluster/data/plots/T_pc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_mrna_T)), "T",  brewer.pal(3, "Set2")[1],orthologs, lncpedia, reported_immlnc, close_isg_summary, unique(close_broad))
 dev.off()
 ```
-
-```{r colocation}
+```{r heatmapBpc}
 png(filename = "/home/luisas/Desktop/cluster/data/B_pc_FC.png", width = 1300, height = 1100)
 FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_mrna_B)), "B",  brewer.pal(3, "Set2")[2])
 dev.off()
@@ -675,6 +625,20 @@ ggplot(ortholog_summary, aes(x = de, fill = immlnc, y = freq))+geom_bar(stat="id
 # ---------------------------------------------------------------
 #            Specificity of DE expression 
 # ---------------------------------------------------------------
+```{r colocation}
+library(UpSetR)
+# Cell-type 
+x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))
+names(x)  <-  c( "T DE lncRNAs " , "B DE lncRNAs ","Myeloid DE lncRNAs" )
+upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15))
+
+intersect(intersect(x$`T DE lncRNAs `, x$`B DE lncRNAs `), x$`Myeloid DE lncRNAs`)
+
+# Stages 
+x_stages <- list( unlist(unique(early_de_lnc)), unlist(unique(middle_de_lnc)),unlist(unique(late_de_lnc)))
+names(x_stages)  <-  c( "T DE mRNAs " , "B DE mRNAs ","Myeloid DE mRNAs" )
+upset(fromList(x_stages), order.by = "freq")
+```
 
 
 ```{r colocation}

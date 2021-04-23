@@ -171,7 +171,9 @@ gD2  = induced_subgraph(Gsi, Keep)
 lou2 = cluster_louvain(gD2)
 LO2 = LO[Keep,]
 
-
+saveRDS(gD2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/gD2.rds")
+saveRDS(lou2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/lou.rds")
+saveRDS(linkList, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/linkList.rds")
 ```
 
 

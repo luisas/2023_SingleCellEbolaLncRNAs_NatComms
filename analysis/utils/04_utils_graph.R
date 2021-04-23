@@ -608,7 +608,7 @@ plot_viral_load_gene <- function(gene_id, mono_live_h24_inf){
 }
 
 
-check_expressed_vs_infection <- function(gene_id, mono = mono){
+check_expressed_vs_infection <- function(gene_id, mono = mono, ebola_genome_percentage_df = ebola_genome_percentage_df){
   # When neat is expressed check infected not infected, status 
   gene_expressed <- as.data.frame(t(mono[c(gene_id),]@assays$RNA@data))
   colnames(gene_expressed) <- c("gene")
@@ -623,8 +623,8 @@ check_expressed_vs_infection <- function(gene_id, mono = mono){
   summary_exp <- gene_expressed %>% dplyr::group_by(exp, infection) %>%dplyr::summarise(n = n())%>% dplyr::mutate(freq = n *100 / sum(n))
   p1 <- ggplot(summary_exp, aes( x = exp, fill = infection, y = freq ))+geom_bar(stat = "identity", position = "dodge")+theme_paper+scale_fill_manual(values = c("#F2D994", "#A93E00"))+ylab("%Cells")+xlab("")+ggtitle(get_orthologname_(gene_id))+ylim(c(0,100))
   
-  p2 <- summary_exp <- gene_expressed %>% dplyr::group_by(exp, status) %>%dplyr::summarise(n = n())%>% dplyr::mutate(freq = n *100 / sum(n))
-  ggplot(summary_exp, aes( x = exp, fill = status, y = freq ))+geom_bar(stat = "identity", position = "dodge", alpha = 0.9)+theme_paper+scale_fill_manual(values = wes_palette("Darjeeling1",4))+ylab("%Cells")+xlab("")+ggtitle(get_orthologname_(gene_id))
+  summary_exp <- gene_expressed %>% dplyr::group_by(exp, status) %>%dplyr::summarise(n = n())%>% dplyr::mutate(freq = n *100 / sum(n))
+  p2 <- ggplot(summary_exp, aes( x = exp, fill = status, y = freq ))+geom_bar(stat = "identity", position = "dodge", alpha = 0.9)+theme_paper+scale_fill_manual(values = wes_palette("Darjeeling1",4))+ylab("%Cells")+xlab("")+ggtitle(get_orthologname_(gene_id))
   return(list(p1,p2))
 }
 
