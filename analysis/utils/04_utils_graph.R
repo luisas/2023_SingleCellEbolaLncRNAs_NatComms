@@ -305,19 +305,6 @@ Dotplot_mod <- function (object, assay = NULL, features, cols = c("lightgrey",
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 Dotplot_data <- function (object, assay = NULL, features, cols = c("lightgrey", 
                                                                    "blue"), col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6, 
                           group.by = NULL, split.by = NULL, scale.by = "radius", scale.min = NA, 
@@ -500,8 +487,8 @@ heatmap_celltypes <- function(plot.data, perc_heatmap = F){
   m <- acast(plot.data, features.plot~id, value.var="avg.exp.scaled")
   m_pc<- acast(plot.data, features.plot~id, value.var="pct.exp")
   col_fun = colorRamp2(c(min(m), max(m)), c("lightblue", "dark red"))
-  rownames(m) <- unlist(lapply(rownames(m), get_orthologname))
-  rownames(m_pc) <- unlist(lapply(rownames(m_pc), get_orthologname))
+  rownames(m) <- unlist(lapply(rownames(m), get_orthologname_))
+  rownames(m_pc) <- unlist(lapply(rownames(m_pc), get_orthologname_))
   
   p1 <- Heatmap(m, name = "Average Expression", col = col_fun, cluster_rows = T, cluster_columns = F,rect_gp = gpar(col = "white", lwd = 1),column_split = unlist(lapply(colnames(m), function(x) str_split(x, "_")[[1]][1])),
                 cell_fun = function(j, i, x, y, width, height, fill) {
@@ -527,7 +514,7 @@ get_gene_id <- function(gene){
   gene_id  <- rownames(subset(immune.combined, features = c(gene_id)))
   return(gene_id)
 }
-plot_region <- function(gene, range = 100000){
+plot_region <- function(gene, range = 100000, palette_plot_percentage = palette_plot_percentage){
   gene_id <- unique(ref[ref$gene_name == gene,]$gene_id)
   chr <- paste("chr",unique(as.character(seqnames(ref[ref$gene_id == gene_id,]))), sep = "")
   
@@ -568,10 +555,10 @@ plot_region <- function(gene, range = 100000){
   #geneModels[geneModels$gene_name == "THY1",]$gene_biotype <- "mRNA_highlight"
   
   feature(atrack) <- geneModels$gene_biotype
-  p <- plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
+  p <- plotTracks(list(itrack,gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
                   background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2],
-                  lncRNA_highlight = palette_plot_percentage[3],
-                  mRNA_highlight = palette_plot_percentage[4],cex.id = 2, sizes = c(2, 0.3,0.3,1))
+                  lncRNA_highlight = palette_plot_percentage[3],fontsize=8,cex.group=1.4,
+                  mRNA_highlight = palette_plot_percentage[4],cex.id = 5, sizes = c(0.3,0.3,1), cex.main = 3)
   return(p)
 }
 

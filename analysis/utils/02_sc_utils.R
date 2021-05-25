@@ -251,7 +251,7 @@ scatter_plot_both<- function(df_lnc,df_mrna,highlight_genes = "",  y = "Variance
     }
   }
 
-  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(" Normalized ",type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
+  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
           scale_alpha_manual(values = c(1,0.3))+ylim(0,1)
   if(highlight_genes != ""){
     highlight_df <-  df_complete[unlist(lapply(rownames(df_complete), function(x) gsub( "-unknown", "",x))) %in% highlight_genes, ]
@@ -593,13 +593,13 @@ calc_correlation_with_names <- function(gene1,gene2,count_matrix, type = "pearso
   return(pc)
 }
 
-plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells expressing subset Genes", col = "darkblue", pt.size = 0.1){
+plot_genes <- function(immune.combined, tcell, threshold = 3, title = "Cells expressing subset Genes", col = "darkblue", pt.size = 0.1, sizes.highlight = 0.1){
   # Threshold: at least one gene in the geneset analyzed must have > threshold expression
   mask <- unlist(lapply(rownames(immune.combined), function(x) any(grepl(x, tcell) == TRUE ) ))
   expr <- FetchData(immune.combined, rownames(immune.combined[mask,]))
   g1 <- WhichCells(immune.combined, cells = colnames(immune.combined[, which(x = expr > threshold)]))
  
-  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), sizes.highlight = 0.1, cols.highlight = c(col), cols= "grey", pt.size = pt.size)+ 
+  p1 <- DimPlot(immune.combined, label=F, cells.highlight= list(g1), sizes.highlight = sizes.highlight, cols.highlight = c(col), cols= "grey", pt.size = pt.size)+ 
     labs(title = title )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
     theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
   return (list(p1,  sprintf("Number of cells %s", length(g1) )))
@@ -1697,9 +1697,10 @@ hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
 }
 
 
-FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title, orthologs, reported_lncpedia, reported_immlnc, close_isg = close_isg,
-                                       close_broad = close_broad, legend = F){
-  
+FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title, orthologs, reported_lncpedia, reported_immlnc, legend = F){
+  # Filter per cellytype
+  #close_isg <- close_isg[close_isg$celltype == celltype, ]
+  #close_broad <- close_broad[close_broad$celltype == celltype, ]
   # Only select the correct celltype
   columns_keep <- colnames(m)[unlist(lapply(colnames(m), function(column) strsplit(column, "_")[[1]][1] == celltype))]
   m <- m[,columns_keep]
@@ -1736,31 +1737,39 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
       return("")
     }
   }
-  close_isg_names <- unlist(lapply(rownames(m), get_isg))
-  close_isg <- ifelse(close_isg_names == "", "na", "closeisg")
-  close_broad <- ifelse(rownames(m) %in% close_broad, "closebroad", "na")
+  
+  get_depc <- function(gene){
+    if(gene %in% close_broad$lnc){
+      return(close_broad[close_broad$lnc == gene,]$close)
+    }else{
+      return("")
+    }
+  }
+  
+  #close_isg_names <- unlist(lapply(rownames(m), get_isg))
+  #close_depc_names <- unlist(lapply(rownames(m), get_depc))
+  
+  #close_isg <- ifelse(close_isg_names == "", "na", "closeisg")
+  #close_broad <- ifelse(close_depc_names == "", "na", "closebroad")
   
   rownames(m) <- ifelse(rownames(m) %in% orthologs$gene_id, (rownames(m)), "")
   rownames(m) <- unlist(lapply(rownames(m), get_orthologname_))
   reported_lncpedia <- ifelse(rownames(m) %in% reported_lncpedia, "reported lncpedia", "na")
   reported_immlnc <- ifelse(rownames(m) %in% reported_immlnc, "reported immlnc", "na")
 
-  row_ha_type <- rowAnnotation(genetype =genetypes,ortholog =labels_orth, reported_immlnc = reported_immlnc,reported_lncpedia = reported_lncpedia, show_legend = FALSE,
+  row_ha_type <- rowAnnotation(ortholog =labels_orth, reported_immlnc = reported_immlnc,reported_lncpedia = reported_lncpedia, show_legend = FALSE,
                                show_annotation_name = FALSE,
-                               col = list(genetype = c("ENS" = "grey",
-                                                       "MST" = "black"
-                               ), ortholog = c("na" = "white", "Ortholog found in human" = "orange"),
+                               col = list( ortholog = c("na" = "white", "Ortholog found in human" = "orange"),
                                reported_lncpedia = c("na" = "white", "reported lncpedia" = "light blue"),
                                reported_immlnc = c("na" = "white", "reported immlnc" = "navy")
                                ))
-
-  row_ha_typel <- rowAnnotation(foo = anno_text(close_isg_names) , close_isg = close_isg,
-                               close_broad = close_broad, show_legend = FALSE,
-                               show_annotation_name = FALSE,
-                               col = list(
-                               close_isg = c("na" = "white", "closeisg" = "red"),
-                               close_broad = c("na" = "white", "closebroad" = "purple")
-                               ))
+  row_ha_typel_nolabel <- rowAnnotation(genetype =genetypes,
+                                show_legend = FALSE,
+                                show_annotation_name = FALSE,
+                                col = list(genetype = c("ENS" = "grey",
+                                                        "MST" = "black"
+                                )))
+  
   h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(17, "cm"), 
                show_column_dend = FALSE,
                heatmap_height = unit(30, "cm"),
@@ -1773,7 +1782,7 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
                row_names_gp = gpar(fontsize = 15),
                row_title_rot = 0,
                right_annotation = row_ha_type, 
-               left_annotation = row_ha_typel,
+               left_annotation = row_ha_typel_nolabel,
                top_annotation = column_ha,
                column_title = title, 
                column_title_gp = gpar(fill = color_title, fontsize =30, border = NA), 

@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+```{r beg}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries 
+suppressMessages(library(edgeR))
+suppressMessages(library(limma))
+suppressMessages(library(dplyr))
+suppressMessages(library(reshape))
+suppressMessages(library(stringr))
+
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+
+# Read in files 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+quantification_dir  <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/"
+# ---------------------------
+#       Pre-selection 
+# ---------------------------
+
+iterate_files <- function(inpath, pattern_string){
+  files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
+  return(files)
+}
+
+
+# 2. Parse and save counts
+quantification <- iterate_files(quantification_dir, "*gene_counts.csv$")
+
+get_df_count <- function(filepath){
+  file <- read.csv(filepath, row.names = 1)
+  rownames(file) <- unlist(lapply(rownames(file), function(x) strsplit(x,"|", fixed = T )[[1]][1]))
+  file$rownames <- rownames(file)
+  return(file)
+}
+
+count_list <- lapply(quantification, get_df_count)
+counts_df <- merge_recurse(count_list, by = "rownames" )
+counts <- as.matrix(counts_df[,-1])
+rownames(counts) <- counts_df$rownames 
+colnames(counts) <- gsub("_dedup", "", colnames(counts))
+#saveRDS(counts, file.path(outpath, paste(tissue, "_genecounts.rds", sep = "")))
+datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+all_novel_lnc <- import("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
+```
+
+
+# Compute PCAs
+
+```{r prcomp}
+cpm <- cpm(counts, log = T, norm = T)
+# Select top 5k Variable genes 
+V <- apply(cpm, 1,var)
+selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
+M <- t(cpm[selectedGenes,])
+
+# Compute PCA 
+sample_pca <- prcomp(M)
+pc_scores <- sample_pca$x
+pc_scores <- pc_scores %>% 
+  # convert to a tibble retaining the sample names as a new column
+  as_tibble(rownames = "sample")
+
+pc_scores$Dataset <- unlist(lapply(pc_scores$sample,  function(x) str_split(x, "_")[[1]][1]))
+pc_scores$tissue <- unlist(lapply(pc_scores$sample,  function(x) str_split(x, "_")[[1]][2]))
+pc_scores$tissue <- unlist(lapply(pc_scores$tissue,  function(x) strsplit(x, ".", fixed = T )[[1]][1]))
+pc_scores$dpi <- unlist(lapply(pc_scores$sample,  function(x) str_split(x, "_")[[1]][3]))
+pc_scores$individual <- unlist(lapply(pc_scores$sample,  function(x) str_split(x, "_")[[1]][4]))
+
+pc_scores$infection <- "Not infected"
+pc_scores[pc_scores$dpi  %in% c("D03","D04", "D05", "D06", "D07", "D09", "EbovAb","NEC", "NEC1", "NEC2" ), ]$infection <- "Infected"
+
+```
+
+
+# Draw PCAs
+
+```{r pcas}
+# Draws a PCA separating(coloring) for the given variable
+draw_pca <- function(df_pca, variable, c = F, pal = pal1, pointsize = 2 ){
+  p <- df_pca %>% 
+  ggplot(aes(x = PC1,  y = PC2, col = eval(parse(text = variable)))) +
+  geom_point(alpha = 0.9, size = pointsize)+theme_paper
+  
+  if(c == F){
+    p <- p+scale_color_manual(values = pal)
+  }
+  p <- p+ggtitle(variable)+ theme(legend.position="bottom", legend.text = element_text(size = 10))+theme( axis.text = element_text(size = 12),axis.title = element_text(size = 11), title = element_text(size = 13))
+  return(p)
+}
+draw_pca(pc_scores, "tissue", brewer.pal(9,"Set1"))
+draw_pca(pc_scores, "Dataset", brewer.pal(9,"Set1"))
+```
+
+
+```{r pcas}
+# Subselect genes 
+cpm_pc <- counts[rownames(counts) %in% mRNAs_ref$gene_id,]
+cpm_lnc <- counts[rownames(counts) %in% c(all_novel_lnc$gene_id, lncRNAs_ref$gene_id),]
+cpm_lnc_ref <- counts[rownames(counts) %in% lncRNAs_ref$gene_id ,]
+cpm_lnc_novel <- counts[rownames(counts) %in% all_novel_lnc$gene_id ,]
+
+
+# Create PCA function from tpm matrix
+do_pca <- function(cpm){
+V <- apply(cpm, 1, var)
+selectedGenes <- names(V[order(V, decreasing = T)][1:3000])
+
+#transpose the matrix 
+M <- t(cpm[selectedGenes,])
+# transform the counts to log2 scale 
+M <- log2(M + 1)
+
+# Remove the ones not having the tissue info 
+M_c <- M[unlist(lapply(rownames(M), function(x) strsplit(x, "-")[[1]][1])) != "NA",]
+
+
+#compute PCA 
+sample_pca <- prcomp(M_c)
+pc_scores <- sample_pca$x
+pc_scores <- pc_scores %>% 
+  # convert to a tibble retaining the sample names as a new column
+  as_tibble(rownames = "sample")
+
+df_pca %>% 
+  # create the plot
+  ggplot(aes(x = PC1, y = PC2, col = tissue, fill = tissue, alpha = 0.2)) +
+  geom_point( )+theme_paper
+}
+pc_scores$tissue
+
+do_pca(cpm_pc)+ggtitle("Top 3k PC genes")
+do_pca(cpm_lnc_novel)+ggtitle("Top 3k novel lncRNAs")
+do_pca(cpm_lnc_ref)+ggtitle("Top 3k annotated lncRNAs")
+```

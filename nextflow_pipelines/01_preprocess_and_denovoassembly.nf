@@ -308,8 +308,8 @@ process generate_fastqc{
   """
 
 }
-//
-//
+
+
 /*
 *  Mapping with HISAT.
 * It maps the reads of the generated fastq files
@@ -398,7 +398,7 @@ process sort_bam{
 // We join the mapped and unmapped channel by complete_id.
 // See how channel were built at the beginning - complete id is always in the -2 position
 
-
+//merged_bam_alignments_channel.subscribe { println "value: $it" }
 
 if( "${params.umi}" == "true" ){
   sorted_and_index_bam.into{ printing3; sorted_and_index_bam_1; }
@@ -439,9 +439,7 @@ else{
   sorted_and_index_bam_2.set{merged_bam_alignments_channel}
 }
 
-
-
-
+//merged_bam_alignments_channel.subscribe { println "$it" }
 
 
 // In this channel we group the files by the complete_id after removing the lane.
@@ -450,6 +448,13 @@ merged_bam_alignments_channel.map { file ->
         def key = file.name.toString().tokenize('_').init()
         key_string = key.join("_")
         key << key_string
+        // Remove an extra one
+        if("${params.umis}" == "false"){
+          key = file.name.toString().tokenize('_').init().init()
+          key_string = key.join("_")
+          key << key_string
+        }
+
         return tuple(key, file)
      }
      .groupTuple()
@@ -459,12 +464,7 @@ merged_bam_alignments_channel.map { file ->
                  it.get(0).get(3),
                  it.get(0).get(0)+"_"+it.get(0).get(1)+"_"+it.get(0).get(2)+"_"+it.get(0).get(3),
                  it.get(1))}
-    .set{ groups_lanes }
-
-
-
-
-
+     .set{ groups_lanes }
 
 //groups_lanes.subscribe{println "$it"}
 
@@ -497,11 +497,6 @@ process merge_lanes{
   samtools index  ${complete_id}.UMI.bam
   """
 }
-
-
-//merged_bylanes.unique().subscribe{ println "$it" }
-
-
 
 /*
 *   Filter bams
@@ -542,7 +537,7 @@ if( "${params.umi}" == "true" ){
 
     tag "${complete_id}"
     label 'big_mem'
-    cpus 48
+    cpus 16
     storeDir "${params.output_dir}/03_hisat/$dataset_name/$tissue/$dayPostInfection/$sample"
 
     input:
@@ -637,27 +632,38 @@ process DeNovoAssembly{
   """
 }
 
-// /*
-// * Quantification for samples quality control
-// */
-process stringtie{
-  cpus 1
-  storeDir "${params.output_dir}/01b_quantification_qc/$dataset_name/$tissue/$dayPostInfection/$sample"
-
-  input:
-  file gtf from rheMac_annotation_channel1.collect()
-  set dataset_name, dayPostInfection, tissue, sample, complete_id,
-      file(bampair) from filtered_merged_bams_5
-
-  output:
-  file("*") into fpkm_channel
-
-  script:
-  """
-  # Calc the counts for the umi_dedup
-  stringtie -eB  --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
-  """
-}
+// // /*
+// // * Quantification for samples quality control
+// // */
+// process stringtie{
+//   cpus 1
+//   storeDir "${params.output_dir}/01b_quantification_qc/$dataset_name/$tissue/$dayPostInfection/$sample"
+//
+//   input:
+//   file gtf from rheMac_annotation_channel1.collect()
+//   set dataset_name, dayPostInfection, tissue, sample, complete_id,
+//       file(bampair) from filtered_merged_bams_5
+//
+//   output:
+//   file("*") into fpkm_channel
+//
+//   script:
+//   """
+//   # Calc the counts for the umi_dedup
+//   stringtie -eB  --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
+//   """
+//
+//   shell:
+//   if (dataset_name == "Zyagen"){
+//     '''
+//     stringtie -eB  --fr -G !{gtf} ${bampair[0]} -A !{complete_id}.gene_abundances.tsv
+//     '''
+//   }else{
+//     '''
+//     stringtie -eB  --rf -G !{gtf} ${bampair[0]} -A !{complete_id}.gene_abundances.tsv
+//     '''
+//   }
+// }
 
 
 

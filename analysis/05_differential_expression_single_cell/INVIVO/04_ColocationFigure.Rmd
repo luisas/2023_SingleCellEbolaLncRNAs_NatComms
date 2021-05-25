@@ -1,0 +1,236 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Colocation/correlation analysis in vivo
+
+```{r Imports}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(ggpubr)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(wesanderson)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(ggplot2)
+library(scales)
+library(circlize)
+library(reshape2)
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Imports
+source("../../utils/02_sc_utils.R")
+source("../../utils/03_de_utils.R")
+source("../../utils/04_utils_graph.R")
+
+# Gene annotation
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# Output paths
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+
+# LncRNAs
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+
+# Seurat object
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+
+# Ortholgs
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds")
+
+# Check LncPedia
+lncpedia_immune <- import("../../lncpedia_immune.gtf")
+lncpedia_infection <- import("../../lncpedia_infection.gtf")
+
+lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
+
+immlnc <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+reported_immlnc <- immlnc$lncRNA_symbol
+# -------------------------------------------
+#    Define threshold for the whole analysis
+# -------------------------------------------
+
+# Corrected q-value .05
+FDRTHRESHOLD<- 0.05
+# Fold-Change of 30%
+FCTHRESHOLD <- log(1.23)
+print("-")
+
+
+calc_correlation_genes <- function(gene1_vector,gene2_vector,gene1, gene2, type = "spearman"){
+  mask <- gene1_vector !=0 & gene2_vector !=0
+  # calculate the correlation coefficient
+  if(sum(mask)>10){
+    #pc <- bayes.cor.test(c1, c2)
+    pc <- cor.test(gene1_vector[mask], gene2_vector[mask], method = c(type))
+    df <- data.frame( pval=pc$p.value, rho=pc$estimate)
+    df$g1 <- gene1
+    df$g2 <- gene2
+    return(df)
+  }else{
+    return(NA)
+  }
+}
+
+expand.grid.unique <- function(x, y, include.equals=FALSE){
+  x <- unique(x)
+  y <- unique(y)
+  g <- function(i)
+  {
+    z <- setdiff(y, x[seq_len(i-include.equals)])
+    if(length(z)) cbind(x[i], z, deparse.level=0)
+  }
+  do.call(rbind, lapply(seq_along(x), g))
+}
+
+
+de_all_genes<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+
+
+get_cis <- function(gr_gene, gr_hits =mrnas_ranges, maxgap =1000000L ){
+  p <- findOverlapPairs(gr_gene, get_gene_only(gr_hits), maxgap=maxgap, ignore.strand = TRUE)
+  print(gr_gene$gene_name)
+  # Compute thedistances and select the first 5
+  if(length(p@second) == 0 ){
+    df <- data.frame(gene=gr_gene$gene_id, distances=NA, second = NA, chr = seqnames(gr_gene), stringsAsFactors = F )
+  }else{
+    distances <- unlist(lapply(1:length(p@second), function(index) GenomicRanges::distance(gr_gene, p@second[index], ignore.strand = TRUE) ))
+    df <- data.frame(gene=gr_gene$gene_id, distances=distances, second = p@second$gene_id, stringsAsFactors = F, chr = seqnames(gr_gene) )
+  }
+  return(df)
+}
+
+
+get_orthologname_ <- function(string, orthologs_ = orthologs){
+  d <-orthologs_[gsub("-unknown", "", orthologs_$gene_id) == sub("-unknown", "",string), ]
+  if(nrow(d)==0){
+    return(gsub("-unknown", "", string) )
+  }else{
+    return(unique(as.character(d$orthologGeneSymbol))[1])
+  }
+
+}
+```
+
+# Visualize colocation
+
+```{r colocationCelltypeCisPrep}
+colocation <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_df.rds")
+de_all_genes<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+
+distances <- as.data.frame(colocation,stringsAsFactors = F)
+colnames(distances)  <-  c("lnc", "gene", "d")
+distances$d <- as.integer(distances$d)
+
+distances <- distances[distances$lnc %in% gsub("-unknown", "",de_all_genes[de_all_genes$type == "lnc", ]$primerid),]
+
+distances <- distances[distances$gene %in% gsub("-unknown", "",de_all_genes[de_all_genes$type == "pc", ]$primerid),]
+
+# Add gene names
+genes <- ref[ref$type =="gene",]
+correspondence <- data.frame(genes$gene_id, genename=genes$gene_name, stringsAsFactors = F)
+rownames(correspondence) <- correspondence$genes.gene_id
+distances$gene_name <- unlist(correspondence[distances$gene, ]$genename)
+distances$lnc_name <- unlist(correspondence[distances$lnc, ]$genename)
+# Add lnc ortholog
+orth_lnc <- data.frame(lnc = unique(distances$lnc), stringsAsFactors = F)
+orth_lnc$orth <- unlist(lapply(orth_lnc$lnc, get_orthologname_))
+rownames(orth_lnc) <- orth_lnc$lnc
+distances$orth_lnc <- orth_lnc[distances$lnc, ]$orth
+distances <- distances[!is.na(distances$d) ,]
+distances <- distances[!is.na(distances$d),]
+
+cis_distances <- distances[distances$d < 2000000, ]
+
+# Per celltype
+get_cis_celltype <- function(cis_distances, de_all_genes, ct){
+  de_ct <-  de_all_genes[de_all_genes$celltype == ct,]
+  de_ct$gene_id_clean <- gsub("-unknown", "", de_ct$primerid)
+  df <- cis_distances[cis_distances$lnc %in% de_ct$gene_id_clean  & cis_distances$gene %in% de_ct$gene_id_clean, ]
+  df$celltype <- ct
+  return(df)
+}
+cis_mono <- get_cis_celltype(cis_distances, de_all_genes, "Monocyte")
+cis_B <- get_cis_celltype(cis_distances, de_all_genes, "B")
+cis_T <- get_cis_celltype(cis_distances, de_all_genes, "T")
+cis_celltype <- rbind(cis_mono,cis_B, cis_T)
+```
+
+```{r chordGraph}
+library(edgebundleR)
+library(igraph)
+library(data.table)
+
+
+plot_colocation <- function(cis_celltype_plot, celltype){
+  cis_celltype_plot <- cis_celltype_plot[,c("orth_lnc", "gene_name", "d")]
+  colnames(cis_celltype_plot) <- c("rowname", "key", "value")
+  cis_celltype_plot$key <- gsub("-unknown","", cis_celltype_plot$key)
+  cis_celltype_plot$rowname <- gsub("-unknown","", cis_celltype_plot$rowname)
+  cis_celltype_plot$rowname <- gsub(".", "-", cis_celltype_plot$rowname , fixed = T )
+
+  v <- unique(c(cis_celltype_plot$rowname, cis_celltype_plot$key))
+  g <- graph.data.frame(cis_celltype_plot, directed=F, vertices=v)
+
+  # Color
+  V(g)$color  <- ifelse(V(g)$name %in% cis_celltype_plot$rowname, "navy", "#67c296")
+
+  # Vertex size proportional to number of Edges
+  #V(g)$size = degree(g)*20
+
+  # Plot
+  plot(g, layout = layout.circle, vertex.label=NA)
+  edgebundle( g,  padding = 130, fontsize = 9 )->eb
+  saveEdgebundle(eb,file = paste("/home/luisas/Desktop/cluster/data/plots/neut/colocation", celltype,  ".html", sep = ""),  selfcontained = F)
+}
+
+
+plot_colocation(cis_mono, "Monocyte")
+plot_colocation(cis_B, "B")
+plot_colocation(cis_T, "T")
+plot_colocation(cis_celltype, "All")
+```
+
+
+# How many cis pairs do we find?
+```{r stats}
+# Monocytes
+stat_cis <- function(cis){
+  # Number of pairs
+  print(paste("Number of Pairs:", nrow(distinct(cis[,c("lnc", "gene")]))))
+  # Number of lnc
+  print(paste("Number of Pairs:", length(unique(cis[,c("lnc")]))))
+  print("----------")
+}
+
+stat_cis(cis_celltype)
+stat_cis(cis_mono)
+stat_cis(cis_B)
+stat_cis(cis_T)
+
+
+```
+
+# Investigation of specific colocated genes
+```{r stats}
+gene <- "NEAT1"
+plot.data_up <- Dotplot_data(mono, features = c(get_gene_id(gene), cis_mono[cis_mono$orth_lnc == gene,]$gene_name), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
+
+
+plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
+ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+#Heatmap
+heatmap_celltypes(plot.data_up)
+```

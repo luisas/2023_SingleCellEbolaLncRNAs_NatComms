@@ -34,7 +34,7 @@ files = Channel.fromFilePairs("${params.output_dir}/${params.dataset}/03_hisat/*
 
 
 files.into{ filtered_merged_bams_4; fastq_files_for_mapping; printing; filtered_merged_bams_5}
-//printing.subscribe{ println it }
+printing.subscribe{ println it }
 
 
 
@@ -54,7 +54,7 @@ assembly = Channel.fromPath("${params.assembly}").collect()
 gtf2bed = Channel.fromPath("${baseDir}/scripts/gtf2bed.R").collect()
 gtf_ref_1 = Channel.fromPath("${params.reference_annotated}").collect()
 ref = Channel.fromPath("${params.reference_annotated}").collect()
-
+prepde_script = Channel.fromPath("${baseDir}/scripts/prepDE.py").collect()
 cpatmodel= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/Human_logitModel.RData").collect()
 cpathexamer= Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/Human_Hexamer.tsv").collect()
 cpat_files = Channel.fromPath("${params.output_dir}/01_PreliminaryFiles_rheMac10/cpat*").collect()
@@ -129,12 +129,20 @@ process mergeWithAnnotation {
    output:
    file("${complete_id}.gene_abundances.tsv") into fpkm_channel
 
-   script:
-   """
-   # Calc the counts for the umi_dedup
-   stringtie -eB  --fr -G ${gtf} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
-   mv t_data.ctab ${complete_id}_t_data.ctab
-   """
+   shell:
+   if (dataset_name == "Zyagen"){
+     '''
+     stringtie -eB  --fr -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv
+     mv t_data.ctab !{complete_id}_t_data.ctab
+     '''
+   }else{
+     '''
+     stringtie -eB  --rf -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv
+     mv t_data.ctab !{complete_id}_t_data.ctab
+     '''
+   }
+
+
  }
 
 
@@ -286,16 +294,32 @@ process stringtie{
    set file(gtf), file(gtf_names) from novel_final.collect()
    set dataset_name, dayPostInfection, tissue, sample, complete_id,
        file(bampair) from filtered_merged_bams_5
+   file prepde_script
 
    output:
    file("*") into expression_channel
 
-   script:
-   """
-   # Calc the counts for the umi_dedup
-   stringtie -eB  --fr -G ${gtf_names} ${bampair[0]} -A ${complete_id}.gene_abundances.tsv
-   mv t_data.ctab ${complete_id}_t_data.ctab
-   """
+   shell:
+   if (dataset_name == "Zyagen"){
+     '''
+     stringtie -eB  --fr -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv
+     mv t_data.ctab !{complete_id}_t_data.ctab
+
+     stringtie -e --fr -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv -o !{complete_id}.gtf
+     echo "!{complete_id} ./!{complete_id}.gtf" > samples.txt
+     ./!{prepde_script} -i samples.txt -g !{complete_id}_gene_counts.csv -t !{complete_id}_transcript_counts.csv
+     '''
+   }else{
+     '''
+     stringtie -eB  --rf -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv
+     mv t_data.ctab !{complete_id}_t_data.ctab
+
+     stringtie -e --rf -G !{gtf} !{bampair[0]} -A !{complete_id}.gene_abundances.tsv -o !{complete_id}.gtf
+     echo "!{complete_id} ./!{complete_id}.gtf" > samples.txt
+     ./!{prepde_script} -i samples.txt -g !{complete_id}_gene_counts.csv -t !{complete_id}_transcript_counts.csv
+     '''
+   }
+
 }
 
 

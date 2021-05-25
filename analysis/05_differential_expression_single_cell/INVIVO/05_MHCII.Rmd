@@ -6,9 +6,9 @@ output: html_document
 ---
 
 
-# Differential expression analysis IN VIVO 
+# Differential expression analysis IN VIVO
 
-```{r a, echo= FALSE}
+```{r Imports}
 knitr::opts_chunk$set(echo = TRUE)
 suppressMessages(library(dplyr))
 suppressMessages(library(Seurat))
@@ -19,18 +19,23 @@ suppressMessages(library(rtracklayer))
 suppressMessages(library(RColorBrewer))
 suppressMessages(library(ggplot2))
 suppressMessages(library(scales))
+suppressMessages(library(circlize))
+suppressMessages(library(reshape2))
+suppressMessages(library(ComplexHeatmap))
 
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
-# Imports 
+# Imports
 source("../../utils/02_sc_utils.R")
+source("../../utils/03_de_utils.R")
+source("../../utils/04_utils_graph.R")
 
-# Gene annotation 
+# Gene annotation
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 # Output paths
-robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE_neut//")
 
 # LncRNAs
 robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
@@ -61,14 +66,14 @@ DimPlot(immune.combined)
 calc_correlation_genes <- function(gene1_vector,gene2_vector,gene1, gene2, type = "spearman"){
   mask <- gene1_vector !=0 & gene2_vector !=0
   # calculate the correlation coefficient
-  if(sum(mask)>50){ 
-    #pc <- bayes.cor.test(c1, c2) 
+  if(sum(mask)>50){
+    #pc <- bayes.cor.test(c1, c2)
     pc <- cor.test(gene1_vector[mask], gene2_vector[mask], method = c(type))
     df <- data.frame( pval=pc$p.value, rho=pc$estimate)
     df$g1 <- gene1
     df$g2 <- gene2
     return(df)
-  }else{ 
+  }else{
     return(NA)
   }
 }
@@ -89,20 +94,23 @@ expand.grid.unique <- function(x, y, include.equals=FALSE){
 de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
 de_lnc <- de_all[de_all$type == "lnc", ]
 calc_z <- function(expression, na.remove = F){
-      mean <- rowMeans(expression, na.rm = na.remove); sd <- apply(expression, 1 , function(x) sd(x, na.rm = na.remove)); 
+      mean <- rowMeans(expression, na.rm = na.remove); sd <- apply(expression, 1 , function(x) sd(x, na.rm = na.remove));
       z <- (expression-mean)/sd
       return(z)
-    }
+}
+
+mono <- subset(immune.combined, ident = "Monocyte")
+pal <- c(brewer.pal(8, "Pastel2")[5:9])
+pal_g <- c(rep(pal[1],3), pal[2], rep(pal[3],2), rep(pal[4],3))
 ```
 
 
-# Load DE files 
+# Load DE files
 ```{r readfilesDE}
-
 de_all_genes <- readRDS(file.path(robjectsdir, "de_all_genes.rds"))
-de_all <- readRDS( "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
-stats_complete <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds")
-m_original <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds")
+de_all <- readRDS( "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE//de_all_stages.rds")
+stats_complete <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE//stats_complete.rds")
+m_original <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE//m.rds")
 
 
 de_lnc_names <- unique(de_all[de_all$type == "lnc",]$primerid)
@@ -118,22 +126,21 @@ rownames(types) <- types$primerid
 #    LncRNAs are involved in co-regulatory network involved in MHCII presentation  
 # ----------------------------------------------------------------------------------
 
-# 1. Collect all genes involved in MHCII in rheMac10 
-```{r readfilesDE}
-
+# 1. Collect all genes involved in MHCII in rheMac10
+```{r collectGenes}
 library(plyranges)
 mamu_dr <- c("MAMU-DRA", "MAMU-DRB1")
 # Identify MHC II complex genes ( Prefix == "MAMU" )
 # Not all the genes which are annotated in Human or in rheMac8 are present in rheMac10
-# We just use the one present in the rheMac10 and should be a proxy for the mhc2 complex expression 
+# We just use the one present in the rheMac10 and should be a proxy for the mhc2 complex expression
 mhc <- unique(ref$gene_name[grepl("MAMU", ref$gene_name)])
 mhc2 <- mhc[grepl("D", mhc)]
 mhc1 <- setdiff(mhc,mhc2)
-# Code for using also the gene annotated in RheMac8 
+# Code for using also the gene annotated in RheMac8
 #genes_mhc2_v8 <- unique(ref_nonovel[ref_nonovel$gene_name %in% unique(ref_nonovel$gene_name[grepl("MAMU", ref_nonovel$gene_name)]),]$gene_id)
 #unique(ref[ref$gene_id %in% genes_mhc2_v8 & seqnames(ref) == "4",]$gene_name)
 
-# MHCII genes are DE 
+# MHCII genes are DE
 de_mhc2 <- de_all[de_all$primerid %in% mhc2, c("primerid","comparison") ]
 
 # LNC OR CLOSE TO MHCII REGION  
@@ -144,114 +151,10 @@ ref_mhc2 <- ref[seqnames(ref) == "4" & start(ref) > mhc2_range[1] & end(ref) < m
 novel_lnc_mhc2 <- ref_mhc2[is.na(ref_mhc2$gene_biotype),]
 annot_lnc_mhc2 <- ref_mhc2[!is.na(ref_mhc2$gene_biotype) & ref_mhc2$gene_biotype == "lncRNA",]
 lnc_mhc2_region <- c(novel_lnc_mhc2, annot_lnc_mhc2)
-
-
-# CORRELATIONS
-# Check for gene showing correlation w/ mhcII complex genes in myeloids 
-# Create all the pairs
-cor_lnc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_alllnc_ Monocyte .rds")
-cor_pc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_allpc_ Monocyte .rds")
-
-# Check fo significant correlations
-c_lnc <- Reduce("rbind", cor_lnc)
-c_pc <- Reduce("rbind", cor_pc)
-c_lnc$type <- "lnc"
-c_pc$type <- "pc"
-c <- rbind(c_lnc,c_pc)
-df_cor <- c[!is.na(c$pval), ]
-df_cor_sig <- df_cor[df_cor$pval < 0.05,]
-
-# -------------------------------------------
-# Top 10 Positively correlated PC
-# -------------------------------------------
-df_cor_sig_pos <- df_cor_sig[df_cor_sig$rho > 0, ]
-pos_10_pc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)
-pos_10_pc[1:2]
-df <-Reduce("rbind", lapply((pos_10_pc[1:2]), function(gene2) get_df_z(gene2, mono, z = F ) ))
-df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
-df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
-
-ggplot(df, aes( x = group, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
-  stat_summary(
-    fun.y = median,
-    geom = 'line',
-    aes(group = gene, colour = gene)
-  )+xlab("")+ylab("logCP10K")
-
-
-# -------------------------------------------
-# Top 10 Positively correlated lnc
-# -------------------------------------------
-df_cor_sig_pos <- df_cor_sig[df_cor_sig$type == "lnc" & df_cor_sig$rho > 0, ]
-pos_10_lnc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)
-df <-Reduce("rbind", lapply((pos_10[1]), function(gene2) get_df_z(gene2, mono, z = F ) ))
-
-df <-Reduce("rbind", lapply(("ENSMMUG00000058532-unknown"), function(gene2) get_df_z(gene2, mono, z = F ) ))
-df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
-df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
-
-ggplot(df, aes( x = group, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
-  stat_summary(
-    fun.y = median,
-    geom = 'line',
-    aes(group = gene, colour = gene)
-  )+xlab("")+ylab("logCP10K")
-df_cor_sig_pos[df_cor_sig_pos$g1 == pos_10[2],]
-
-# TOP 10 negatively corr
-df_cor_sig_neg <- df_cor_sig[df_cor_sig$type == "lnc" & df_cor_sig$rho < 0, ]
-neg_10_lnc <- unique(df_cor_sig_neg[order(df_cor_sig_neg$rho, decreasing = T),]$g1)
-
-
-calc_correlation_genes <- function(gene1_vector,gene2_vector,gene1, gene2, type = "spearman"){
-  #mask <- gene1_vector !=0 & gene2_vector !=0
-  # calculate the correlation coefficient
-  if(T){ 
-    #pc <- bayes.cor.test(c1, c2) 
-    #pc <- cor.test(gene1_vector[mask], gene2_vector[mask], method = c(type))
-    pc <- cor.test(gene1_vector, gene2_vector, method = c(type))
-    df <- data.frame( pval=pc$p.value, rho=pc$estimate)
-    df$g1 <- gene1
-    df$g2 <- gene2
-    return(df)
-  }else{ 
-    return(NA)
-  }
-}
-
-calc_correlation_genes(expressionmatrix[g1, ], expressionmatrix[g2,], g1, g2)
-
-mono$group <- factor(mono$group, levels = c("baseline", "early", "middle", "late"))
-DotPlot(mono, features = c(mamu_dr, pos_10_pc[1:2],unique(pos_10_lnc[1:10])), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Expression in Monocytes")
-
-# Top 10 lnc
-df_cor_orth <- data.frame(lnc = pos_10_lnc[1:10], stringsAsFactors = F ) 
-get_orth <- function(x){ 
-  df <- as.data.frame(unique(orthologs[as.character(orthologs$lnc) %in% unique(ref[ref$gene_name == x,]$transcript_id), c("lnc", "orthologGeneSymbol")])); 
-  if(nrow(df)==0){
-    return(NA)
-  }else{
-    df$x <- x; 
-    return(df)
-  }
-}
-
-df_orth <- Reduce("rbind", lapply(df_cor_orth$lnc, get_orth))
-df_orth <- df_orth[!is.na(df_orth$lnc),]
-df_orth
-
-
-# Does any lie on chr4?
-get_chr <- function(gene){
-  return(as.character(unique(seqnames(ref[ref$gene_name == gene, ]))))
-}
-unlist(lapply(pos_10_lnc,function(x) if(get_chr(x) == "4"){ return(x) }))
-
-gene_chr_4 <- "MSTRG.124140-unknown"
-
-DotPlot(mono, features = c(mamu_dr, pos_10_pc[1:2],unique(neg_10_lnc)[1:10],"ZFP36" ), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Expression in Monocytes")
 ```
 
+
+# Visualize that DR complex goes down
 ```{r heatmap}
 # Calculate z-scores for MHCII genes
 get_df_z <- function(gene, mono, z = F ){
@@ -270,43 +173,57 @@ get_df_z <- function(gene, mono, z = F ){
   }else{
     return(df_real)
   }
-  
+
 }
 
 
-# Plot MHC II DR complex 
-df_mhc <-Reduce("rbind", lapply(unique(mhc2), function(gene2) get_df_z(gene2, mono, z = F ) )) 
-# Merge the baselines 
+# Plot MHC II DR complex
+df_mhc <-Reduce("rbind", lapply(unique(mhc2), function(gene2) get_df_z(gene2, mono, z = F ) ))
+# Merge the baselines
 df_mhc$group <- ifelse(as.character(df_mhc$group) %in% c("D-30","D-04"), "D000", as.character(df_mhc$group))
 df_mhc$group <- factor(df_mhc$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008" ))
 
 df_mamu <- df_mhc[df_mhc$gene %in% mamu_dr, ]
 pal <- c(brewer.pal(8, "Pastel2")[5:9])
 pal_g <- c(rep(pal[1],3), pal[2], rep(pal[3],2), rep(pal[4],3))
-ggplot(df_mamu, aes( x = gr, y = value, color = gr, fill = gr ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
+ggplot(df_mamu, aes( x = group, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
   stat_summary(
     fun.y = median,
     geom = 'line',
     aes(group = gene, colour = gene)
   )+xlab("")+ylab("Z-score")+ggtitle("MAMU-DR (MAMU-DRA + MAMU-DRB1)")+scale_color_manual(values= c(brewer.pal(8, "Set2")))
 
-
-
-# Calculate z-scores for correlated genes 
-# Positively correlated
-# All correlated lncrnas
+```
 
 
 
 
+```{r readfilesDE}
+# CORRELATIONS
+# Check for gene showing correlation w/ mhcII complex genes in myeloids
+# Create all the pairs
+cor_lnc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_alllnc_ Monocyte .rds")
+cor_pc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_allpc_ Monocyte .rds")
 
-# Negatively correlated 
-df_cor_sig_pos <- df_cor_sig[df_cor_sig$rho < 0, ]
-pos_10 <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = T),]$g1)
-df <-Reduce("rbind", lapply((pos_10[2]), function(gene2) get_df_z(gene2, mono, z = F ) ))
-df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008" ))
-df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late" ))
+# Check fo significant correlations
+c_lnc <- Reduce("rbind", cor_lnc)
+c_pc <- Reduce("rbind", cor_pc)
+c_lnc$type <- "lnc"
+c_pc$type <- "pc"
+c <- rbind(c_lnc,c_pc)
+df_cor <- c[!is.na(c$pval), ]
+df_cor_sig <- df_cor[df_cor$pval < 0.05,]
+```
 
+```{r readfilesDE}
+# -------------------------------------------
+# Top 2 Positively correlated PC
+# -------------------------------------------
+df_cor_sig_pos <- df_cor_sig[df_cor_sig$rho > 0, ]
+pos_10_pc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)[1:2]
+df <-Reduce("rbind", lapply((pos_10_pc), function(gene2) get_df_z(gene2, mono, z = F ) ))
+df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
+df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
 
 ggplot(df, aes( x = gr, y = value, color = gr, fill = gr ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
   stat_summary(
@@ -314,129 +231,164 @@ ggplot(df, aes( x = gr, y = value, color = gr, fill = gr ) )+theme_paper+theme(a
     geom = 'line',
     aes(group = gene, colour = gene)
   )+xlab("")+ylab("logCP10K")
-# Plot on post-it
-orthologs[as.character(orthologs$lnc) %in% unique(ref[ref$gene_name == pos_10[1],]$transcript_id),]
+```
+
+```{r readfilesDE}
+# -------------------------------------------
+# Top 10 Positively correlated lnc
+# -------------------------------------------
+df_cor_sig_pos <- df_cor_sig[df_cor_sig$type == "lnc" & df_cor_sig$rho > 0, ]
+pos_10_lnc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)[1:5]
+df <-Reduce("rbind", lapply((pos_10_lnc), function(gene2) get_df_z(gene2, mono, z = F ) ))
+df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
+df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
+
+ggplot(df, aes( x = gene, y = value, color = gr, fill = gr ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal )+
+  stat_summary(
+    fun.y = median,
+    geom = 'line',
+    aes(group = gene, colour = gene)
+  )+xlab("")+ylab("logCP10K")
+```
+
+# Analysis: which are the genes close to MHCII complez
+
+```{r readfilesDE}
+# Colocation
+# Correlation
+cis_mono[grepl("MAMU", cis_mono$gene_name),]$orth
+unlist(lapply(pos_10_lnc, get_orthologname_))
+
+# Which ones do i find correlated with MAMU DR complex in Monocytes?
+df_cor_sig_pos$orth <- unlist(lapply(df_cor_sig_pos$g1, get_orthologname_))
+genes_corr  <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F), "g1"])[1:5]
 
 
-FeaturePlot(immune.combined, pos_10[1])
-plot_seperate_features(immune.combined, pos_10[1], ident = "group")
-df_cor_sig[order(df_cor_sig$pval, decreasing = F),]
+# Ones in graph comm antigen presentation
+
+gD2 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut//gD2.rds")
+lou <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut//lou.rds")
+
+genes_antigen <- rownames(gD2[V(gD2)$community  == 3])
+genes_mm <- rownames(gD2[V(gD2)$community  == 6])
+saveRDS(genes_antigen , "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut//genes_antigen.rds")
+saveRDS(genes_mm  , "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut//genes_mm.rds")
+
 ```
 
 
-# Heatmap with all DE genes. Split by k-means. Highlight lncrnas. 
+```{r readfilesDE}
+mono$group <- factor(mono$group, levels = c("baseline", "early", "middle", "late"))
+DotPlot(mono, features = c(mamu_dr, pos_10_pc[1:2],unique(pos_10_lnc), get_gene_id("HCG24")), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Expression in Monocytes")
 
-# Check distances 
-```{r heatmap}
-distances <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation.rds")
-distances["ENSMMUG00000000009",]
 
-get_dist <- function(m,gene1, gene2){
-  if(!is.na(m[gene1,gene2])){
-    return(m[gene1,gene2])
+plot.data_up <- Dotplot_data(mono, features = c(mamu_dr, pos_10_pc[1:2],unique(pos_10_lnc) ), group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname_))
+ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+
+
+
+get_gene_id <- function(gene){
+  gene_id <- unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in% unique(orthologs[orthologs$orthologGeneSymbol == gene,]$lnc),]$gene_name)
+  if(length(gene_id) != 0 ){
+    gene_id  <- rownames(subset(immune.combined, features = c(gene_id)))
+    return(gene_id)
   }else{
-    return(m[gene2,gene1])
+    return(gene)
   }
 }
 
+# Plot the strongest correlated ones
+genes_mm <- ifelse(substr(genes_mm,1,3) %in% c("ENS", "MST"), paste( genes_mm,"-unknown", sep = ""), genes_mm)
+genes_mm <- gsub(".", "-", genes_mm, fixed = T)
+plot.data_up <- Dotplot_data(mono, features = c( genes_mm ), group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname_))
+ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+#Heatmap
+plot.data_up$id <- gsub("late", "ulate", as.character(plot.data_up$id))
+heatmap_celltypes(plot.data_up)
 
-gene <- "ENSMMUG00000058532-unknown"
-plot_seperate_features(immune.combined, gene  =gene , ident = "group",pt.size=0.1)
-
-print_gene <- function(gene){
-  #plot_seperate_features(immune.combined, gene  =gene , ident = "group")
-  expression_gene <- myeloids[rownames(myeloids)== gene, ]@assays$RNA@data
-  colnames(expression_gene) <- myeloids$group
-  zmatrix <- as.matrix(calc_z(expression_gene, T))
-  df <- reshape2::melt(as.matrix(zmatrix))
-  df_real <- reshape2::melt(as.matrix(expression_gene))
-  names(df) <- c("gene", "group", "value")
-  names(df_real) <- c("gene", "group", "value")
-  
-  df <- df[df$value > 0,]
-  df_real <- df_real[df_real$value > 0,]
-  
-  p2 <- ggplot(df, aes( x = group, y = value, col = group, fill = group) )+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values= c(brewer.pal(8, "Pastel2")[5:9]))+ggtitle(gene)
-  p1 <- ggplot(df_real, aes( x = group, y = value, col = group, fill = group) )+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values= c(brewer.pal(8, "Pastel2")[5:9]))+ggtitle(gene)
-  return(list(p1,p2))
-}
-lapply(unique(df_cor_sig$g1), function(gene) print_gene(gene))
-print_gene(gene)
-orthologs[as.character(orthologs$lnc) %in% unique(ref[ref$gene_id == "MSTRG.41819",]$transcript_id),]
-
-orthologs[orthologs$orthologGeneSymbol == "NEAT1",]
-ref[!is.na(ref$transcript_id) & ref$transcript_id == "ENSMMUT00000097093",]
+# Do they also show correlation values ?
+df_cr_dra <- 	df_cor[df_cor$g2 == "MAMU-DRA",]
+df_cr_dra[df_cr_dra$g1 %in% genes_antigen, ]
 
 
-gD2 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2.rds" )
-lou2 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds" )
-
-lou2[7]
-
-V(gD2)
-ref[ref$gene_id == "MSTRG.41819",]
-unique(de_all$primerid[grepl("HLA",de_all$primerid)])
-p2
 ```
 
-# Old 
 
-```{r heatmap}
-distances <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation.rds")
-distances["ENSMMUG00000000009",]
+# NEAT 1
+```{r readfilesDE}
+plot.data_up <- Dotplot_data(mono, features = c(get_gene_id("NEAT1"), "CXCL8" ), group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
+ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+#Heatmap
+plot.data_up$id <- gsub("late", "ulate", as.character(plot.data_up$id))
+heatmap_celltypes(plot.data_up)
+```
 
-get_dist <- function(m,gene1, gene2){
-  if(!is.na(m[gene1,gene2])){
-    return(m[gene1,gene2])
-  }else{
-    return(m[gene2,gene1])
+
+```{r readfilesDE}
+df <-Reduce("rbind", lapply(c( mamu_dr, get_gene_id("NEAT1")), function(gene2) get_df_z(gene2, mono, z = F ) ))
+df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
+df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
+
+ggplot(df, aes( x = gene, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+
+  stat_summary(
+    fun.y = median,
+    geom = 'line',
+    aes(group = gene, colour = gene)
+  )+xlab("")+ylab("logCP10K")
+
+
+
+
+get_expression <- function(gene, mono = monocyte, zeros = F ){
+  if(!(gene %in% rownames(mono) )){
+    return("Gene id not found!")
   }
+  expression_gene <- mono[rownames(mono)== gene, ]@assays$RNA@data
+  df <- reshape2::melt(as.matrix(expression_gene))
+  names(df) <- c("gene", "cell", "value")
+  df_individual <- data.frame(mono$individual)
+  df_individual$cell <- rownames(df_individual)
+
+  df_dpi <- data.frame(mono$dpi)
+  df_dpi$cell <- rownames(df_dpi)
+
+  df_dpi <- data.frame(mono$dpi)
+  df_dpi$cell <- rownames(df_dpi)
+
+  df <- merge(df_individual, df, by="cell")
+  df <- merge(df_dpi, df, by = "cell")
+
+  if(zeros == F ){
+    df <- df[df$value !=0,]
+  }
+  return(df)
 }
+
+
+
+df <- get_expression(get_gene_id("NEAT1"), mono =mono)
+ggplot(df, aes( x = mono.dpi, y = value, color = mono.individual, fill = mono.individual ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+xlab("")+ylab("logCP10K")
+
+
+p <- df %>% dplyr::group_by(mono.individual, mono.dpi) %>% summarise(  mean = mean(value))
+p$type <- ifelse(as.integer(gsub("D", "", p$mono.dpi)) < 1, "Baseline", as.character(p$mono.dpi))
+p$comp <- -1
+
+for(i in 1:nrow(p)){
+ v <- p[i,]$mean/ p[p$mono.individual == p[i,]$mono.individual & p$type == "Baseline",]$mean  
+ if(length(p[i,]$mean/ p[p$mono.individual == p[i,]$mono.individual & p$type == "Baseline",]$mean) == 0 ){
+   p[i,]$comp <- NA
+ }else{
+   p[i,]$comp <- p[i,]$mean/ p[p$mono.individual == p[i,]$mono.individual & p$type == "Baseline",]$mean  
+ }
+
+}
+
+ggplot(p, aes( x = type, y = comp, col = mono.individual, group = mono.individual))+geom_point()+ geom_line()+geom_hline(yintercept= 1, col = "grey")+theme_paper
+
+a <- data.frame(mono$individual, mono$dpi)
+distinct(a)
 ```
-
-# Heatmap with all DE genes. Split by k-means. Highlight lncrnas. 
-
-
-```{r heatmap}
-m <- m_original
-features  = de_names
-rownames(m) <- gsub("-unknown","",rownames(m))
-features <- gsub("-unknown","",features)
-m <- m[rownames(m) %in% features,, drop = FALSE]
-  
-column_ha <- HeatmapAnnotation( 
-    comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
-    show_annotation_name = FALSE, 
-    gap = unit(16, "points"),
-    
-    col = list(celltype = c("myeloid" = brewer.pal(3, "Set2")[3],
-                            "T" = brewer.pal(3, "Set2")[1],
-                            "B" = brewer.pal(3, "Set2")[2]),
-               comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
-                              "middle" = brewer.pal(8, "Pastel2")[7],
-                              "late" = brewer.pal(8, "Pastel2")[8])), 
-    
-    show_legend = FALSE, 
-    annotation_height =  unit(c(1), "cm")
-  )
-  
-row_ha <- rowAnnotation(genetype =types[rownames(m),]$type,
-                        col = list(genetype = c("lnc" = "darkred",
-                            "pc" = "white")),
-                          show_annotation_name = FALSE)
-
-Heatmap(m, show_row_dend = FALSE,
-                  show_column_dend = FALSE,
-                  cluster_columns = FALSE,
-                  show_column_names = FALSE,
-                  show_row_names =  FALSE, 
-                  row_km = 10,
-                  row_title_rot = 0, 
-                  top_annotation = column_ha,
-                  right_annotation = row_ha, 
-                  column_split = unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[1])))
-
-
-table(types[rownames(m),]$type)
-```
-

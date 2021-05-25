@@ -33,7 +33,7 @@ srun singularity exec ${CONTAINER} Rscript ${SCRIPT} "/gpfs/projects/bsc83/Data/
 #         EX VIVO
 # ------------------------------
 # Prepare objects (subsets)
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects" "/03_prep/03_immune.combined.ready.rds" "Myeloid"
+srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects" "/03_prep/03_immune.combined.ready.rds" "Monocyte"
 # Run correlation
 srun singularity exec ${CONTAINER} Rscript ${SCRIPT} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds" ${OUTPUT_EXVIVO}
 

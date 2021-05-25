@@ -1,0 +1,85 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r Imports}
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+library(GENIE3)
+library(igraph)
+library(RCy3)
+library(Rgraphviz)
+library(reshape2)
+library(org.Mmu.eg.db)
+library(enrichplot)
+library(networkD3)
+
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+
+# IN VIVO 
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+dim(immune.combined)
+
+col_lnc = "#870052"
+col_mrna = "#2e88bf"
+de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_lnc <- de_all[de_all$type == "lnc", ]
+
+# get DE lnc names
+
+
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+
+
+de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
+de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
+
+
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+```
+
+#  CREATE AND SAVE EXPRESION MATRICES TO COMPUTE THE NETWORK 
+# Prepare the matrixes to calculate the networks on. One per celltype, only DE genes. 
+
+```{r a}
+monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+#neutrophils <- immune.combined[,Idents(immune.combined)=="Neutrophil"]
+#b <- immune.combined[,Idents(immune.combined)=="B"]
+#t <- immune.combined[,Idents(immune.combined)=="T"]
+
+de_monocyte<- monocyte[rownames(monocyte) %in% de_all[de_all$celltype == "Monocyte",]$primerid,]
+#de_neutrophils<- neutrophils[rownames(neutrophils) %in% de_all,]
+#de_b <- b[rownames(b) %in% de_all,]
+#de_t <- t[rownames(t) %in% de_all,]
+# All monocytes 
+#exprMatr_monocyte <- monocyte@assays$RNA@data
+#write.csv(t(exprMatr_monocyte), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_monocytes_all.csv", row.names = FALSE)
+
+# Monocytes DE
+exprMatr_monocyte_de <- de_monocyte@assays$RNA@data
+write.csv(t(exprMatr_monocyte_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_monocytes_de.csv", row.names = FALSE)
+
+
+#exprMatr_b_de <- de_b@assays$integrated@data
+#exprMatr_t_de <- de_t@assays$integrated@data
+universe_myeloids <- unique(rownames(monocyte))
+#universe_t <- unique(rownames(t))
+#universe_b <- unique(rownames(b))
+```
+

@@ -17,6 +17,8 @@ celltypes <- identities <- c("B", "T", "M")
 props <- c(0.2, 0.5, 0.3)
 tot_cells <- 40000
 
+p <- c("#A30808", "#ff0000", "#ff4000", "#ff8000", "#ffbf00", "#CBCA1C",  "#6C8DBF", "#1D56AB", "#23265A")
+
 # Row: genes 
 # Column: cell-types
 colnames <- unlist(lapply(1:length(celltypes), function(i) rep(celltypes[i], props[i]*tot_cells)))
@@ -120,19 +122,6 @@ saveRDS(df_celltype, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_si
 
 ```
 
-
-```{r matchmedian}
-library(tispec)
-
-mm <- matrix(df_celltype$meanexpr, ncol = length(unique(df_celltype$ident)), byrow = T, dimnames = list(unique(df_celltype$gene_id), unique(df_celltype$ident)) )
-mm
-df_celltype$gene_id <- as.character(df_celltype$gene_id)
-
-tidyr::spread(df_celltype, gene_id, ident, fill = 0)
-
-data.matrix(df_celltype[,c("gene_id","meanexpr", "ident")])
-df_celltype[df_celltype$gene_id == "AAAS",]
-```
 
 # --------------------------------------------
 # --------------------------------------------
@@ -258,94 +247,4 @@ ggplot(specificity_scores_filt[order(specificity_scores_filt$score_ranged),], ae
 
 ```
 
-# --------------------------------------------
-# --------------------------------------------
-#               Approach 1 
-#      simple % cells per celltype
-# --------------------------------------------
-# --------------------------------------------
 
-
-```{r matchmedian}
-library("wesanderson")
-p <- c("#A30808", "#ff0000", "#ff4000", "#ff8000", "#ffbf00", "#CBCA1C",  "#6C8DBF", "#1D56AB", "#23265A")
-
-
-pal <- wes_palette("Zissou1", 5, type = "discrete")
-
-perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/02_specificity_prop/Permutations_prop_1.rds")
-specificity_scores <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/02_specificity_prop/01_specificity_prop.rds")
-
-specificity_scores$label <- labels
-specificity_scores$label_prop <- labels_prop
-specificity_scores$label_full <- labels_full
-
-
-specificity_scores$gene <- factor(specificity_scores$gene, levels = specificity_scores$gene[rev(order(specificity_scores$score))])
-
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, fill = label_full ))+geom_bar(stat="identity", color = "white")+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_fill_manual(values=p)
-
-
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)
-
-
-```
-
-
-
-# --------------------------------------------
-# --------------------------------------------
-#               Approach 2
-#                  FC
-# --------------------------------------------
-# --------------------------------------------
-
-
-```{r matchmedian}
-
-
-perm <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/01_specificity_fc//Permutations_fc_1.rds")
-specificity_scores <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/01_specificity_fc//00_specificity_fc.rds")
-
-
-specificity_scores$label <- labels
-specificity_scores$label_prop <- labels_prop
-specificity_scores$label_full <- labels_full
-
-specificity_scores$gene <- factor(specificity_scores$gene, levels = specificity_scores$gene[rev(order(specificity_scores$score))])
-
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, fill = label_full ))+geom_bar(stat="identity", color = "white")+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_fill_manual(values=p)
-
-
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)
-
-specificity_scores
-
-
-calc_score_gene(m, 1)
-```
-
-# --------------------------------------------
-# --------------------------------------------
-#               Approach 3
-#                 Chi 
-# --------------------------------------------
-# --------------------------------------------
-
-
-
-```{r matchmedian}
-
-spec_chi <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/03_spec_chi/spec_chi.rds")
-spec_chi$score <- spec_chi$chi
-spec_chi$label <- labels
-spec_chi$label_prop <- labels_prop
-spec_chi$label_full <- labels_full
-spec_chi$gene <- factor(spec_chi$gene, levels = spec_chi$gene[rev(order(spec_chi$chi))])
-
-ggplot(spec_chi[order(spec_chi$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)
-
-
-
-
-```

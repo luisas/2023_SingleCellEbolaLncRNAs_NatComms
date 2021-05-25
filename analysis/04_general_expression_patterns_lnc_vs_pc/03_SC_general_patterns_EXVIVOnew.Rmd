@@ -30,7 +30,7 @@ theme_sc_paper <- theme(panel.background = element_rect(fill = "white", colour =
 
 
 # Where stats about lnc and pc computed on cluster are stored
-robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/"
 
 
 # Read reference files 
@@ -38,7 +38,7 @@ ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNA
 ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 # Import Seurat object 
-file <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"
+file <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"
 orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
 immune.combined <- readRDS(file)
 ```
@@ -136,8 +136,6 @@ df_mrna_celltype$type <- "Protein Coding"
 df_lnc_celltype$type <-  "lncRNA"
 
 df_complete_celltype <- rbind(df_lnc_celltype, df_mrna_celltype)
-
-saveRDS(df_complete_celltype, file.path(robjectsdir, "df_celltype.rds"))
 ```
 
 
@@ -449,5 +447,5 @@ ggboxplot(df_perc_matched, col = "type",  fill = "type", y = "val",alpha = 0.5)+
 
 # When matched by the prop of cells
 ggboxplot(df_medians_matched, col = "type",  fill = "type", y = "val",alpha = 0.5)+theme_paper+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+ylab("Median Expression (logCP10K")+ggtitle("Matched by the median")+facet_grid(cols = vars(celltype))+ stat_compare_means(aes(group=type))+theme(legend.position = "")
+            scale_color_manual(values = palette_plot_percentage)+ylab("Median Expression (logCP10K)")+ggtitle("Matched by the median")+facet_grid(cols = vars(celltype))+ stat_compare_means(aes(group=type))+theme(legend.position = "")+theme(text = element_text(size = 10))
 ```

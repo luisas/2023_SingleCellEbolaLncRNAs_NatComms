@@ -1,0 +1,163 @@
+
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+```{r a}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(scales)
+library(ggthemes)
+library(wesanderson)
+
+source("../utils/02_sc_utils.R")
+
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+# Gene annotation 
+ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+# LncRNAs
+robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+
+# -------------------------------------------
+#    define threshold for the analysis
+# -------------------------------------------
+
+# Corrected q-value .05
+FDRTHRESHOLD<- 0.05
+# Fold-Change of 30%
+FCTHRESHOLD <- log(1.23)
+```
+
+# --------------------------------------------------
+# Identify infected Monocytes
+# --------------------------------------------------
+
+```{r readfilesDE}
+# Define Ebola genes 
+ebola_genes <- unique(ebola_ref$gene_id)
+
+# Extract normalized expression values matrix
+expression_matrix <- immune.combined@assays$RNA@counts
+colnames(expression_matrix) <- Idents(immune.combined)
+
+
+# 1. Per cell, check the % of ebola reads ( not normalized - just calculate the % of raw counts )
+# 1a. Calculate number of ebola reads 
+ebola_reads <- expression_matrix[gsub("-unknown","", rownames(expression_matrix)) %in% ebola_genes, ]
+ebola_genome_reads <- colSums(ebola_reads)
+# 1b. Calculate number of host reads
+total_reads <- colSums(expression_matrix)
+ebola_gene_percentage <- (ebola_reads/total_reads)*100
+ebola_genome_percentage<- (ebola_genome_reads/total_reads)*100
+
+# 1c. Store the % of ebola reads per cell in a dataframe
+ebola_genome_percentage_df <- data.frame(percentage_viral_reads = ebola_genome_percentage,
+                                         celltype = names(ebola_genome_percentage),
+                                         cond =immune.combined$cond, 
+                                         hour = immune.combined$dpi)
+
+
+# 2. Define the threshold for the percentage of viral reads identified per cell for it to be called Infected 
+unique(Idents(immune.combined))
+# 2a. Per cell-type, calculate which is the threshold for which we get a maximum of 1% false positives
+#threshold <- quantile(ebola_genome_percentage_df[!(ebola_genome_percentage_df$celltype %in% c("Monocyte")), ]$percentage_viral_reads, probs = c(0.99))
+threshold <- max(unlist(lapply(setdiff(unique(ebola_genome_percentage_df$celltype), c("Monocyte")), function(x) quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == x, ]$percentage_viral_reads, probs = c(0.99)))))
+
+print(paste("Threshold", threshold))
+#ebola_genome_percentage_df[ebola_genome_percentage_df$percentage_viral_reads > 0,]
+```
+
+
+
+```{r colocation}
+
+# Separate the cells into infected and not infected based on the threshold
+ebola_genome_percentage_df$classification <- ifelse(ebola_genome_percentage_df$percentage_viral_reads >= threshold, "Infected", "Not Infected")
+immune.combined$infection <- ebola_genome_percentage_df$classification
+
+table(immune.combined[,Idents(immune.combined) == "Monocyte" ]$infection)
+table(immune.combined[,Idents(immune.combined) == "B" ]$infection)
+table(immune.combined[,Idents(immune.combined) == "T" ]$infection)
+table(immune.combined[,Idents(immune.combined) == "Neutrophil" ]$infection)
+
+infected_cells <- rownames(ebola_genome_percentage_df[ebola_genome_percentage_df$classification == "Infected",])
+
+
+# Save information about infection 
+saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
+
+# Plot infected cells 
+DimPlot(immune.combined, label=F, cells.highlight= list(infected_cells), sizes.highlight = 0.4, cols.highlight = c("#DA0202"), cols= "grey", pt.size = 0.1)+ 
+    labs(title = "Infected cells" )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
+    theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
+
+
+```
+
+
+```{r colocation}
+# Add information about how many cells are found per celltype and, per celltype, which is the proportion of cells infected
+# How many cells are found per celltype
+
+ebola_genome_percentage_df$hour <- as.character(ebola_genome_percentage_df$hour)
+ebola_genome_percentage_df[as.character(ebola_genome_percentage_df$hour) %in% c("D007", "D008"),]$hour <- "D007&D008"
+
+saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
+
+summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype) %>% tally()
+summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype,hour) %>% tally()
+summary_celltype$celltypedpi <-paste(summary_celltype$celltype, summary_celltype$hour, sep = "-")
+
+
+infected_summary <- ebola_genome_percentage_df[as.character(ebola_genome_percentage_df$classification) == "Infected",]%>% dplyr::group_by(celltype,hour) %>% tally()
+infected_summary$celltypedpi <- paste(infected_summary$celltype, infected_summary$hour, sep = "-")
+infected_summary <- infected_summary[,c("celltypedpi", "n")]
+names(infected_summary) <- c("celltypedpi", "infected")
+
+percentage_cells_infected_per_celltype <- merge(infected_summary, summary_celltype, by = "celltypedpi")
+percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infected_per_celltype$infected / percentage_cells_infected_per_celltype$n)*100
+
+# Visualize 
+pal <- wes_palette("Zissou1", 5, type = "discrete")
+ggplot(percentage_cells_infected_per_celltype, aes( x= celltype, y = perc_infected , fill = hour))+geom_bar(stat="identity",position = position_dodge(), alpha = 0.8)+theme_paper+xlab("")+ylab("% of cells infected")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+geom_hline(yintercept = 1.1, lty = 2)+scale_fill_manual(values=pal)
+
+```
+
+```{r colocation}
+
+# Just visualize the threshold for calling a cell infected
+ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
+
+
+```
+# RemoveEbolaGenes 
+# ---------------------------------
+#    Remove Ebola Genes  
+#----------------------------------
+```{r removeEbolaGenes}
+length(rownames(immune.combined))
+length(setdiff(rownames(immune.combined), ebola_genes))
+immune.combined_ebolaremoved <- immune.combined[setdiff(rownames(immune.combined), ebola_genes),]
+immune.combined_ebolaremoved <- NormalizeData(immune.combined_ebolaremoved)
+
+saveRDS(immune.combined_ebolaremoved,"/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10//05_RObjects/03_prep/03_immune.combined.infectionstatus_ebolaremoved.rds")
+```
+

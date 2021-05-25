@@ -20,9 +20,6 @@ lnc <- readRDS("/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_
 pc <- readRDS("/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/pc.rds")
 
 # Only calculate for the DE genes 
-
-
-
 expression_matrix <- infected_myeloids_24@assays$RNA@data
 viral_load <- infected_myeloids_24$viral_load
 
@@ -30,10 +27,10 @@ viral_load <- infected_myeloids_24$viral_load
 cal_corr_viral_load_average_window <- function(expression_matrix, viral_load,gene,  window = 20){
   df <- data.frame(exp = expression_matrix[gene, ], viral_load)
   df <- df[df$exp !=0, ]
-  # Order cells by viral load 
+  # Order cells by viral load
   df_ordered <- df[order(df$viral_load),]
   if(nrow(df_ordered) > 50 ){
-    # Average by 100  window gene expression 
+    # Average by 100  window gene expression
     n <- window
     df_ordered$bin <- cut(1:length(df_ordered$viral_load), breaks =c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n) )
     print(c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n))
@@ -57,13 +54,3 @@ correlations_pc_df <- do.call(rbind, correlations_pc)
 
 saveRDS(correlations_df, file.path(robjectsdir, paste("spearman-correlations_lnc.rds")))
 saveRDS(correlations_pc_df, file.path(robjectsdir, paste("spearman-correlations_pc.rds")))
-
-
-
-
-
-
-
-
-
-

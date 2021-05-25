@@ -18,6 +18,7 @@ library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); lib
 
 # Reoccurring paths
 datadir <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/"
+dir_counts_ref <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/"
 
 # Import Utils
 source(file.path("../utils/01_lncrna_annotation_utils.R"))
@@ -35,46 +36,41 @@ mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
 
 all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 
+# Define palettes 
+palette <- c("navy", "#8195D7","#ADD8E5", "#519F78","#B4D6C1")
+palette_border <- c("#C60F7B","orange", "#8195D7","#ADD8E5", "#519F78","#B4D6C1")
+palette_extensive <- c("navy", "navy", "#8195D7","#ADD8E5", "#519F78","#B4D6C1")
 
-
+palette_expression <-palette[c(1,2,4)]
+palette_expression_extensive <-palette_extensive[c(1,2,3,5)]
+palette_expression_border <-palette_border[c(1,2,3,5)]
 ```
+
+
 ### Comparison of exon length, transcript length and number ofe exons distributions
-
-
 ```{r stats}
 # How many novel lncRNAs do i identify (Genes)
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
 length(unique(all_novel_lnc$gene_id))
 length(unique(all_novel_lnc$transcript_id))
-plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
+l <- plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette = palette)
+l
 export(all_novel_lnc, "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
 ```
 
-# Calculate wilcoxon test
-
-```{r stats}
-
-#----------------------------------
-#   Numer of exons distribution
-#----------------------------------
-exon_nr_distr <- function(gr){
-  gr <- gr[gr$type =="exon",]
-  gr <- get_only_max_transcript(gr)
-  df_l <- data.frame(get_nr_exons(gr))
-  return(as.vector(as.numeric(df_l$max_exon)))
-}
-
-wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(lncRNAs_ref))
-wilcox.test(exon_nr_distr(all_novel_lnc), exon_nr_distr(mRNAs_ref))
-
-#----------------------------------
-#   Exon length
-#----------------------------------
+# Summary barplot
+```{r summary}
 
 
+n_genes <- c(length(unique(mRNAs_ref$gene_id)), length(unique(lncRNAs_ref$gene_id)), length(unique(all_novel_lnc$gene_id)))
+type <- c("Protein Coding", "lncRNAs", "lncRNAs")
+subtype <- c("Protein coding", "Annotated", "Novel")
+
+df <- data.frame(type = type, subtype = subtype, n = n_genes)
+df$subtype <- factor(df$subtype, levels = c("Novel", "Annotated", "Protein coding"))
+ylab <- seq(5,20,5)
+ggplot(df, aes(x = type, y = n, fill = subtype))+geom_bar(stat="identity", size = 2)+theme_paper+scale_y_continuous( labels = paste0(ylab, "K"),breaks = 10^3 * ylab)+ylab("")+xlab("")+coord_flip()+scale_fill_manual(values = palette_expression)+theme(legend.position = "")+ggtitle("Genes in annotation")
 ```
-
 
 
 # Separate by intergenic and antisense 
@@ -87,7 +83,7 @@ length(unique(all_novel_lnc$gene_id))
 
 length(unique(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id,]$transcript_id))
 
-plot_stats_benchmark(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",])
+plot_stats_benchmark(gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",], palette_border[1:2])
 
 gff_compare_pre_lnc <- gffcompare[gffcompare$transcript_id %in% all_novel_lnc$transcript_id & gffcompare$type == "transcript",]
 antisense_ids <- gff_compare_pre_lnc[gff_compare_pre_lnc$class_code == "x", ]$transcript_id
@@ -105,25 +101,17 @@ length(unique(antisense_lnc$transcript_id))
 length(unique(antisense_lnc$gene_id))/(length(unique(antisense_lnc$gene_id))+length(unique(intergenic_lnc$gene_id)))
 
 
-plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref)
-
+l_sep <- plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette_extensive, palette_border)
 
 ```
 
 
 ```{r expression}
 
-palette_expression <-c("#E8C2D8", "#D4549C", "#8195D7")
-
 iterate_files <- function(inpath, pattern_string){
   files <- list.files(path=inpath, pattern= pattern_string, full.names=TRUE, recursive=TRUE)
   return(files)
 }
-
-
-dir_counts_ref <- "/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/"
-
-
 abundance_files <- iterate_files(dir_counts_ref, "*.tsv")
 
 # Read all files
@@ -176,11 +164,7 @@ wilcox.test(median_expression_novel, median_expression_pc)
 wilcox.test(median_expression_novel, median_expression_annot)
 wilcox.test(median_expression_pc, median_expression_annot)
 
-#level=  c("Novel lncRNAs","Annotated lncRNAs", "mRNAs")
-#ggboxplot(median_expression, x = "type", y = "expr", fill = factor("type",level = level), alpha = 0.5,
-#                color = "type", palette =palette_expression)+stat_compare_means(comparisons =list(c("Novel lncRNAs", #"mRNAs"), c("Novel lncRNAs", "Annotated lncRNAs"), c("Annotated lncRNAs", "mRNAs")),  label = "p.signif")+ labs(x = "")
 
-palette_expression <-c("orange","#994C00", "#D4549C", "#8195D7")
 median_expression <- data.frame(id=rownames(expression), expr=log(rowMedians(expression)))
 median_expression['type'] <- "0"
 median_expression <- add_type(median_expression, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
@@ -190,7 +174,7 @@ median_expression <- add_type(median_expression, mRNAs_ref$gene_id, "mRNAs")
 median_expression <- median_expression[!median_expression$type == "0",]
 
 levels <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
-plot_expression(median_expression, palette_expression, level = levels, title = "Median Expression")+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))+labs(y = "logTPM")
+plot_expression(median_expression, palette_expression_extensive, level = levels, title = "Median Expression", palette_expression_border,sizes = c(1,1,0.5,0.5))+theme(plot.title = element_text(size = 22), axis.text = element_text( angle =0, vjust = 0.9),axis.title.y  = element_text(size = 15))+labs(y = "logTPM")
 
 ```
 
@@ -203,14 +187,15 @@ plot_expression(median_expression, palette_expression, level = levels, title = "
 
 tissues <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[4]))
 tissues <- lapply(tissues, function(x) (str_split(x, "-")[[1]])[1])
-length(unique(tissues))
+table(tissues)
 colnames(expression) <- tissues
 tissues <- gsub("Testes", "Testis", tissues)
 tissues <- gsub("Wholeblood", "Blood", tissues)
 tissues <- gsub("Serum", "Blood", tissues)
 table(tissues)
+
 # Check how many tissues express a gene
-expressed_booleans <- ifelse(log(expression) > 0.5,1,0)
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
 colnames(expressed_booleans) <- tissues
 grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, 1,0)
 n_tissues_expresseing_gene <- rowSums(grouped_expression)
@@ -229,18 +214,16 @@ df <- df[!df$type == "0",]
 
 
 type <- c("Novel lncRNAs", "Annotated lncRNAs", "mRNAs")
-palette <- c("#E8C2D8", "#D4549C", "#8195D7")
-tl1 <-barplot_tissues(df,"Novel lncRNAs",palette[1])+
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette_expression[1])+
                           theme(axis.ticks.x = element_blank(),
                           axis.text.x = element_blank(),
                           axis.line.x = element_blank())
-tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[2]) +
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette_expression[2]) +
                           theme(axis.ticks.x = element_blank(),
                           axis.text.x = element_blank(),
                           axis.line.x = element_blank())
-tl3 <-barplot_tissues(df,"mRNAs",palette[3])
+tl3 <-barplot_tissues(df,"mRNAs",palette_expression[3])
 b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
-
 b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
 b
 
@@ -253,28 +236,75 @@ df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
 df <- df[!df$type == "0",]
 
 type <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
-palette <-c("orange","#994C00", "#D4549C", "#8195D7")
 
-tl0 <-barplot_tissues(df,"Intergenic Novel lncRNAs",palette[1])+
+tl0 <-barplot_tissues(df,"Intergenic Novel lncRNAs",palette_expression_extensive[1], palette_expression_border[1],1)+
                           theme(axis.ticks.x = element_blank(),
                           axis.text.x = element_blank(),
                           axis.line.x = element_blank())
 
-tl1 <-barplot_tissues(df,"Antisense Novel lncRNAs",palette[2])+
+tl1 <-barplot_tissues(df,"Antisense Novel lncRNAs",palette_expression_extensive[2],  palette_expression_border[2],1)+
                           theme(axis.ticks.x = element_blank(),
                           axis.text.x = element_blank(),
                           axis.line.x = element_blank())
-tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette[3]) +
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette_expression_extensive[3]) +
                           theme(axis.ticks.x = element_blank(),
                           axis.text.x = element_blank(),
                           axis.line.x = element_blank())
-tl3 <-barplot_tissues(df,"mRNAs",palette[4])
+tl3 <-barplot_tissues(df,"mRNAs",palette_expression_extensive[4])
 b <- ggarrange( tl0,tl1,tl2,tl3,  ncol=1, nrow=4)
 
 b <- annotate_figure(b, bottom = text_grob("Number of tissues", size  = 22), left = text_grob("Frequency", size = 22, rot = 90))
 b
 
+do_go
+
+
 ```
 
 
+```{r tissuespecificity}
+ref <- all
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+get_orthologname_ <- function(string, orthologs_ = orthologs){
+  d <-orthologs_[gsub("-unknown", "", orthologs_$gene_id) == sub("-unknown", "",string), ]
+  if(nrow(d)==0){
+    return(gsub("-unknown", "", string) )
+  }
+  return(unique(as.character(d$orthologGeneSymbol)))
+}
 
+
+summarized_expression <- t(rowsum(t(expressed_booleans), colnames(expressed_booleans)))
+# One tissue expressed o
+summarized_expression_df <- data.frame(summarized_expression)
+# novel only 
+novels <- summarized_expression_df[substr(rownames(summarized_expression_df),1,3) == "MST",]
+
+tissue <- "Blood"
+expressed_in_tissue <- rownames(novels)[novels[,tissue] > 2]
+not_expressed_in_others <- rownames(novels)[rowSums(novels[,setdiff(colnames(novels),tissue)]) <2]
+candidates <- intersect(expressed_in_tissue, not_expressed_in_others)
+
+candidates <- expressed_in_tissue
+candidates_orth <- candidates[unlist(lapply(candidates, function(gene) get_orthologname_(gene) != gene))]
+
+candidates_orth_df <- data.frame(candidate = candidates_orth, stringsAsFactors = F)
+candidates_orth_df$ortholog <- unlist(lapply(candidates_orth, function(gene) get_orthologname_(gene)))
+candidates_orth_df
+
+
+ref <- all
+library("Gviz")
+
+gene <- candidates_orth_df[candidates_orth_df$ortholog == "ZFAS1",]$candidate
+expression <- dat
+expression <- as.matrix(expression)
+colnames(expression) <- abundance_files
+names(expression[gene,expression[gene, ]> 1] )
+all[all$gene_id == gene, ]
+gene_name <- unique(all[all$gene_id == gene, ]$gene_name)
+
+
+plot_region(gene_name, palette_plot_percentage = c(rep(palette_expression[3], 2), rep( palette_expression[1],2)))
+
+```

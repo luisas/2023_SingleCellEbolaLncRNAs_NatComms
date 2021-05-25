@@ -25,7 +25,7 @@ source("../../utils/02_sc_utils.R")
 theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
-# Gene annotation 
+# Gene annotation
 ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
@@ -39,15 +39,15 @@ ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(eb
 orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
 
 # ------------------------------------
-#     LncRNAs present in object 
+#     LncRNAs present in object
 # -------------------------------------
-# annotated lncrnas id 
+# annotated lncrnas id
 lnc_ref_id <- gsub("_","-",unique(ref$gene_name[ref$gene_biotype %in% c("lncRNA")]))
-# Annotated lncRNAs: remove the gene names so it can match 
+# Annotated lncRNAs: remove the gene names so it can match
 complete_set_annotated_lncrnas_in_object <- rownames(immune.combined)[rownames(immune.combined) %in% lnc_ref_id]
 # Novel lncRNAs
 novel_lncrnas <- rownames(immune.combined)[grepl("MST*", rownames(immune.combined))]
-# Complete Set 
+# Complete Set
 all_lncrnas <- c(complete_set_annotated_lncrnas_in_object, novel_lncrnas)
 
 annotated_mrnas <- unique(ref[!is.na(ref$gene_biotype) & ref$gene_biotype == "protein_coding", ]$gene_name)
@@ -67,7 +67,7 @@ FDRTHRESHOLD<- 0.05
 # Fold-Change of 30%
 FCTHRESHOLD <- log(1.23)
 
-mast_myeloids <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_noebola/MAST_exvivo_model_infected_vs_notinfected_myeloids.rds")
+mast_myeloids <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_InfectionStatus/MAST_exvivo_model_infected_vs_notinfected_myeloids.rds")
 
 de_myeloids <- mast_myeloids[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
 de_myeloids$direction <- ifelse(de_myeloids$coef < 0 , "down", "up")
@@ -102,7 +102,7 @@ ggplot(de_stats_direction_plot, aes(x=direction, fill = direction))+geom_bar(sta
 #      MAST CONTINOUS
 #--------------------------------------------
 
-# Checking if there is anything - nothing really 
+# Checking if there is anything - nothing really
 ```{r cars}
 
 mast_myeloids_continous <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_noebola_viralload/MAST_exvivo_model_viralload_myeloids.rds")
@@ -120,13 +120,13 @@ de_myeloids_pc_continous <- de_myeloids_continous[de_myeloids_continous$primerid
 
 
 
-# --------------------------------------------------------------------------------------------------------------------------------# -------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------# 
-#                                                          CORRELATION 
-# --------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------# 
+# --------------------------------------------------------------------------------------------------------------------------------# -------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------#
+#                                                          CORRELATION
+# --------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------# --------------------------------------------------------------------------------------------------------------------------------#
 
 
 # ----------------------------------------------------------------
-# Calculate viral load 
+# Calculate viral load
 # ----------------------------------------------------------------
 ```{r cars}
 
@@ -148,23 +148,23 @@ ebola_gene_percentage <- (ebola_reads/total_reads)*100
 ebola_genome_percentage<- (ebola_genome_reads/total_reads)*100
 
 ebola_genome_percentage_df <- data.frame(percentage_viral_reads = ebola_genome_percentage,
-                                         cond =myeloids$cond, 
-                                         hour = myeloids$dpi, 
-                                         condhr = paste(myeloids$cond, myeloids$dpi), 
+                                         cond =myeloids$cond,
+                                         hour = myeloids$dpi,
+                                         condhr = paste(myeloids$cond, myeloids$dpi),
                                          infection = myeloids$infection)
 
 
 
 df <- ebola_genome_percentage_df
-#ggplot(df,  aes(percentage_viral_reads+0.01, col = infection , fill = infection )) + 
-# geom_histogram(aes(y=..density..), alpha=0.5, 
+#ggplot(df,  aes(percentage_viral_reads+0.01, col = infection , fill = infection )) +
+# geom_histogram(aes(y=..density..), alpha=0.5,
 #                position="identity")+
 # geom_density(alpha=.2) +theme_paper+xlab("Viral load")+scale_fill_manual(values =c("red", "grey"))+scale_color_manual(values =c("red", "grey"))+geom_vline(xintercept #=(threshold), size = 0.5, linetype = "dashed")+scale_x_continuous(trans = "log10")
 
 
 
-ggplot(df[df$infection == "Infected",],  aes(percentage_viral_reads, col = infection , fill = infection )) + 
- geom_histogram(aes(y=..density..), alpha=0.5, 
+ggplot(df[df$infection == "Infected",],  aes(percentage_viral_reads, col = infection , fill = infection )) +
+ geom_histogram(aes(y=..density..), alpha=0.5,
                 position="identity")+
  geom_density(alpha=.2) +theme_paper+xlab("Viral load")+scale_fill_manual(values =c("red", "grey"))+scale_color_manual(values =c("red", "grey"))+scale_x_continuous(trans = "log10")
 
@@ -173,7 +173,7 @@ ggplot(df[df$infection == "Infected",],  aes(percentage_viral_reads, col = infec
 ```
 
 # ----------------------------------------------------------------
-# Correlation with viral load and lncrnas 
+# Correlation with viral load and lncrnas
 # ----------------------------------------------------------------
 ```{r cars}
 immune.combined_noebola <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus_noebola.rds")
@@ -197,7 +197,7 @@ pc <- rownames(myeloids)[rownames(myeloids) %in% annotated_mrnas ]
 #saveRDS(pc, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/pc.rds")
 ```
 
-# Collect all genes 
+# Collect all genes
 ```{r cars}
 FDRTHRESHOLD<- 0.05
 RHOTHRESHOLD <- 0.1
@@ -244,12 +244,12 @@ library(org.Hs.eg.db)
 expression_matrix <- infected_myeloids_24@assays$RNA@data
 viral_load <- infected_myeloids_24$viral_load
 
-# Check how many are correlated and in which direction 
+# Check how many are correlated and in which direction
 length(unique(sig_correlations_lnc_infected_24$gene))
 table(ifelse(sig_correlations_lnc_infected_24$rho > 0, "up", "down"))
 
 
-# Check how many are correlated and in which direction (Protein coding) 
+# Check how many are correlated and in which direction (Protein coding)
 length(unique(sig_correlations_pc_infected_24$gene))
 table(ifelse(sig_correlations_pc_infected_24$rho > 0, "up", "down"))
 
@@ -285,7 +285,7 @@ plot_corr_gene_box <- function(gene, n){
    print(gene_gas5)
   df <- data.frame(exp = expression_matrix[gene_gas5, ], viral_load)
   df <- df[df$exp !=0, ]
-  # Order cells by viral load 
+  # Order cells by viral load
   df_ordered <- df[order(df$viral_load),]
   n<-n
   df_ordered$bin <- cut(1:length(df_ordered$viral_load), breaks =c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n) )
@@ -303,13 +303,13 @@ plot_corr(expression_matrix, gene_gas5, sig_correlations_lnc_infected_24[sig_cor
 ```
 
 
-# Visualize each of them 
+# Visualize each of them
 ```{r cars}
-# Plot correlation 
+# Plot correlation
 plot_corr <- function(expression_matrix, gene, rho){
   df <- data.frame(exp = expression_matrix[gene, ], viral_load)
   df <- df[df$exp !=0, ]
-  # Order cells by viral load 
+  # Order cells by viral load
   df_ordered <- df[order(df$viral_load),]
   ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_point( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous()+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
 }
@@ -317,14 +317,14 @@ plot_corr <- function(expression_matrix, gene, rho){
 plot_corr_boxplot <- function(expression_matrix, gene, rho){
   df <- data.frame(exp = expression_matrix[gene, ], viral_load)
   df <- df[df$exp !=0, ]
-  # Order cells by viral load 
+  # Order cells by viral load
   df_ordered <- df[order(df$viral_load),]
   ggplot(df_ordered, aes(x = viral_load, y = exp))+geom_boxplot( size = 0.6, color = "orange")+geom_line(stat = "summary_bin", binwidth = 0.05,  color = "orange")+scale_x_continuous()+theme_paper+ylim(0,4)+ggtitle(paste(gene,rho ))+geom_smooth()
 }
 
 
 
-# Plot each of them 
+# Plot each of them
 apply(sig_correlations_lnc_infected_24, 1,function(x) plot_corr(expression_matrix, x[3], x[2]))
 apply(sig_correlations_lnc_infected_24, 1,function(x) plot_corr_boxplot(expression_matrix, x[3], x[2]))
 
@@ -368,7 +368,7 @@ plot_corr_gene_box <- function(gene){
    gene_gas5 <- paste(unique(ref[ref$transcript_id %in% unique(transcripts_de_orthologs[transcripts_de_orthologs$orthologGeneSymbol == gene, ]$lnc),]$gene_id), "-unknown", sep = "")
   df <- data.frame(exp = expression_matrix[gene_gas5, ], viral_load)
   df <- df[df$exp !=0, ]
-  # Order cells by viral load 
+  # Order cells by viral load
   df_ordered <- df[order(df$viral_load),]
   n<-20
   df_ordered$bin <- cut(1:length(df_ordered$viral_load), breaks =c( seq(0, length(df_ordered$viral_load), n), ceiling(length(df_ordered$viral_load)/n)*n) )
@@ -387,8 +387,3 @@ ego_de_down <- clusterProfiler::enrichGO(gene = gsub("-unknown", "",sig_corr_win
 dotplot(ego_de_down)
 
 ```
-
-
-
-
-

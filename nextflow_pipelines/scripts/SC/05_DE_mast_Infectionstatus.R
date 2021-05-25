@@ -77,6 +77,13 @@ if("group" %in% colnames(myeloids@meta.data)){
 mast_model <- get_mast_model(myeloids_late, relevel = "Not Infected", contarst = paste0("condition", "Infected"))
 saveRDS(mast_model,file.path(robjectsdir, paste0(ident, "_MAST_infectedVSnotinfected_LIVE24.rds", sep ="")))
 
+
+mast_model <- get_mast_model(myeloid_live, relevel = "Not Infected", contarst = paste0("condition", "Infected"))
+saveRDS(mast_model,file.path(robjectsdir, paste0(ident, "_MAST_infectedVSnotinfected_LIVE.rds", sep ="")))
+
+#mast_model <- get_mast_model(myeloids, relevel = "Not Infected", contarst = paste0("condition", "Infected"))
+#saveRDS(mast_model,file.path(robjectsdir, paste0(ident, "_MAST_infectedVSnotinfected.rds", sep ="")))
+
 #mast_model <- get_mast_model(myeloids_dpi58, relevel = "Not Infected", contarst = paste0("condition", "Infected"))
 #saveRDS(mast_model,file.path(robjectsdir, paste0(ident, "_MAST_infectedVSnotinfected_LIVE24_DPI58.rds", sep ="")))
 
