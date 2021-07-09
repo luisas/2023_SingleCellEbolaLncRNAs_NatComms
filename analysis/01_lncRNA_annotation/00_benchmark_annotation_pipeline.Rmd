@@ -5,37 +5,17 @@
 
 #### Imports
 ```{r include = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
-library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr); 
-library(formattable)
-library(DT)
-library("htmltools")
-library("webshot")    
-
-export_formattable <- function(f, file, width = "100%", height = NULL, 
-                               background = "white", delay = 0.2)
-    {
-      w <- as.htmlwidget(f, width = width, height = height)
-      path <- html_print(w, background = background, viewer = NULL)
-      url <- paste0("file:///", gsub("\\\\", "/", normalizePath(path)))
-      webshot(url,
-              file = file,
-              selector = ".formattable_widget",
-              delay = delay)
-    }
-
+library(rtracklayer);  library(stringr); library(ggplot2);library(wesanderson);  library(dplyr);library(reshape2)
 # Import Utils
 source(file.path("../utils/01_lncrna_annotation_utils.R"))
+# Define paths for data
+source(file.path("../utils/00_datapaths.R"))
 ```
 
 #### Read all the prediciton and reference files
 
 ```{r readPredictions, echo=FALSE}
-
-# rheMac10 reference (download)
-# ftp://ftp.ensembl.org/pub/release-100/gtf/macaca_mulatta/
-ref <- import(file.path("/home/luisas/Desktop/cluster/gene_annotations/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
+ref <- import(file.path(gene_annotation_path, "/ensembl_release100/rheMac10/Macaca_mulatta.Mmul_10.100.gtf"))
 
 # Table correspondence between transcripts and gene IDs 
 df_ref <- distinct(data.frame(ref[!is.na(ref$transcript_id),]$transcript_id, ref[!is.na(ref$transcript_id),]$gene_id, stringsAsFactors = F))
@@ -49,7 +29,7 @@ ref_pc <- ref[ref$type == "gene" & ref$gene_biotype == "protein_coding",]
 # ----------------------
 #   CPC2 predictions
 # ----------------------
-cpc2 <- read.table(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CPC2/cpc2_pred.txt"))
+cpc2 <- read.table(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CPC2/cpc2_pred.txt"))
 names(cpc2) <- c("ID","transcript_length ","peptide_length","Fickett_score" , " pI", "ORF_integrity", "coding_probability","label")
 # Extract transcript ids 
 cpc2$transcript_id <- unlist(lapply(as.character(cpc2$ID), function(x) strsplit(x,"[(]")[[1]][1]))
@@ -66,7 +46,7 @@ length(unique(cpc2_concordant$gene_id))
 # ----------------------
 #   CPAT predictions
 # ----------------------
-cpat <- read.table(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CPAT/cpat_pred.ORF_prob.tsv"), header = T)
+cpat <- read.table(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CPAT/cpat_pred.ORF_prob.tsv"), header = T)
 # Threshold reported by https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3616698/
 # "score threshold of 0.364 gave the highest sensitivity and specificity (0.966 for both) for human data"
 cutoff <-  0.364
@@ -85,7 +65,7 @@ length(unique(cpat_concordant$gene_id))
 # ----------------------
 #   CNIT predictions
 # ----------------------
-cnit <- read.table(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CNIT/cnit_pred/CNCI2.index"), header = T, sep="\t", stringsAsFactors = F)
+cnit <- read.table(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/99_benchmark_annotation/01_predictions/CNIT/cnit_pred/CNCI2.index"), header = T, sep="\t", stringsAsFactors = F)
 cnit$label <- cnit$index
 cnit$transcript_id <- unlist(lapply(as.character(cnit$Transcript.ID), function(x) strsplit(x,"[(]")[[1]][1]))
 
@@ -165,16 +145,32 @@ intersection_stats <- calc_stats_prediction(noncoding_intersection, coding_inter
 union_stats <- calc_stats_prediction(noncoding_union, coding_union, "Union")
 
 stats_summary <- rbind(cpc2_concordant_stats, cpat_concordant_stats, cnit_concordant_stats, intersection_stats, union_stats)
+stats_summary_red <- rbind(intersection_stats, union_stats)
+```
 
-# Visualize stats in a table
-table <- formattable(stats_summary, 
-            align = c("l",rep("r", NCOL(stats_summary) - 1)),
-            list(`name` = formatter("span", style = ~ style(color = "grey", font.weight = "bold")), 
-                 area(col = c(accuracy)) ~ normalize_bar("#ff9999", 0.2)))
-#export_formattable(table,"Fig_S1A.png")
 
-table
 
+```{r tableStats}
+pdf(file.path(plots, "01/benchmark_stats.pdf"), width = 7, height = 7)
+pal <- c("#899DA4", "#C93312", "#FAEFD1")
+# Plot barplot of union and intersection 
+ggplot(melt(stats_summary_red), aes(x = name, y = value, fill = variable))+geom_bar(stat = "identity", position = "dodge")+
+        xlab("")+ylab("")+
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.line = element_line(colour = "black"),
+              axis.ticks.length=unit(.2, "cm"),
+              axis.text= element_text(size = 15, color = "black"),
+              axis.title = element_text(size = 15),
+              plot.title = element_text(hjust = 0.5, size = 17),
+              legend.text = element_text(size = 15), 
+              legend.title = element_blank(),
+              axis.line.x=element_blank(),
+              axis.ticks.x=element_blank(),
+              panel.background = element_rect(fill = "white"))+
+        scale_y_continuous(limits = c(0,100), breaks = seq(0,100,25), expand = c(0,0))+
+        scale_fill_manual(values = pal)
+dev.off()
 ```
 
 

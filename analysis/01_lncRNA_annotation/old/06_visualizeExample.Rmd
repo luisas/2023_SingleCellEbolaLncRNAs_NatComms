@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+author: "Luisa Santus"
+date: "2/28/2020"
+output: html_document
+---
+
+
+# Supplementary figures
+
+## Compare number of genes in macaques vs Human annotation 
+```{r results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer)
+library(dplyr)
+library(ggplot2)
+library(plyr)
+library(ggpubr)
+library(RColorBrewer)
+library(Gviz)
+
+
+# 1. Identify the Gene 
+# Ideally, a gene expressed in one tissue only
+# Plot the region + annotations( our + known )
+# Coverage of all samples of that tissue 
+all <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list_old//rheMac10_EBOV_and_novel_genenames.gtf"))
+ref <- all
+plot_region("ZNF692")
+
+
+```
+
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+# 2. Plot the region with the reads 
+plot_region <- function(gene, range = 100000){
+  gene_id <- unique(ref[ref$gene_name == gene,]$gene_id)
+  chr <- paste("chr",unique(as.character(seqnames(ref[ref$gene_id == gene_id,]))), sep = "")
+  
+  # Define region nearby 
+  from  <- max(0,(min(start(ref[ref$gene_id == gene_id,])) -range))
+  print(gene)
+  to <- (max(end(ref[ref$gene_id == gene_id,]))+range)
+  ref_small<- ref[start(ref) > from  & end(ref) < to   ,]
+  # Change reference levels to UCSC
+  seqlevelsStyle(ref_small) <- "UCSC"
+  
+  geneModels <- as.data.frame(ref_small)
+  if(!(chr %in% as.character(geneModels$seqnames))){
+    return(NA)
+  }
+  geneModels <- geneModels[as.character(geneModels$seqnames) == chr, ]
+  geneModels$gene <- geneModels$gene
+  geneModels <- geneModels[geneModels$type =="exon",]
+  geneModels$symbol <- gsub("-unknown", "", geneModels$gene_name)
+  geneModels$exon <- geneModels$exon_id
+  geneModels$transcript <- geneModels$transcript_id
+  geneModels$gene <- geneModels$gene_id
+  
+  direction <- ifelse(geneModels$strand == "+", ">", "<")
+  geneModels$symbol <- paste(geneModels$symbol, direction)
+  if("StringTie" %in% geneModels$source){
+    geneModels[geneModels$source == "StringTie", ]$gene_biotype <- "lncRNA"
+  }
+  geneModels <- geneModels[geneModels$gene_biotype %in% c("protein_coding", "lncRNA"),]
+  
+  #geneModels_14 <- geneModels_14[geneModels_14$symbol %in%  c("ENSMMUG00000061948_unkown", "THY1"),]
+  gtrack1 <- GeneRegionTrack(geneModels, genome  = "rheMac10", chr = chr, name = "Macaque rheMac10")
+  atrack <- GeneRegionTrack(geneModels, genome  = "rheMac10", chr = chr, name = "Macaque rheMac10", cex.axis = 15)
+  gtrack <- GenomeAxisTrack()
+  itrack <- IdeogramTrack(genome = "rheMac10", chromosome = chr)
+  
+  geneModels[geneModels$gene_id == gene_id,]$gene_biotype <- "lncRNA_highlight"
+  #geneModels[geneModels$gene_name == "THY1",]$gene_biotype <- "mRNA_highlight"
+  
+  feature(atrack) <- geneModels$gene_biotype
+  p <- plotTracks(list(itrack, itrack,  gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
+                  background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2],
+                  lncRNA_highlight = palette_plot_percentage[3],
+                  mRNA_highlight = palette_plot_percentage[4],cex.id = 2, sizes = c(2, 0.3,0.3,1))
+  return(p)
+}
+
+```
+

@@ -1,0 +1,75 @@
+---
+title: "01_lncrnas_plots_paper"
+author: "Luisa Santus"
+date: "4/23/2020"
+output: html_document
+  keep_md: true
+---
+
+## 01 lncRNAs annotation summary
+
+
+### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
+library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
+
+# Reoccurring paths
+# Define paths for data
+source(file.path("../utils/00_datapaths.R"))
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+dir_counts_ref <- file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/")
+
+
+
+# Human reference for comparison
+lncRNAs_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_lncrna.gtf"))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
+
+# Macaque reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+
+all <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+```
+
+
+```{r stats}
+
+
+all_novel<- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/merged.annotated.gtf"))
+novel_transcripts <- all_novel[all_novel$type == "transcript", ]
+n_novel_transcripts <- table(substr(unique(novel_transcripts$gene_id),1,3))[[2]]
+
+novel_transcripts_ux <- novel_transcripts[novel_transcripts$class_code %in% c("u", "x"),]
+n_novel_transcripts_ux <- table(substr(unique(novel_transcripts_ux$gene_id),1,3))[[1]]
+
+conc_ribo <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf"))
+n_conc_ribo <- table(substr(unique(conc_ribo$gene_id),1,3))[[1]]
+
+expre_ribo <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/02_novel_expressed/candidates.gtf"))
+n_expre_ribo <- table(substr(unique(expre_ribo$gene_id),1,3))[[1]]
+```
+
+```{r stats}
+# STATS 
+print("-----------------------")
+print(paste("Total novel transcripts",n_novel_transcripts, sep = ": "))
+print(paste("Total novel transcripts intergenic or x",n_novel_transcripts_ux, sep = ": "))
+print(paste("Total novel concordant",n_conc_ribo, sep = ": "))
+print(paste("Total novel expressed",n_expre_ribo, sep = ": "))
+print("-----------------------")
+print(paste("Total lost for Intergenic/Antisense filter",n_novel_transcripts-n_novel_transcripts_ux , sep= ": "))
+print(paste("Total lost for concordance filter",n_novel_transcripts_ux-n_conc_ribo , sep= ": "))
+print(paste("Total lost for expression filter",n_conc_ribo-n_expre_ribo , sep= ": "))
+print("-----------------------")
+
+```
