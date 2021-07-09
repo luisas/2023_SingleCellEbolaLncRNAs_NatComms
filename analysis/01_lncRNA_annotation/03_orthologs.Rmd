@@ -39,6 +39,9 @@ names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alig
 
 all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ref <- all
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+
+
 df_ref <- distinct(data.frame(ref[!is.na(ref$transcript_id),]$transcript_id, ref[!is.na(ref$transcript_id),]$gene_id, stringsAsFactors = F))
 names(df_ref) <- c("lnc", "gene_id")
 rownames(df_ref) <- df_ref$transcript_id
@@ -56,18 +59,16 @@ check[check$n > 1, ]
 # Look for nice examples 
 
 ```{r cpc2}
-all_stringtie_novellnc <- all[all$source == "StringTie", ]
-all_annot <- all[all$source != "StringTie", ]
-all_annot_lnc <- all_annot[all_annot$type == "transcript" & all_annot$transcript_biotype == "lncRNA",]
-length(unique(all_annot_lnc$gene_id))
-length(unique(all_stringtie_novellnc$gene_id))
 
-orthologs_novel <- orthologs[substr(orthologs$lnc,1,4) == "MSTR",]
-orthologs_lncAnnot <- orthologs[orthologs$lnc %in% all_annot_lnc$transcript_id,]
+annotated_lncrnas <- (unique(all[!is.na(all$gene_biotype) & all$gene_biotype == "lncRNA", ]$gene_id))
+novel_lncrnas <- (unique(all_novel_lnc$gene_id))
 
-novel_with_ortholog <- length(unique(orthologs_novel$gene_id))
-annotated_with_ortholog <- length(unique(orthologs_lncAnnot$gene_id))
-novel_with_ortholog/sum(novel_with_ortholog,annotated_with_ortholog)
+novel_with_ortholog <- unique(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),]$gene_id)
+length(unique(novel_with_ortholog))
+annotated_with_ortholog <-unique(orthologs[orthologs$gene_id %in% annotated_lncrnas,]$gene_id)
+length(unique(annotated_with_ortholog))
+
+length(novel_with_ortholog)/sum(length(novel_with_ortholog),length(annotated_with_ortholog))
 
 ```
 
@@ -77,20 +78,20 @@ novel_with_ortholog/sum(novel_with_ortholog,annotated_with_ortholog)
 ```{r cpc2}
 
 
-orthologs_novel_found <- sum(orthologs$gene_id %in% unique(all_stringtie_novellnc$gene_id))
-novel_no_ortholog <- length(unique(all_stringtie_novellnc$gene_id))-orthologs_novel_found
-
-orthologs_annot_found <- sum(orthologs$gene_id %in% unique(all_annot_lnc$gene_id))
-annot_no_ortholog <- length(unique(all_annot_lnc$gene_id))-orthologs_annot_found
+counts <- c( 
+           length(novel_lncrnas)-length(novel_with_ortholog),
+           length(novel_with_ortholog),
+           length(annotated_lncrnas)-length(annotated_with_ortholog),
+          length(annotated_with_ortholog))
 
 freqs <- c( 
-           novel_no_ortholog/length(unique(all_stringtie_novellnc$gene_id)), 
-           orthologs_novel_found/length(unique(all_stringtie_novellnc$gene_id)),
-           annot_no_ortholog/length(unique(all_annot_lnc$gene_id)),
-            orthologs_annot_found/length(unique(all_annot_lnc$gene_id)))
+           (length(novel_lncrnas)-length(novel_with_ortholog))/length(novel_lncrnas), 
+           length(novel_with_ortholog)/length(novel_lncrnas),
+           (length(annotated_lncrnas)-length(annotated_with_ortholog))/length(annotated_lncrnas),
+          length(annotated_with_ortholog)/length(annotated_lncrnas))
 
 
-df <- data.frame(count = c(novel_no_ortholog,orthologs_novel_found,annot_no_ortholog,orthologs_annot_found ), type = c("novel", "novel", "annotated", "annotated"), orth = c( "Ortholog NOT found","Ortholog found", "Ortholog NOT found", "Ortholog found"),freq = freqs) 
+df <- data.frame(counts = counts, type = c("novel", "novel", "annotated", "annotated"), orth = c( "Ortholog NOT found","Ortholog found", "Ortholog NOT found", "Ortholog found"),freq = freqs) 
 df$orth <- relevel(factor(df$orth), ref = "Ortholog NOT found") 
 
 # Plot with proportions
