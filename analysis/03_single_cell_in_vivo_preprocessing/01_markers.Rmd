@@ -35,12 +35,12 @@ theme_sc <- theme(legend.title = element_blank())+theme(panel.background = eleme
 
 
 # Gene annotation 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path(data_path,"/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 
 # Seurat Object - preprocessed
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/01_immune.combined_post_scrublet_mdkremoved__02_integrated_dimred_all.rds")
+immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/01_immune.combined_post_scrublet_mdkremoved__02_integrated_dimred_all.rds"))
 dim(immune.combined)
 DimPlot(immune.combined, reduction = "umap", label = TRUE)+theme_sc
 sum(table(immune.combined$dpi))
@@ -75,7 +75,7 @@ pDC <- c("IRF8", "FLT3")
 
 marker.genes_red <- c(t,b,mono,neut)
 
-saveRDS(marker.genes_red, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds")
+saveRDS(marker.genes_red, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
 
 
 FeaturePlot(immune.combined, pDC, order = T )
@@ -89,7 +89,7 @@ immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T", `2` = "T"
    `3` = "T", `4` = "B", `5` = "Monocyte", `6` = "Neutrophil", `7` = "Monocyte", `8` = "T", `9` = "Monocyte",
     `10` = "T", `11` = "T", `12` = "Monocyte", `13` = "T", `14` = "Neutrophil", `15` = "Monocyte",`15` ="T", `16` ="B", `17` ="T", `18` ="T")
 
-saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+saveRDS(immune.combined, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 #immune.combined_noneut <- RenameIdents(immune.combined, `Neutrophil` = "Myeloid", `Monocyte` = "Myeloid")
 #saveRDS(immune.combined_noneut, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
@@ -201,7 +201,7 @@ donut_plot(lnc_donut, "Greens")
 
 
 # Save
-robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats"
+robjectsdir<- file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats")
 dir.create(file.path(robjectsdir), showWarnings = FALSE)
 saveRDS(all_lncrnas, file.path(robjectsdir, "all_lncrnas.rds"))
 saveRDS(annotated_mrnas, file.path(robjectsdir, "annotated_mrnas.rds"))
