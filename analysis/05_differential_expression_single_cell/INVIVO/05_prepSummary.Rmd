@@ -1,0 +1,65 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Prepare summary table with all analyses 
+
+```{r prep}
+# 1 - load DE stats
+lnc_DE <- read.table(file.path(data_path, "plots/03/lncDE.csv"), header = T, sep = ",")
+# Order columns
+lnc_DE <- lnc_DE[,c("gene_id",setdiff(colnames(lnc_DE), "gene_id"))]
+colnames(lnc_DE) <- gsub("coef","DE_coefficient",colnames(lnc_DE))
+colnames(lnc_DE) <- gsub("fdr","DE_fdr",colnames(lnc_DE))
+lnc_DE$orth_temp <- unlist(lapply(lnc_DE$gene_name, get_orthologname_))
+
+# Load community stats
+
+# InGraph, Community, Community members 
+graph_info <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/Graph_communitybelonging.rds"))
+colnames(graph_info) <- c("community", "gene_name")
+graph_info$orth_temp <- unlist(lapply(graph_info$gene_name,get_orthologname_ ))
+
+community_members_pre <- graph_info %>% dplyr::group_by(community) %>% dplyr::mutate("community_members" = paste(orth_temp, collapse = "; "))
+community_members <- unique(community_members_pre[,c("community", "community_members")])
+
+
+graph_de_summary <- left_join(lnc_DE,graph_info[,c("community", "orth_temp")], by = "orth_temp")
+summary_de_graph <- left_join(graph_de_summary, community_members)
+
+# Add colocation : CIS
+complete_cis_corr_de <- readRDS(file.path(data_path, "plots/04/correlations_de_cis.rds"))
+cis_summary <- distinct(complete_cis_corr_de[,c("lnc_name", "pc_name")])
+cis_summary_names <- cis_summary %>% dplyr::group_by(lnc_name) %>% dplyr::mutate("cis_genes" = paste(pc_name, collapse = "; "))
+cis_summary_names <- cis_summary_names[,c(1,3)]
+colnames(cis_summary_names) <- c("gene_name", "cis_genes")
+
+summary_de_graph_cis <- left_join(summary_de_graph, cis_summary_names, by = "gene_name")
+
+
+# Add lncpedia and Immlnc
+lncpedia_immune <- import(file.path(data_path, "/00_RawData/lncpedia/lncpedia_immune.gtf"))
+lncpedia_infection <- import(file.path(data_path,"/00_RawData/lncpedia/lncpedia_infection.gtf"))
+lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
+
+immlnc <- read.table(file.path(data_path, "00_RawData/ImmLnc/Lnc_Pathways_Sig.txt"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+reported_immlnc <- immlnc$lncRNA_symbol
+
+
+summary_de_graph_cis$reported_in_lncpedia <- ifelse((summary_de_graph_cis$ortholog_found == T &summary_de_graph_cis$ortholog %in% lncpedia), TRUE, FALSE)
+summary_de_graph_cis$reported_in_immlnc<- ifelse((summary_de_graph_cis$ortholog_found == T &summary_de_graph_cis$ortholog %in% reported_immlnc), TRUE, FALSE)
+
+
+final_summary <- summary_de_graph_cis[,setdiff(colnames(summary_de_graph_cis), "orth_temp")]
+
+write.table(final_summary, file = file.path(data_path, "00_Metadata/final_DE_summary.csv"), row.names = F, col.names = T, sep = ",")
+
+
+```
+
+
+
