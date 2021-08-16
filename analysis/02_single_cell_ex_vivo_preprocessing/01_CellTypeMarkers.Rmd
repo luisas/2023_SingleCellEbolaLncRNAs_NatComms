@@ -5,6 +5,12 @@ date: "1/22/2020"
 output: html_document
 ---
 
+#-------- PREPARE EX VIVO OBJECT ---------------
+# REMOVE DOUBLETS
+# IDENTIFY CELL-TYPE MARKERS 
+# PREPARE FINAL OBJECT for downstream analyses 
+
+# Imports 
 ```{r a}
 library(Seurat)
 library(SingleCellExperiment)
@@ -17,18 +23,18 @@ source(file.path("../utils/00_datapaths.R"))
 source("../../analysis/utils/02_sc_utils.R")
 theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/01_QC/immune.combined_qc.rds")
+immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/01_QC/immune.combined_qc.rds"))
 
 # Load annotations
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref <- import(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path(data_path,"00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 
 # Doublet detection results 
-cell_mask_scrublet <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/02_DoubletDetection/immune.combined_scrublet_mask.txt")
+cell_mask_scrublet <- read.table(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/02_DoubletDetection/immune.combined_scrublet_mask.txt"))
 
 
-result_path<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep"
+result_path<- file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep")
 dir.create(file.path(result_path), showWarnings = FALSE)
 print("Loaded")
 ```
@@ -90,18 +96,6 @@ DimPlot(immune.combined, reduction = "umap", label = TRUE)+theme_sc
 #m1 <- FindMarkers(immune.combined,ident.1=1 )
 #m1  %>% top_n(n = 10, wt = avg_logFC)
 
-# Broad markers
-#CD8T <- c("CD3D", "GZMB", "GNLY")
-#CD4T <-  c("CD3D", "IL7R")
-#B <-  c("MS4A1", "IGHM")
-#Monocytes<-  c("CFD", "LYZ")
-#cDCs <-  c("FLT3", "IRF8")
-#pDCs <- c("IRF8","GZMB")
-#Neutrophils <-  c("CD177", "LCN2")
-#Platelets <-  c("PF4", "CAVIN2")
-#Plasmablasts  <- c("MZB1", "IGHM", "IGHA")
-#MDCK <- c("COL5A2", "SLC20A1")
-
 b <- c("CD79B", "MS4A1", "CD19", "IGHM")
 CD8T <- c("CD3D", "GZMB", "GNLY")
 CD4T <-  c("CD3D", "IL7R")
@@ -117,14 +111,9 @@ plot_genes(immune.combined, nk, threshold = 2 , title = "NK markers expression",
 plot_genes(immune.combined, b, threshold = 1 , title = "B markers expression", col = "purple")
 plot_genes(immune.combined, t, threshold = 2 , title = "T-Cell markers expression", col = "purple")
 
-
-#immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "B", `2` = "NK", 
-#   `3` = "B", `4` = "T", `5` = "T", `6` = "B", `7` = "Monocyte", `8` = "B", `9` = "T",
-#    `10` = "B", `11` = "Monocyte", `12` = "Monocyte",`13` = "B", `14` = "Monocyte", `15` = "Monocyte" )
-
 immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T",`2` = "B", `3` = "NK",  `4` = "T", `5` = "T", `6` = "B", `7` = "Monocyte", `8` = "Monocyte", `9` = "Monocyte" )
 
-saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+saveRDS(immune.combined, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 ```
 
@@ -132,7 +121,7 @@ saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/0
 # Visualize Marker genes
 
 ```{r Find markers}
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+immune.combined <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 # Visualize Markers
 DotPlot(immune.combined, features = unique(marker.genes_red), cols = c("navy", "#FFD533", "grey"), dot.scale = 12) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())+ theme(panel.background = element_rect(fill = "white", colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
@@ -159,18 +148,9 @@ DimPlot(immune.combined, red = "umap", group.by = "dpi", pt.size = 0.1, cols = r
 # Individual 
 DimPlot(immune.combined, reduction = "umap", group.by = "individual_nhp",cols = c(brewer.pal(10, "Paired")[c(1,2)]), pt.size = 0.1)+theme_sc
 
-
-
 pal4 <- c(wes_palette("Zissou1", 5)[3],"#E55039",wes_palette("Zissou1", 5)[1] )
 p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "cond",cols =pal4, pt.size = 0.01)+theme_sc
 p4
-# Sample
-#p5 <- DimPlot(immune.combined, reduction = "umap", group.by = "sample", pt.size = 0.00001)+theme_sc
-
-
-
-table(Idents(immune.combined))
-
 ```
 # -----------------------------
 #     Identify EbolaGenes
@@ -181,8 +161,6 @@ ebola_genes <- rownames(immune.combined)[rownames(immune.combined) %in% paste(eb
 ebola_genes
 FeaturePlot(immune.combined, features  = ebola_genes)
 plot_genes(immune.combined, ebola_genes,0.5, col = "#DA0202", "Cells expressing Ebola RNA", sizes.highlight = 0.4)
-
-
 ```
 
 
@@ -222,7 +200,7 @@ names(lnc_donut) <- c("-", "type", "count")
 donut_plot(lnc_donut, "Greens")
 
 # Save
-robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats"
+robjectsdir<- file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats")
 dir.create(file.path(robjectsdir), showWarnings = FALSE)
 saveRDS(all_lncrnas, file.path(robjectsdir, "all_lncrnas.rds"))
 saveRDS(annotated_mrnas, file.path(robjectsdir, "annotated_mrnas.rds"))

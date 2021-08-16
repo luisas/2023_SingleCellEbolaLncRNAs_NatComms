@@ -10,7 +10,7 @@ library(ggthemes)
 library(ggplot2)
 
 
-# Define paths for data
+# 0 ------------ Define paths for data
 source(file.path("../utils/00_datapaths.R"))
 source("../utils/02_sc_utils.R")
 
@@ -19,10 +19,11 @@ theme_umap <- theme(panel.background = element_rect(fill = "white"),
                     legend.position = "right", 
                     panel.grid.minor = element_blank(),
                     text = element_text(size=18))
+
+# 1 -------------- Imports 
 # Gene annotation 
 ref <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ebola_ref <- import(file.path(data_path,"00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
-
 immune.combined <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10//05_RObjects/03_prep/immune.combined.infectionstatus.rds"))
 
 # Import marker genes
@@ -32,6 +33,9 @@ pal_celltypes <- c("#FD6467","#F1BB7B","#1F78B4","#AE4E4E")
 pal4 <- c("#EBCC2A","#E55039","#3B9AB2")
 pal3 <- c( "#3B9AB2","#78B7C5","#EBCC2A")
 
+
+
+# -----------2  Plots 
 # 1. Celltypes 
 pdf(file.path(plots, "05/A_celltypes.pdf"), width = 7, height = 5)
 DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =pal_celltypes, label.size = 9)+theme_void()+theme_umap
