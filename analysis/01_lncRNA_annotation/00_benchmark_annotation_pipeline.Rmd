@@ -6,10 +6,10 @@
 #### Imports
 ```{r include = FALSE}
 library(rtracklayer);  library(stringr); library(ggplot2);library(wesanderson);  library(dplyr);library(reshape2)
-# Import Utils
-source(file.path("../utils/01_lncrna_annotation_utils.R"))
 # Define paths for data
 source(file.path("../utils/00_datapaths.R"))
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
 ```
 
 #### Read all the prediciton and reference files

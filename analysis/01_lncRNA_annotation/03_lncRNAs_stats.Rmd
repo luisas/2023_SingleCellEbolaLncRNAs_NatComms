@@ -295,7 +295,7 @@ length(unique(antisense_lnc$transcript_id))
 # Check percentage
 length(unique(antisense_lnc$gene_id))/(length(unique(antisense_lnc$gene_id))+length(unique(intergenic_lnc$gene_id)))
 
-plots_sep <- plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette_extensive, palette_border)
+plots_sep <- plot_stats_annotation_separated(intergenic_lnc,antisense_lnc ,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette_extensive, palette_border, size = 17)
 plots_sep
 ```
 
@@ -500,52 +500,3 @@ b_sep
 dev.off()
 ```
 
-
-
-### OLD:  investigate and find some example for plotting
-```{r tissuespecificity}
-ref <- all
-orthologs <- readRDS("/home/luisa/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
-get_orthologname_ <- function(string, orthologs_ = orthologs){
-  d <-orthologs_[gsub("-unknown", "", orthologs_$gene_id) == sub("-unknown", "",string), ]
-  if(nrow(d)==0){
-    return(gsub("-unknown", "", string) )
-  }
-  return(unique(as.character(d$orthologGeneSymbol)))
-}
-
-
-summarized_expression <- t(rowsum(t(expressed_booleans), colnames(expressed_booleans)))
-# One tissue expressed o
-summarized_expression_df <- data.frame(summarized_expression)
-# novel only 
-novels <- summarized_expression_df[substr(rownames(summarized_expression_df),1,3) == "MST",]
-
-tissue <- "Blood"
-expressed_in_tissue <- rownames(novels)[novels[,tissue] > 2]
-not_expressed_in_others <- rownames(novels)[rowSums(novels[,setdiff(colnames(novels),tissue)]) <2]
-candidates <- intersect(expressed_in_tissue, not_expressed_in_others)
-
-candidates <- expressed_in_tissue
-candidates_orth <- candidates[unlist(lapply(candidates, function(gene) get_orthologname_(gene) != gene))]
-
-candidates_orth_df <- data.frame(candidate = candidates_orth, stringsAsFactors = F)
-candidates_orth_df$ortholog <- unlist(lapply(candidates_orth, function(gene) get_orthologname_(gene)))
-candidates_orth_df
-
-
-ref <- all
-
-
-gene <- candidates_orth_df[candidates_orth_df$ortholog == "ZFAS1",]$candidate
-expression <- dat
-expression <- as.matrix(expression)
-colnames(expression) <- abundance_files
-names(expression[gene,expression[gene, ]> 1] )
-all[all$gene_id == gene, ]
-gene_name <- unique(all[all$gene_id == gene, ]$gene_name)
-
-
-plot_region(gene_name, palette_plot_percentage = c(rep(palette_expression[3], 2), rep( palette_expression[1],2)))
-
-```

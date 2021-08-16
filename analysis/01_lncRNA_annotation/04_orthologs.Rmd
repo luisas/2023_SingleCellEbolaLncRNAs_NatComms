@@ -6,9 +6,10 @@ output: html_document
 ---
 
 # ORTHOLOGS ANALYSIS 
+## How many orthologs do we find? 
+## Plus prepare object for future analyses 
 
-
-### Imports and prepare transcripts
+### Imports
 ```{r beg, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rtracklayer)
@@ -37,24 +38,35 @@ orthologs <- read.table(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation
 orthologs <- read.table(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.top.txt"))
 names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alignScore","exonID","locusID","indelRate(exon)" ,"indelRate(intron)","lncExonsAligned","orthExonsAligned","spliceConserved","spliceTotal","category(mmul10)","category(hg38)")
 
+# Import files 
 all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ref <- all
 all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
 
-
+# Dataframe correspondence transcripts - genes
 df_ref <- distinct(data.frame(ref[!is.na(ref$transcript_id),]$transcript_id, ref[!is.na(ref$transcript_id),]$gene_id, stringsAsFactors = F))
 names(df_ref) <- c("lnc", "gene_id")
 rownames(df_ref) <- df_ref$transcript_id
-orthologs <- merge(orthologs, df_ref, by = "lnc")
 
+# Get unique dataframe
+orthologs <- merge(orthologs, df_ref, by = "lnc")
 saveRDS(orthologs,file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 
-
-check_df <- distinct(orthologs[,c("gene_id", "orthologGeneSymbol")])
-check <- check_df %>% dplyr::group_by(orthologGeneSymbol) %>% dplyr::count()
-check[check$n > 1, ]
 ```
 
+# Filter table to have 1 to one
+```{r cpc2}
+orthologs <- distinct(orthologs)
+orthologs_red <- distinct(orthologs[,c("gene_id","lnc", "orthologGeneSymbol","alignScore")])
+orthologs_max <- orthologs_red %>% dplyr::group_by(orthologGeneSymbol) %>% dplyr::summarise(alignScore=max(alignScore))
+orthologs_max$key <- paste(orthologs_max$orthologGeneSymbol, orthologs_max$alignScore, sep ="_")
+orthologs_red$key <- paste(orthologs_red$orthologGeneSymbol, orthologs_red$alignScore, sep ="_")
+orthologs$key <- paste(orthologs$orthologGeneSymbol, orthologs$alignScore, sep ="_")
+orthologs <- orthologs_max %>% left_join(orthologs, by = c("key"))
+colnames(orthologs) <- gsub("orthologGeneSymbol.x","orthologGeneSymbol",colnames(orthologs))
+orthologs <- distinct(orthologs)
+saveRDS(orthologs, file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+```
 
 # Look for nice examples 
 
@@ -74,7 +86,7 @@ length(novel_with_ortholog)/sum(length(novel_with_ortholog),length(annotated_wit
 
 
 
-# ----- Gene level
+# How many ortholog did we identify? (GENE LEVEL)
 ```{r cpc2}
 
 
@@ -112,6 +124,5 @@ pdf(file.path(plots, "01/orthologs.pdf"), width = 4.5, height = 6)
 p_o
 dev.off()
 ```
-
 
 

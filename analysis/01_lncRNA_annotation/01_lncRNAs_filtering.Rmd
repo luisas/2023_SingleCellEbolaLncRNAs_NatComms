@@ -6,11 +6,10 @@ output: html_document
   keep_md: true
 ---
 
-## 01 lncRNAs annotation summary
+# LncRNAs annotation summary of filtering steps 
+## Quantify the loss of transcipts and genes in each step of the de novo anntoation pipeline
 
-
-### Summary of features of novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
-
+# imports 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
@@ -37,20 +36,17 @@ mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mula
 mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
 mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
 
-
 all <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ```
 
-
+# calculate loss
 ```{r stats}
-
-
 all_novel<- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/merged.annotated.gtf"))
-novel_transcripts <- all_novel[all_novel$type == "transcript", ]
-n_novel_transcripts <- table(substr(unique(novel_transcripts$gene_id),1,3))[[2]]
+novel_gene <- all_novel[all_novel$type == "transcript", ]
+n_novel_gene <- table(substr(unique(novel_gene$gene_id),1,3))[[2]]
 
-novel_transcripts_ux <- novel_transcripts[novel_transcripts$class_code %in% c("u", "x"),]
-n_novel_transcripts_ux <- table(substr(unique(novel_transcripts_ux$gene_id),1,3))[[1]]
+novel_gene_ux <- novel_gene[novel_gene$class_code %in% c("u", "x"),]
+n_novel_gene_ux <- table(substr(unique(novel_gene_ux$gene_id),1,3))[[1]]
 
 conc_ribo <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/00_prefilter_candidates/prefilter_candidates.gtf"))
 n_conc_ribo <- table(substr(unique(conc_ribo$gene_id),1,3))[[1]]
@@ -59,16 +55,17 @@ expre_ribo <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03
 n_expre_ribo <- table(substr(unique(expre_ribo$gene_id),1,3))[[1]]
 ```
 
+# print
 ```{r stats}
 # STATS 
 print("-----------------------")
-print(paste("Total novel transcripts",n_novel_transcripts, sep = ": "))
-print(paste("Total novel transcripts intergenic or x",n_novel_transcripts_ux, sep = ": "))
+print(paste("Total novel gene",n_novel_gene, sep = ": "))
+print(paste("Total novel gene intergenic or x",n_novel_gene_ux, sep = ": "))
 print(paste("Total novel concordant",n_conc_ribo, sep = ": "))
 print(paste("Total novel expressed",n_expre_ribo, sep = ": "))
 print("-----------------------")
-print(paste("Total lost for Intergenic/Antisense filter",n_novel_transcripts-n_novel_transcripts_ux , sep= ": "))
-print(paste("Total lost for concordance filter",n_novel_transcripts_ux-n_conc_ribo , sep= ": "))
+print(paste("Total lost for Intergenic/Antisense filter",n_novel_gene-n_novel_gene_ux , sep= ": "))
+print(paste("Total lost for concordance filter",n_novel_gene_ux-n_conc_ribo , sep= ": "))
 print(paste("Total lost for expression filter",n_conc_ribo-n_expre_ribo , sep= ": "))
 print("-----------------------")
 

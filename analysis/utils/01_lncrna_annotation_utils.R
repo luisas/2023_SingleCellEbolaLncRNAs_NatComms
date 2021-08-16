@@ -211,7 +211,7 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
   return(list(a,p,p1))
 }
 
-plot_stats_annotation_separated <- function (novel_expressed_poly, novel_expressed_ribo,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,palette, palette_border, maxquantile = 0.9){
+plot_stats_annotation_separated <- function (novel_expressed_poly, novel_expressed_ribo,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref,palette, palette_border, maxquantile = 0.9, size = 20){
   levels <- c('Intergenic Novel LncRNAs', 'Antisense Novel LncRNAs', 'Annotated LncRNAs - Macaque ', 'Annotated LncRNAs - Human',"Annotated mRNAs - Macaque", "Annotated mRNAs - Human" )
   # --------------------
   ## EXON COUNT
@@ -359,39 +359,6 @@ transcript_length_summary <- function(gr){
 
 
 # ---- OLD 
-
-plot_assembly_stats <- function(summary_exons){
-  #Visualize 
-  # Create Data
-  data <- data.frame(
-    group=c("1", "2", "3+"),
-    value=c(sum(summary_exons$max_exon == 1),sum(summary_exons$max_exon == 2),sum(summary_exons$max_exon > 1))
-  )
-  
-  # Basic piechart
-  # Compute the position of labels
-  data <- data %>% 
-    arrange(desc(group)) %>%
-    mutate(prop = value / sum(data$value) *100) %>%
-    mutate(ypos = cumsum(prop)- 0.5*prop )
-  
-  # Basic piechart
-  plotassembly <- ggplot(data, aes(x="", y=prop, fill=group)) +
-    geom_bar(stat="identity", width=1, color="white") +
-    coord_polar("y", start=0) +
-    theme_void() + 
-    theme(legend.position="none") +
-    geom_text(aes(y = ypos, label = group), color = "white", size=6) +
-    scale_fill_brewer(palette="Set1")+ggtitle(paste("Number of exons per assembled transcript\n\nTotal number of assembled transcripts: ", length(unique(summary_exons$transcript_id))))
-  return(plotassembly)
-}
-
-calc_transcript_length_2 <- function(gr){
-  gr <- gr[gr$type =="exon",]
-  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-  return(collapsed)
-}
 
 bed12_entry <- function(transcript){
   
