@@ -13,6 +13,7 @@ library(rtracklayer)
 library(RColorBrewer)
 library(wesanderson)
 
+source(file.path("../utils/00_datapaths.R"))
 source("../../analysis/utils/02_sc_utils.R")
 theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 
@@ -109,7 +110,7 @@ nk <- c("KLRB1", "GZMB","FCGR3")
 mono <- c("LYZ", "PSAP", "CFD") 
 
 marker.genes_red <- c(nk, t,b,mono)
-
+saveRDS(marker.genes_red, file.path(data_path,  "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
 
 plot_genes(immune.combined,mono,threshold= 1, title = "Monocytes marker expression", col = "purple")
 plot_genes(immune.combined, nk, threshold = 2 , title = "NK markers expression", col = "purple")

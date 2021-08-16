@@ -439,8 +439,11 @@ boxplot_bystanders <- function(df, baseline = "media", live = "live"){
   df[df$cond %in% baseline, ]$class <- "Baseline" 
   df[df$cond %in% c(live) & df$classification == "Not Infected",]$class <- "Bystanders"
   df[df$cond %in% c(live) & df$classification == "Infected",]$class <- "Infected"
+  df$class <- factor(df$class, levels = c("Baseline", "Bystanders", "Infected"))
   p <- ggplot(df[!is.na(df$class),], aes(x = class, y = value, fill = class))+geom_boxplot(notch = F, alpha=0.8)+theme_paper+scale_fill_manual(values = wes_palette("Zissou1", 5, type = "discrete")[c(1,4,5)])+ggtitle(get_orthologname(unique(df$gene)))
-  return(p)
+  my_comparisons <- list( c("Baseline", "Bystanders"), c("Bystanders", "Infected"), c("Baseline", "Infected"))
+  p2 <- ggboxplot(df[!is.na(df$class),],x = "class", y = "value", fill = "class" )+ stat_compare_means(comparisons = my_comparisons, label = "p.signif")+theme_paper+scale_fill_manual(values = wes_palette("Zissou1", 5, type = "discrete")[c(1,4,5)])+ggtitle(get_orthologname(unique(df$gene)))
+  return(list(p,p2))
 }
 
 
@@ -514,7 +517,7 @@ get_gene_id <- function(gene){
   gene_id  <- rownames(subset(immune.combined, features = c(gene_id)))
   return(gene_id)
 }
-plot_region <- function(gene, range = 100000, palette_plot_percentage = palette_plot_percentage){
+plot_region <- function(gene, range = 100000, palette_plot_percentage = palette_plot_percentage, genes = "NULL",getmax = T ){
   gene_id <- unique(ref[ref$gene_name == gene,]$gene_id)
   chr <- paste("chr",unique(as.character(seqnames(ref[ref$gene_id == gene_id,]))), sep = "")
   
@@ -523,6 +526,14 @@ plot_region <- function(gene, range = 100000, palette_plot_percentage = palette_
   print(gene)
   to <- (max(end(ref[ref$gene_id == gene_id,]))+range)
   ref_small<- ref[start(ref) > from  & end(ref) < to   ,]
+  if(getmax == T){
+    ref_small <- get_only_max_transcript(ref_small)
+  }
+  if(genes  != "NULL"){
+    ref_small <- ref_small[ref_small$gene_name %in% genes,]
+    print("filter")
+  }
+  print(genes)
   # Change reference levels to UCSC
   seqlevelsStyle(ref_small) <- "UCSC"
   
@@ -557,8 +568,8 @@ plot_region <- function(gene, range = 100000, palette_plot_percentage = palette_
   feature(atrack) <- geneModels$gene_biotype
   p <- plotTracks(list(itrack,gtrack, atrack), showId = TRUE, from = from , to = to, col = NULL, 
                   background.title = "white", col.title = "black", cex.title = 1, lncRNA = palette_plot_percentage[1], protein_coding = palette_plot_percentage[2],
-                  lncRNA_highlight = palette_plot_percentage[3],fontsize=8,cex.group=1.4,
-                  mRNA_highlight = palette_plot_percentage[4],cex.id = 5, sizes = c(0.3,0.3,1), cex.main = 3)
+                  lncRNA_highlight = palette_plot_percentage[3],fontsize=8,cex.group=1,
+                  mRNA_highlight = palette_plot_percentage[4],cex.id = 2, sizes = c(0.3,0.3,1), cex.main = 1)
   return(p)
 }
 
@@ -585,9 +596,9 @@ Plot_dotplot2 <- function(genes, mono, group= "condition", split = NA){
 
 
 
-plot_viral_load_gene <- function(gene_id, mono_live_h24_inf){
-  df <- get_expression_summary_gene(gene_id, mono =mono_live_h24_inf)
-  df_2 <- get_expression_summary_gene(gene_id, mono =mono_live_h24_notinf)
+ plot_boxplot<- function(gene_id, mono_live_h24_inf, ebola_genome_percentage_df_ = ebola_genome_percentage_df){
+  df <- get_expression_summary_gene(gene_id, mono =mono_live_h24_inf, ebola_genome_percentage_df_)
+  df_2 <- get_expression_summary_gene(gene_id, mono =mono_live_h24_notinf, ebola_genome_percentage_df_)
   p1 <- ggplot(df, aes( x = classification, y = value, col = classification, fill = classification))+geom_boxplot(alpha = 0.1)+theme_paper+scale_y_log10()+ylab("logCP10K")+xlab("")+theme(axis.text.x = element_blank())+theme(legend.position = "")+theme(axis.ticks.x.bottom = element_blank(), plot.margin = unit(c(2.33,-0.9,0.95,0), "cm"))
   # Visualize viral load and gene expression 
   p2 <- ggMarginal(ggplot(df, aes(x = percentage_viral_reads, y = value, col = classification))+geom_point(alpha = 0.5)+theme_minimal()+theme_paper+theme(axis.text.y = element_blank(), legend.position = "")+xlab("Viral load")+ylab("")+ggtitle(get_orthologname_(unique(df$gene)))+geom_line(stat = "summary_bin", binwidth = 0.1)+geom_smooth()+scale_x_log10()+scale_y_log10()+theme(plot.margin = unit(c(0,0,0,0), "cm")),type = "histogram", bins = 40)

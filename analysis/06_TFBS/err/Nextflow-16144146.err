@@ -1,0 +1,4 @@
+remove bedtools/2.25.0 (PATH) 
+load bedtools/2.25.0 (PATH) 
+error: unrecognized command: getfastai
+

@@ -1,0 +1,16 @@
+remove R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+load R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+WARNING: ignoring environment value of R_HOME
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Error in library(wesanderson) : there is no package called ‘wesanderson’
+Esecuzione interrotta

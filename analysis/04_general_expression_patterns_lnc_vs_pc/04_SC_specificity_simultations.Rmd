@@ -11,6 +11,7 @@ output: html_document
 
 ```{r include=FALSE}
 library(Seurat)
+library(multiplyr)
 # Set-up general information 
 # Global variable 
 celltypes <- identities <- c("B", "T", "M") 
@@ -101,7 +102,7 @@ m_seurat <- CreateSeuratObject(
   assay = "RNA"
 )
 Idents(m_seurat) <- colnames
-saveRDS(m_seurat, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/m_seurat.rds")
+#saveRDS(m_seurat, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/m_seurat.rds")
 
 
 # Create summary statistics 
@@ -117,7 +118,7 @@ get_df_celltype_pergene <- function(gene_index){
 df_celltype <- Reduce("rbind", lapply(1:nrow(m),get_df_celltype_pergene))
 
 # Add 1 to any cell where expressin is not shown 
-saveRDS(df_celltype, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/df_celltype.rds")
+#saveRDS(df_celltype, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/04_simulation/df_celltype.rds")
 
 
 ```
@@ -151,7 +152,7 @@ get_gene_mean_expressions <- function(gene, m){
   return(unlist(lapply(identities, function(ident) mean_exp(m, gene, ident))))
 }
 
-
+# Now apply TAU 
 m_exp <-matrix(Reduce("cbind",lapply(rownames(m), function(gene) get_gene_mean_expressions(gene, m))), ncol = length(identities), byrow = T)
 colnames(m_exp) <- identities
 rownames(m_exp) <- rownames(m)
@@ -178,8 +179,9 @@ specificity_scores$label_full <- labels_full
 
 specificity_scores$gene <- factor(specificity_scores$gene, levels = specificity_scores$gene[rev(order(specificity_scores$score))])
 
-
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)
+pdf(file.path(plots, "02/SUPPL_SPECSCORE_tau.pdf"), width = 8, height = 6)
+ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("reproposed tau score")+ xlab("simulated gene expression")
+dev.off()
 ```
 
 
@@ -217,10 +219,10 @@ specificity_scores <- Reduce("rbind", lapply(unique(df_celltype$gene_id), functi
 # I now have per gene 3 scores 
 # Select the row with the maximum
 specificity_scores_filt <- specificity_scores %>% 
-  group_by(gene) %>% 
-  arrange(desc(score)) %>% 
-  slice(1) %>% 
-  ungroup()
+  dplyr::group_by(gene) %>% 
+   dplyr::arrange(desc(score)) %>% 
+   dplyr::slice(1) %>% 
+   dplyr::ungroup()
 
 
 df_labels <- data.frame(label_full = labels_full, gene = rownames(m), stringsAsFactors = F)
@@ -243,7 +245,11 @@ ggplot(specificity_scores_filt[order(specificity_scores_filt$score),], aes(y = s
 
 specificity_scores_filt$gene <- factor(specificity_scores_filt$gene, levels = specificity_scores_filt$gene[rev(order(specificity_scores_filt$score_ranged))])
 
-ggplot(specificity_scores_filt[order(specificity_scores_filt$score_ranged),], aes(y = score_ranged, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ggtitle("Ranged")
+pdf(file.path(plots, "02/SUPPL_SPECSCORE_alternative.pdf"), width = 8, height = 6)
+ggplot(specificity_scores_filt[order(specificity_scores_filt$score_ranged),], aes(y = score_ranged, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("alternative specificity score")+xlab("simulated gene expression")
+dev.off()
+
+
 
 ```
 

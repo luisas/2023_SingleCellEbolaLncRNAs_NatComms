@@ -15,7 +15,7 @@ module load singularity
 CONTAINER=/gpfs/projects/bsc83/utils/containers/singularity/rdeanalysis.simg
 
 SCRIPT=/gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/scripts/SC/07_correlation_viraload.R
-SCRIPT_PREP=/gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/scripts/SC/07_prepareSubsetsSeurat.R
+#SCRIPT_PREP=/gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/scripts/SC/07_prepareSubsetsSeurat.R
 
 OUTPUT_INVIVO="/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late"
 OUTPUT_EXVIVO="/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late"
@@ -33,9 +33,9 @@ srun singularity exec ${CONTAINER} Rscript ${SCRIPT} "/gpfs/projects/bsc83/Data/
 #         EX VIVO
 # ------------------------------
 # Prepare objects (subsets)
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects" "/03_prep/03_immune.combined.ready.rds" "Monocyte"
+#srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects" "/03_prep/03_immune.combined.ready.rds" "Monocyte"
 # Run correlation
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds" ${OUTPUT_EXVIVO}
+#srun singularity exec ${CONTAINER} Rscript ${SCRIPT} "/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds" ${OUTPUT_EXVIVO}
 
 
 

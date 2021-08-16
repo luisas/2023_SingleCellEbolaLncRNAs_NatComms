@@ -1,0 +1,63 @@
+library(dplyr)
+library(Seurat)
+library(Matrix)
+library(SingleCellExperiment)
+library(stringr)
+library(rtracklayer)
+library(RColorBrewer)
+library(scales)
+library(ggthemes)
+library(ggplot2)
+
+
+# Define paths for data
+source(file.path("../utils/00_datapaths.R"))
+source("../utils/02_sc_utils.R")
+
+theme_umap <- theme(panel.background = element_rect(fill = "white"),
+                    panel.grid.major = element_blank(),
+                    legend.position = "", 
+                    panel.grid.minor = element_blank(),
+                    text = element_text(size=18))
+# Gene annotation 
+ref <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path(data_path,"00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+
+immune.combined <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10//05_RObjects/03_prep/03_immune.combined.ready.rds"))
+
+# Import marker genes
+# Import marker genes
+marker.genes_red <- readRDS(file.path(data_path,  "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
+# Define palettes
+pal_celltypes <- c("#FD6467","#F1BB7B","#AE4E4E","#D67236")
+
+# 1. Celltypes 
+pdf(file.path(plots, "02/A_celltypes.pdf"), width = 5, height = 5)
+# Plot with correct
+DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =pal_celltypes, label.size = 9)+theme_void()+theme_umap
+dev.off()
+
+# 2. Dotplot
+pdf(file.path(plots, "02/B_dotplot.pdf"), width = 8, height = 5)
+DotPlot(immune.combined, features = unique(marker.genes_red), cols = c("grey", "dark red", "white"), dot.scale = 11) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())+ theme(panel.background = element_rect(fill = "white"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=21))
+dev.off()
+
+# 3. SUPPL 
+pdf(file.path(plots, "02/SUPPL_DPI.pdf"), width = 7, height = 5)
+
+immune.combined$group_dpi <- gsub("DPI-04", "DPI000", immune.combined$group_dpi)
+immune.combined$group_dpi <- gsub("DPI-30", "DPI000", immune.combined$group_dpi)
+immune.combined$group_dpi_plot <- gsub("DPI00", "", immune.combined$group_dpi)
+# Day post infection 
+colfunc <- colorRampPalette(c("black", "white"))
+pal_grad <-plot(rep(1,10),col=colfunc(10),pch=19,cex=3)
+DimPlot(immune.combined, reduction = "umap", group.by = "group_dpi_plot", pt.size = 0.1, cols =rev(colfunc(9)[1:7]))+theme_umap+theme(legend.position = "right")
+dev.off()
+
+
+pdf(file.path(plots, "02/SUPPL_BATCH.pdf"), width = 7, height = 5)
+immune.combined$batch <- gsub("FRZ", "Frozen", immune.combined$batch)
+immune.combined$batch <- gsub("fresh", "Fresh", immune.combined$batch)
+# Batch 
+DimPlot(immune.combined, reduction = "umap", group.by = "batch", pt.size = 0.01,cols = (brewer.pal(2, "Paired")[1:2]))+theme_umap+theme(legend.position = "right")
+dev.off()

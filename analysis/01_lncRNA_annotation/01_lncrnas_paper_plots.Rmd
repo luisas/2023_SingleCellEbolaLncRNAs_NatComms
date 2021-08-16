@@ -52,6 +52,7 @@ palette_extensive <- c(rep(palette[1],2), palette[seq(2,length(palette))])
 palette_expression <-palette[c(1,2,4)]
 palette_expression_extensive <-palette_extensive[c(1,2,3,5)]
 palette_expression_border <-palette_border[c(1,2,3,5)]
+
 ```
 
 # STEP 2: Check how many novel lncRNAs we can indentify compared to the reference 
@@ -62,10 +63,12 @@ type <- c("mRNA", "lncRNA", "lncRNA")
 subtype <- c("mRNA", "Annotated", "Novel")
 
 df <- data.frame(type = type, subtype = subtype, n = n_genes)
-df$subtype <- factor(df$subtype, levels = c("Novel", "Annotated", "mRNA"))
+df$subtype <- factor(df$subtype, levels = c("mRNA", "Novel", "Annotated"))
+df$type <- factor(df$type, levels = c("mRNA", "lncRNA"))
+df$specie <- "macaque"
 ylab <- seq(0,25,5)
 p_summary <- ggplot(df, aes(x = type, y = n, fill = subtype))+geom_bar(stat="identity", size = 2)+xlab("")+ylab("number of genes")+coord_flip()+
-        scale_fill_manual(values = palette_expression)+theme(legend.position = "")+
+        scale_fill_manual(values = palette_expression[c(3,1,2)])+theme(legend.position = "")+
         theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
               axis.line = element_line(colour = "black"),
@@ -81,6 +84,39 @@ p_summary <- ggplot(df, aes(x = type, y = n, fill = subtype))+geom_bar(stat="ide
 pdf(file.path(plots, "01/summary_annotation.pdf"), width = 8, height = 3)
 p_summary
 dev.off()
+
+
+
+n_genes_human <- c(length(unique(mrna_ref_human$gene_id)), length(unique(lncRNAs_ref_human$gene_id)))
+type_human <- c("mRNA", "lncRNA")
+subtype_human <- c("Annotated", "Annotated")
+df_human <- data.frame(type = type_human, subtype = subtype_human, n = n_genes_human)
+df_human$specie <- "human"
+
+total_df <- rbind(df, df_human)
+total_df$spec_type <- paste(total_df$type, total_df$specie, sep = "")
+total_df$spec_subtype <- paste(total_df$subtype, total_df$type, total_df$specie, sep = "")
+pal <- 
+total_df$spec_type <- factor(total_df$spec_type, levels = rev(c("lncRNAmacaque",  "lncRNAhuman","mRNAmacaque", "mRNAhuman" )))
+
+
+pdf(file.path(plots, "01/summary_annotation_complete.pdf"), width = 12, height = 5)
+ggplot(total_df, aes(x = spec_type, y = n, fill = spec_subtype))+geom_bar(stat="identity", size = 2)+xlab("")+ylab("number of genes")+coord_flip()+
+        scale_fill_manual(values = c("#ffb8b8",palette_expression[c(1)],"#8a90c2", palette_expression[c(3)], palette_expression[c(2)]))+theme(legend.position = "")+
+        theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              axis.line = element_line(colour = "black"),
+              axis.ticks.length=unit(.2, "cm"),
+              axis.text= element_text(size = 23, color = "black"),
+              axis.title = element_text(size = 23),
+              plot.title = element_text(hjust = 0.5, size = 23),
+              axis.line.y=element_blank(),
+              axis.ticks.y=element_blank(),
+              panel.background = element_rect(fill = "white"))+
+        scale_y_continuous(limits = c(0,ceiling(max((df$n)) / 5000))*5000, labels = paste0(ylab, "K"),breaks = 10^3 * ylab, expand = c(0,0))
+dev.off()
+
+
 ```
 
 
@@ -91,6 +127,30 @@ length(unique(all_novel_lnc$gene_id))
 length(unique(all_novel_lnc$transcript_id))
 l <- plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette = palette)
 #export(all_novel_lnc, "/home/luisa/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
+
+
+# significance tests
+
+# 1- Number of exons
+get_n_exons <- function(gr){
+  return(data.frame(get_nr_exons(get_only_max_transcript(gr[gr$type =="exon",]))))
+}
+wilcox.test(get_n_exons(lncRNAs_ref)$max_exon, get_n_exons(mRNAs_ref)$max_exon)
+wilcox.test(get_n_exons(all_novel_lnc)$max_exon, get_n_exons(mRNAs_ref)$max_exon)
+
+
+# 2- -----Trancript length
+wilcox.test(calc_transcript_length(all_novel_lnc, "")$range, calc_transcript_length(mRNAs_ref, "")$range)
+wilcox.test(calc_transcript_length(lncRNAs_ref, "")$range, calc_transcript_length(mRNAs_ref, "")$range)
+wilcox.test(calc_transcript_length(lncRNAs_ref, "")$range, calc_transcript_length(mrna_ref_human, "")$range)
+
+
+# 2- -----Exon length
+wilcox.test(calc_exon_length(all_novel_lnc, "")$range, calc_exon_length(mRNAs_ref, "")$range)
+wilcox.test(calc_exon_length(lncRNAs_ref, "")$range, calc_exon_length(mRNAs_ref, "")$range)
+
+
+
 ```
 
 # Save plots
@@ -99,11 +159,11 @@ pdf(file.path(plots, "01/number_of_exons.pdf"), width = 7, height = 5)
 l[[1]]
 dev.off()
 
-pdf(file.path(plots, "01/exon_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/exon_length.pdf"), width = 6, height = 5)
 l[[2]]
 dev.off()
 
-pdf(file.path(plots, "01/transcript_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/transcript_length.pdf"), width = 6, height = 5)
 l[[3]]
 dev.off()
 ```
@@ -137,11 +197,11 @@ pdf(file.path(plots, "01/MULTIEXONIC_number_of_exons.pdf"), width = 7, height = 
 l_multiexonic[[1]]
 dev.off()
 
-pdf(file.path(plots, "01/MULTIEXONIC_exon_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/MULTIEXONIC_exon_length.pdf"), width = 6, height = 5)
 l_multiexonic[[2]]
 dev.off()
 
-pdf(file.path(plots, "01/MULTIEXONIC_transcript_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/MULTIEXONIC_transcript_length.pdf"), width = 6, height = 5)
 l_multiexonic[[3]]
 dev.off()
 ```
@@ -150,22 +210,26 @@ dev.off()
 
 ```{r summary}
 # 2. only plot one to one ortholog
-
-# I need 1 to 1 correspondence 
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "ortholog")])
+novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
+# Add gene id 
+corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
+rownames(corr_human) <- corr_human$t
+novel_orthologs_df$transcript_id_ortholog <- unique(unlist(lapply(as.character(novel_orthologs_df$ortholog), function(x) strsplit(x, '.', fixed = T)[[1]][1])))
+novel_orthologs_df$gene_id_ortholog <- corr_human[novel_orthologs_df$transcript_id_ortholog,]$g
+novel_orthologs_df <- unique(novel_orthologs_df[,c("gene_id","gene_id_ortholog")])
+novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$gene_id_ortholog),]
 
 # Novel lncRNAs in macaque with human ortholog
-novel_with_ortholog_gene_id <- unique(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),]$gene_id)
-length(unique(novel_with_ortholog_gene_id))
-novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% novel_with_ortholog_gene_id,]
-
+novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% novel_orthologs_df$gene_id,]
+length(unique(novel_with_ortholog_gr$gene_id))
 
 # Humans to novel 
-transcripts_human_novelortholog <- as.character(orthologs[orthologs$gene_id %in% novel_with_ortholog_gene_id, ]$ortholog)
+transcripts_human_novelortholog <- as.character(orthologs[orthologs$gene_id %in% novel_with_ortholog_gr$gene_id, ]$ortholog)
 transcripts_human_novelortholog <- unique(unlist(lapply(transcripts_human_novelortholog, function(x) strsplit(x, '.', fixed = T)[[1]][1])))
 human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$transcript_id %in% transcripts_human_novelortholog,]
 length(unique(human_orth_novel$gene_id))
-
-# With significance level
 
 
 my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
@@ -188,6 +252,13 @@ pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7
 p
 dev.off()
 
+df
+
+wilcox.test(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")$range, calc_transcript_length(human_orth_novel, "1.  novel lncRNA")$range, paired = T )
+
+
+
+table(substr(orthologs$lnc,1,3))
 ```
 
 # Separate by intergenic and antisense 
@@ -234,11 +305,11 @@ pdf(file.path(plots, "01/SUPPL_number_of_exons.pdf"), width = 7, height = 5)
 plots_sep[[1]]
 dev.off()
 
-pdf(file.path(plots, "01/SUPPL_exon_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/SUPPL_exon_length.pdf"), width = 6, height = 5)
 plots_sep[[2]]
 dev.off()
 
-pdf(file.path(plots, "01/SUPPL_transcript_length.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "01/SUPPL_transcript_length.pdf"), width = 6, height = 5)
 plots_sep[[3]]
 dev.off()
 ```
@@ -340,6 +411,8 @@ pe_sep <- plot_expression(median_expression, palette_expression_extensive, level
 pdf(file.path(plots, "01/SUPPL_median_expr.pdf"), width = 5, height = 7)
 pe_sep
 dev.off()
+
+
 ```
 
 # -----------------------------

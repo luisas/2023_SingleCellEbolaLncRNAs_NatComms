@@ -51,7 +51,7 @@ ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRN
 ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds")
 ```
 
 #  CREATE AND SAVE EXPRESION MATRICES TO COMPUTE THE NETWORK 
@@ -63,7 +63,8 @@ monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
 #b <- immune.combined[,Idents(immune.combined)=="B"]
 #t <- immune.combined[,Idents(immune.combined)=="T"]
 
-de_monocyte<- monocyte[rownames(monocyte) %in% de_all[de_all$celltype == "Monocyte",]$primerid,]
+de_monocyte<- monocyte[rownames(monocyte) %in% unique(de_all[de_all$celltype == "Monocyte",]$primerid),]
+length(unique(de_all[de_all$celltype == "Monocyte",]$primerid))
 #de_neutrophils<- neutrophils[rownames(neutrophils) %in% de_all,]
 #de_b <- b[rownames(b) %in% de_all,]
 #de_t <- t[rownames(t) %in% de_all,]

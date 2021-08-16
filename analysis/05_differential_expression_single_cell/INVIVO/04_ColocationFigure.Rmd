@@ -28,27 +28,28 @@ library(reshape2)
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
 # Imports
+source("../../utils/00_datapaths.R")
 source("../../utils/02_sc_utils.R")
 source("../../utils/03_de_utils.R")
 source("../../utils/04_utils_graph.R")
 
 # Gene annotation
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref <- import(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path(data_path,"00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 # Output paths
-robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+robjectsdir <- file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
 
 # LncRNAs
-robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 
 # Seurat object
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+immune.combined <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 # Ortholgs
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds")
+orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 
 # Check LncPedia
 lncpedia_immune <- import("../../lncpedia_immune.gtf")
@@ -56,8 +57,8 @@ lncpedia_infection <- import("../../lncpedia_infection.gtf")
 
 lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
 
-immlnc <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-reported_immlnc <- immlnc$lncRNA_symbol
+#immlnc <- read.table(file.path(data_path, "00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE))
+#reported_immlnc <- immlnc$lncRNA_symbol
 # -------------------------------------------
 #    Define threshold for the whole analysis
 # -------------------------------------------
@@ -96,7 +97,7 @@ expand.grid.unique <- function(x, y, include.equals=FALSE){
 }
 
 
-de_all_genes<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_all_genes<- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
 
 
 get_cis <- function(gr_gene, gr_hits =mrnas_ranges, maxgap =1000000L ){
@@ -122,51 +123,190 @@ get_orthologname_ <- function(string, orthologs_ = orthologs){
   }
 
 }
+
+de_all_genes
 ```
 
 # Visualize colocation
 
 ```{r colocationCelltypeCisPrep}
-colocation <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_df.rds")
-de_all_genes<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+colocation <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_df.rds"))
+de_all_genes<- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
 
 distances <- as.data.frame(colocation,stringsAsFactors = F)
 colnames(distances)  <-  c("lnc", "gene", "d")
 distances$d <- as.integer(distances$d)
 
-distances <- distances[distances$lnc %in% gsub("-unknown", "",de_all_genes[de_all_genes$type == "lnc", ]$primerid),]
-
-distances <- distances[distances$gene %in% gsub("-unknown", "",de_all_genes[de_all_genes$type == "pc", ]$primerid),]
-
+distances <- distances[distances$d < 1000000, ]
+distances <- distances[!is.na(distances$lnc),]
 # Add gene names
 genes <- ref[ref$type =="gene",]
 correspondence <- data.frame(genes$gene_id, genename=genes$gene_name, stringsAsFactors = F)
 rownames(correspondence) <- correspondence$genes.gene_id
 distances$gene_name <- unlist(correspondence[distances$gene, ]$genename)
 distances$lnc_name <- unlist(correspondence[distances$lnc, ]$genename)
+distances[substr(distances$lnc,1,4) == "MSTR",]$lnc_name <- paste(distances[substr(distances$lnc,1,4) == "MSTR",]$lnc, "-unknown", "")
+distances[substr(distances$gene,1,4) == "MSTR",]$gene_name <- paste(distances[substr(distances$gene,1,4) == "MSTR",]$lnc, "-unknown", "")
+
+distances[distances$gene_name %in% de_all_genes[de_all_genes$type == "lnc", ]$primerid,]
+
+# ONLY RETAIN DE ONES 
+distances <- distances[distances$lnc_name %in% de_all_genes[de_all_genes$type == "lnc", ]$primerid,]
+distances <- distances[distances$gene_name %in% de_all_genes[de_all_genes$type == "pc", ]$primerid,]
+
+
 # Add lnc ortholog
 orth_lnc <- data.frame(lnc = unique(distances$lnc), stringsAsFactors = F)
 orth_lnc$orth <- unlist(lapply(orth_lnc$lnc, get_orthologname_))
 rownames(orth_lnc) <- orth_lnc$lnc
 distances$orth_lnc <- orth_lnc[distances$lnc, ]$orth
 distances <- distances[!is.na(distances$d) ,]
-distances <- distances[!is.na(distances$d),]
+distances
 
-cis_distances <- distances[distances$d < 2000000, ]
+
 
 # Per celltype
 get_cis_celltype <- function(cis_distances, de_all_genes, ct){
   de_ct <-  de_all_genes[de_all_genes$celltype == ct,]
-  de_ct$gene_id_clean <- gsub("-unknown", "", de_ct$primerid)
-  df <- cis_distances[cis_distances$lnc %in% de_ct$gene_id_clean  & cis_distances$gene %in% de_ct$gene_id_clean, ]
+  df <- cis_distances[cis_distances$lnc_name %in% de_ct$primerid  & cis_distances$gene_name %in% de_ct$primerid, ]
   df$celltype <- ct
   return(df)
 }
-cis_mono <- get_cis_celltype(cis_distances, de_all_genes, "Monocyte")
-cis_B <- get_cis_celltype(cis_distances, de_all_genes, "B")
-cis_T <- get_cis_celltype(cis_distances, de_all_genes, "T")
+cis_mono <- get_cis_celltype(distances, de_all_genes, "Monocyte")
+cis_B <- get_cis_celltype(distances, de_all_genes, "B")
+cis_T <- get_cis_celltype(distances, de_all_genes, "T")
 cis_celltype <- rbind(cis_mono,cis_B, cis_T)
+
+length(unique(paste(cis_celltype$lnc, cis_celltype$gene)))
 ```
+
+
+# Intersect colocation and correlation 
+```{r colocationCelltypeCisPrep}
+
+cis_pairs <-cis_mono
+ident <- "Monocyte"
+get_correlation_and_colocation_df <- function(cis_pairs, ident){
+  # Calculate the correlation for the close ones
+  df_reduced <- cis_pairs[,c("lnc","gene_name")]
+  df_reduced$lnc <- paste(df_reduced$lnc, "-unknown", sep = "")
+  pairs <- as.list(data.frame(t(df_reduced), stringsAsFactors = F))
+  length(pairs)
+  
+  mono <- subset(immune.combined, ident = ident)
+  expressionmatrix <- as.matrix(mono@assays$RNA@counts)
+  correlations <- lapply(pairs, function(genes) {calc_correlation_genes(expressionmatrix[genes[1], ], expressionmatrix[genes[2],], genes[1], genes[2])})
+
+  correlations_df <- Reduce("rbind",correlations[!is.na(correlations)])
+  correlations_df$lnc <- gsub("-unknown","", correlations_df$g1)
+  correlations_df$pair <- paste(correlations_df$lnc, correlations_df$g2, sep = "-")
+  rownames(correlations_df) <- correlations_df$pair
+
+  cis_pairs$pair <- paste(cis_pairs$lnc, cis_pairs$gene_name, sep ="-")
+  cis_pairs_corr <- merge(cis_pairs, correlations_df, by = "pair", all = T)
+  cis_pairs_corr <- cis_pairs_corr[,1:10]
+  colnames(cis_pairs_corr) <- c("pair", "lnc_id", "pc_id", "distance", "pc_name", "lnc_name", "lnc_orth","celltype", "pval","rho")
+
+  return(cis_pairs_corr)
+}
+
+
+mono_corr <- get_correlation_and_colocation_df(cis_mono, "Monocyte")
+B_corr <- get_correlation_and_colocation_df(cis_B, "B")
+T_corr <- get_correlation_and_colocation_df(cis_T, "T")
+
+complete_cor <- rbind(mono_corr,B_corr, T_corr )
+write.table(complete_cor, file.path(data_path, "plots/04/correlations_de_cis.csv"), sep = ",", row.names = F)
+```
+
+
+
+
+```{r colocationCelltypeCisPrep}
+# Create table with cis results with correlation values 
+de_all_genes_red <- de_all_genes[de_all_genes$primerid %in% c(complete_cor$lnc_name, complete_cor$pc_name), ]
+complete_cor$primerid <- complete_cor$lnc_name
+lnc_complete_cis_corr_de <- merge(complete_cor, de_all_genes_red, by = "primerid", all = F)
+
+complete_cor$primerid <- complete_cor$pc_name
+pc_complete_cis_corr_de <- merge(complete_cor, de_all_genes_red, by = "primerid", all = F)
+
+complete_cis_corr_de <- rbind(pc_complete_cis_corr_de, lnc_complete_cis_corr_de)
+write.table(complete_cis_corr_de, file.path(data_path, "plots/04/correlations_de_cis.csv"), sep = ",", row.names = F)
+
+
+```
+
+
+```{r colocationCelltypeCisPrep}
+# Add up down 
+lnc_summarized_direction <- lnc_complete_cis_corr_de %>% group_by(primerid, celltype.x) %>% dplyr::summarise(direction = toString((direction)))
+a_red <- lapply(lnc_summarized_direction$direction, function(x) unique(str_split(x, ", ")[[1]]))
+summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
+lnc_summarized_direction$summarized_direction_lnc <- summarized_direction
+lnc_summarized_direction
+#add 
+complete_cor$primerid <- complete_cor$lnc_name
+lnc_complete_cis_corr_de <- merge(complete_cor, lnc_summarized_direction, by = "primerid", all = F)
+
+pc_summarized_direction <- pc_complete_cis_corr_de %>% group_by(primerid, celltype.x) %>% dplyr::summarise(direction = toString((direction)))
+a_red <- lapply(pc_summarized_direction$direction, function(x) unique(str_split(x, ", ")[[1]]))
+summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
+pc_summarized_direction$summarized_direction_pc <- summarized_direction
+pc_summarized_direction
+#add 
+lnc_complete_cis_corr_de$primerid <- lnc_complete_cis_corr_de$pc_name
+complete_cis_corr_de <- merge(lnc_complete_cis_corr_de, pc_summarized_direction, by = "primerid", all = F)
+
+
+complete_cis_corr_de_red <- complete_cis_corr_de[,c("pair","lnc_name","celltype","summarized_direction_lnc", "summarized_direction_pc")]
+length(unique(complete_cis_corr_de$pair))
+
+
+complete_cis_corr_de_red$concordance <- paste(complete_cis_corr_de_red$summarized_direction_lnc, complete_cis_corr_de_red$summarized_direction_pc, sep = " ")
+complete_cis_corr_de_red[complete_cis_corr_de_red$summarized_direction_lnc == "mixed", ]$concordance <- "mixed"
+complete_cis_corr_de_red[complete_cis_corr_de_red$summarized_direction_pc == "mixed", ]$concordance <- "mixed"
+
+
+pal_celltypes <- brewer.pal(4, "Set2")
+pal_celltypes <-wes_palette("GrandBudapest1", 4)
+pal_celltypes[3] <- "#AE4E4E"
+pal_celltypes <- pal_celltypes[c(2,1,3,4)]
+
+complete_cis_corr_de_red$concordance_red <- "mixed"
+complete_cis_corr_de_red[complete_cis_corr_de_red$concordance == "up up", ]$concordance_red <- "concordant"
+complete_cis_corr_de_red[complete_cis_corr_de_red$concordance == "down down", ]$concordance_red <- "concordant"
+complete_cis_corr_de_red[complete_cis_corr_de_red$concordance == "up down", ]$concordance_red <- "discordant"
+complete_cis_corr_de_red[complete_cis_corr_de_red$concordance == "down up", ]$concordance_red <- "discordant"
+plot_df <- complete_cis_corr_de_red %>% dplyr::group_by(concordance_red) %>% dplyr::tally()
+complete_cis_corr_de_red$concordance_red <- factor(complete_cis_corr_de_red$concordance_red, levels = as.vector((plot_df[order(plot_df$n, decreasing = T),]$concordance_red)))
+complete_cis_corr_de_red <- distinct(complete_cis_corr_de_red)
+length(unique(complete_cis_corr_de_red$pair))
+
+pdf(file.path(plots, "04/SUPPL_cis_concordance_dysregulation.pdf"), width = 7, height = 4)
+ggplot(complete_cis_corr_de_red, aes(y = concordance_red, fill = celltype))+geom_histogram(stat= "count")+theme_classic()+ylab("")+xlab("")+theme(text = element_text(size = 18))+scale_fill_manual(values = pal_celltypes[c(1,3,2)])+theme(legend.title = element_blank())
+dev.off()
+
+
+```
+
+
+# Try to find some known pairs -- nope
+```{r colocationCelltypeCisPrep}
+lnc_orth <- unlist(lapply(cis_pairs_corr$lnc.x, get_orthologname_))
+lnc2target_low <- read.csv(file.path(data_path,"00_RawData/Lnc2Target/lncRNA_target_from_low_throughput_experiments.csv"))
+# From Low-throughput experiments
+de_lnc_targets <- lnc2target_low[lnc2target_low$lncRNA_name_from_paper %in% lnc_orth,]
+
+pc_in_targets <- cis_pairs_corr[cis_pairs_corr$gene_name %in% de_lnc_targets$Target_official_symbol]
+de_lnc_targets_red <- de_lnc_targets[c("lncRNA_name_from_paper", "Target_official_symbol")]
+# Known pairs
+de_lnc_targets[de_lnc_targets$Target_official_symbol %in% pc_in_targets,]
+```
+
+
+
+
 
 ```{r chordGraph}
 library(edgebundleR)
@@ -181,19 +321,22 @@ plot_colocation <- function(cis_celltype_plot, celltype){
   cis_celltype_plot$rowname <- gsub("-unknown","", cis_celltype_plot$rowname)
   cis_celltype_plot$rowname <- gsub(".", "-", cis_celltype_plot$rowname , fixed = T )
 
-  v <- unique(c(cis_celltype_plot$rowname, cis_celltype_plot$key))
+  v <- unique(c(cis_celltype_plot$key,cis_celltype_plot$rowname ))
   g <- graph.data.frame(cis_celltype_plot, directed=F, vertices=v)
 
   # Color
-  V(g)$color  <- ifelse(V(g)$name %in% cis_celltype_plot$rowname, "navy", "#67c296")
-
+  V(g)$color  <- ifelse(!(V(g)$name %in% cis_celltype_plot$rowname), "grey", "#f72631")
+  E(g)$color <- "grey"
   # Vertex size proportional to number of Edges
   #V(g)$size = degree(g)*20
 
   # Plot
+  library(igraph)
+
   plot(g, layout = layout.circle, vertex.label=NA)
-  edgebundle( g,  padding = 130, fontsize = 9 )->eb
-  saveEdgebundle(eb,file = paste("/home/luisas/Desktop/cluster/data/plots/neut/colocation", celltype,  ".html", sep = ""),  selfcontained = F)
+  eb <- edgebundle( g,  padding = 140, fontsize = 11, directed = F)
+  
+  saveEdgebundle(eb,file = paste(file.path(data_path,"/plots/04/colocation"), celltype,  ".html", sep = ""),  selfcontained = F)
 }
 
 
@@ -220,10 +363,17 @@ stat_cis(cis_mono)
 stat_cis(cis_B)
 stat_cis(cis_T)
 
-
+length(unique(cis_celltype$lnc))
 ```
 
-# Investigation of specific colocated genes
+
+
+
+
+
+
+
+# ---------------------old----------Investigation of specific colocated genes
 ```{r stats}
 gene <- "NEAT1"
 plot.data_up <- Dotplot_data(mono, features = c(get_gene_id(gene), cis_mono[cis_mono$orth_lnc == gene,]$gene_name), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
@@ -234,3 +384,48 @@ ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+
 #Heatmap
 heatmap_celltypes(plot.data_up)
 ```
+# Test 
+```{r stats}
+#% DE lnc in cis to DE PC
+#% non DE lnc in cis to DE PC
+colocation_lnc <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocationLnc_df.rds"))
+distances_lnc <- as.data.frame(colocation,stringsAsFactors = F)
+colnames(distances_lnc)  <-  c("lnc", "gene", "d")
+distances_lnc$d <- as.integer(distances_lnc$d)
+distances_lnc <- distances_lnc[distances_lnc$d < 1000000, ]
+distances_lnc <- distances_lnc[!is.na(distances_lnc$lnc),] 
+
+distances_lnc$de_status <- ifelse(distances_lnc$lnc %in% gsub("-unknown", "",de_all_genes$primerid), "DE", "NOT DE")
+table(distances_lnc$de_status)
+
+
+# DF 
+# DE LNC 
+de_lnc <- unique(de_all_genes[de_all_genes$type == "lnc",]$primerid)
+cis_lnc <- unique(distances[distances$lnc_name %in% de_all_genes$primerid,]$lnc_name)
+table(cis_lnc %in% de_lnc)
+
+# NOT DE LNC 
+not_de_lnc <- setdiff(all_lncrnas, de_lnc)
+not_de_lnc_cis <- c(rep("A", 50))
+
+de_status <- c("DE", "DE", "NOT DE", "NOT DE")
+cis_status <- c("in cis", "not in cis", "in cis", "not in cis")
+n <- c(length(cis_lnc), length(de_lnc)-length(cis_lnc),length(not_de_lnc_cis), length(not_de_lnc)-length(not_de_lnc_cis))
+df_cis_test <- data.frame(de_status, cis_status, n)
+
+df_cis_test <- df_cis_test %>% dplyr::group_by(de_status)%>% dplyr::mutate(prop = n / sum(n))
+df_cis_test$cis_status <- factor(df_cis_test$cis_status, levels=c("not in cis", "in cis"))
+
+
+# 1. Plot 
+ggplot(df_cis_test, aes(x = de_status, y = prop, fill = cis_status))+geom_bar(stat = "identity")+theme_void()+coord_flip()+scale_fill_manual(values = c("grey", "#949494"))+theme(legend.title = element_blank())
+
+# 2. Chi squared test
+matrix_result <- acast(df_cis_test, de_status~cis_status, value.var="n")
+chisq.test(matrix_result)
+```
+
+
+
+

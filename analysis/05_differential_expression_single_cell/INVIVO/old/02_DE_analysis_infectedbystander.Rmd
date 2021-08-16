@@ -36,7 +36,7 @@ all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 
 immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_neut.rds")
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs.rds")
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds")
 
 # -------------------------------------------
 #    define threshold for the analysis
@@ -248,6 +248,7 @@ sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$gene %in% annota
 
 table(sig_correlations_pc_infected_24$type)
 correlations_infected_24[correlations_infected_24$gene %in% all_lncrnas ,]
+as.data.frame(res)
 ```
 
 # Which are the genes that present the strongest correlation ( protein coding - check if concordant with broad )

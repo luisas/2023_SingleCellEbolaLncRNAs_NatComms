@@ -17,24 +17,27 @@ library(rtracklayer)
 library(MatchIt)
 library(gridExtra)
 library(reshape2)
-library(SingleCellExperiment)
+
+
+theme_sc_paper <- theme(panel.background = element_rect(fill = "white", colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())+theme_paper
+
 
 # Set themes and palette
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 theme_sc <- theme(axis.title.x.top = element_text())+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(axis.title = element_text(size=15), plot.title = element_text(size =22, hjust = 0.5))
 
-col_lnc = "navy"
-col_mrna = "#8DC3A7"
+col_lnc = "#f72631"
+col_mrna = "#3153a3"
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
 # Load objects
-robjectsdir <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+robjectsdir <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 all_lncrnas <- readRDS(file.path(robjectsdir, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir,"annotated_mrnas.rds"))
 
 # Select object on which to calculate Specificity score
 # Neutrophils or not? 
-file <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+file <- file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
 immune.combined <- readRDS(file)
 
 # Load stats ( about # cells, and median expression )
@@ -44,7 +47,11 @@ df_mrna <- readRDS(file.path(robjectsdir,"df_mrna.rds"))
 df_mrna_celltype <- readRDS(file.path(robjectsdir,"df_mrna_celltype.rds"))
 df_n_cells <- rbind(df_lnc, df_mrna)
 df_celltype <- rbind(df_mrna_celltype,df_lnc_celtype )
-saveRDS(df_celltype, file.path(robjectsdir,"df_celltype.rds"))
+#saveRDS(df_celltype, file.path(robjectsdir,"df_celltype.rds"))
+
+
+df_lnc <- df_lnc[df_lnc$n_cells > 60, ]
+df_mrna <- df_mrna[df_mrna$n_cells > 60, ]
 
 
 # Load stats ( about # cells, and median expression )
@@ -54,7 +61,7 @@ df_celltype_z <- rbind(df_mrna_celltype_z,df_lnc_celtype_z )
 saveRDS(df_celltype_z, file.path(robjectsdir,"df_celltype_z.rds"))
 
 # Load gene sets ( Marker and Housekeeping )
-marker.genes <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds")
+marker.genes <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
 
 housekeeping_genes <- c("RRN18S", "RPLP0", "GAPDH", "ACTB", "PGK1", "RPL13A", "ARBP", "B2M", "YWHAZ", "SDHA", "TFRC", "GUSB", "HMBS", "HPRT1", "TBP")
 
@@ -146,26 +153,48 @@ calc_mean_and_percentage_cell <- function(expression_matrix_permuted,ident = "",
 ```{r matchplot}
 
 
-
-match_plots <- function(df_test){
+match_plots <- function(df_test, title = "specificity score"){
   set.seed(123)
   c <- df_test[complete.cases(df_test),]
-  #c$type = ifelse(c$type == "lncRNAs", 1, 0)
   c$type = ifelse(c$type == "lnc", 1, 0)
   # Match % cells 
   mi_perc <- matchit(type ~ perc_cells_expressing,c)
-  matches_perc <- get_matches(mi_perc, c)
-  matches_perc$type = ifelse(matches_perc$type == 0, "PC genes", "lncRNAs")
-  n_matches <- length(unique(matches_perc[matches_perc$type == "lncRNAs",]$gene_id))
+  matches_perc <- get_matches(mi_perc, data = c)
+  matches_perc$type = ifelse(matches_perc$type == 0, "mRNA", "lncRNA")
+  n_matches <- length(unique(matches_perc[matches_perc$type == "lncRNA",]$gene_id))
   matches_perc$type <- as.factor(matches_perc$type)
   
   # Plot 
-  scatter_plot_matching <- ggplot(matches_perc, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+theme(legend.position = "")+scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+xlab("Specificity Score")+ylab("Prop cells")
+  #scatter_plot_matching <- ggplot(matches_perc, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+theme(legend.position = "")+scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+xlab("Specificity Score")+ylab("Prop cells")
+  #scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
+  #scatter_plot_matching_withboxplot
   
-  scatter_plot_matching_withboxplot<- ggExtra::ggMarginal(scatter_plot_matching,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
-  scatter_plot_matching_withboxplot
+  scatter_plot_matching <- ggplot(matches_perc, aes(x=score, y =perc_cells_expressing, col = factor(type)))+
+                            geom_point(size = 1, alpha = 0.6)+
+                            labs( subtitle = paste0("# matches ", n_matches))+
+                            scale_color_manual(values = palette_plot_percentage)+
+                            theme_matching+labs(x = title, y = "% cells")
   
   
+  xbox <- axis_canvas(scatter_plot_matching, axis = "x", coord_flip = TRUE) + scale_x_discrete()+
+    geom_boxplot(data = matches_perc, aes(x=factor(type), y =score, col = factor(type), fill = factor(type)), alpha = 0.5) + coord_flip()+
+    scale_fill_manual(values = palette_plot_percentage)+
+    scale_color_manual(values = palette_plot_percentage)
+  #+stat_compare_means( label = "p.signif")
+  
+  ybox <- axis_canvas(scatter_plot_matching, axis = "y") + 
+    geom_boxplot(data = matches_perc, aes(y = perc_cells_expressing, x = factor(type), color = factor(type), fill = factor(type), alpha = 0.5))+
+    scale_x_discrete()+
+    scale_fill_manual(values = palette_plot_percentage)+
+    scale_color_manual(values = palette_plot_percentage)
+  
+  p1 <- insert_xaxis_grob(scatter_plot_matching, xbox, grid::unit(1, "in"), position = "top")
+  p2 <- insert_yaxis_grob(p1, ybox, grid::unit(1, "in"), position = "right")
+  p <- ggdraw(p2)
+  
+  test1 <- wilcox.test(matches_perc[matches_perc$type == "lncRNA", ]$score, matches_perc[matches_perc$type == "mRNA", ]$score, paired = T)
+  
+  # .-------------------------------------------------------------------
   # Match by the score
   c <- df_test[complete.cases(df_test),]
   #c$type = ifelse(c$type == "lncRNAs", 1, 0)
@@ -173,31 +202,56 @@ match_plots <- function(df_test){
   
   # match expression 
   mi_median <- matchit(type ~ score,c)
-  matches_score <- get_matches(mi_median, c)
+  matches_score <- get_matches(mi_median, data = c)
   
-  matches_score$type = ifelse(matches_score$type == 0, "PC genes", "lncRNAs")
-  n_matches <- length(unique(matches_score[matches_score$type == "lncRNAs",]$gene_id))
+  matches_score$type = ifelse(matches_score$type == 0, "mRNA", "lncRNA")
+  n_matches <- length(unique(matches_score[matches_score$type == "lncRNA",]$gene_id))
   matches_score$type <- as.factor(matches_score$type)
   
+  
+   scatter_plot_matching <- ggplot(matches_score, aes(x=score, y =perc_cells_expressing, col = factor(type)))+
+                            geom_point(size = 1, alpha = 0.6)+
+                            labs( subtitle = paste0("# matches ", n_matches))+
+                            scale_color_manual(values = palette_plot_percentage)+
+                            theme_matching+labs(x = title, y = "% cells")
+  
+  
+  xbox <- axis_canvas(scatter_plot_matching, axis = "x", coord_flip = TRUE) + scale_x_discrete()+
+    geom_boxplot(data = matches_score, aes(x=factor(type), y =score, col = factor(type), fill = factor(type)), alpha = 0.5) + coord_flip()+
+    scale_fill_manual(values = palette_plot_percentage)+
+    scale_color_manual(values = palette_plot_percentage)
+  #+stat_compare_means( label = "p.signif")
+  
+  ybox <- axis_canvas(scatter_plot_matching, axis = "y") + 
+    geom_boxplot(data = matches_score, aes(y = perc_cells_expressing, x = factor(type), color = factor(type), fill = factor(type), alpha = 0.5))+
+    scale_x_discrete()+
+    scale_fill_manual(values = palette_plot_percentage)+
+    scale_color_manual(values = palette_plot_percentage)
+  
+  p3 <- insert_xaxis_grob(scatter_plot_matching, xbox, grid::unit(1, "in"), position = "top")
+  p4 <- insert_yaxis_grob(p3, ybox, grid::unit(1, "in"), position = "right")
+  p5 <- ggdraw(p4)
+  
+  test2 <- wilcox.test(matches_score[matches_score$type == "lncRNA", ]$perc_cells_expressing, matches_score[matches_score$type == "mRNA", ]$perc_cells_expressing, paired = T)
+
   # Plot 
-  scatter_plot_matching2 <- ggplot(matches_score, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+theme(legend.position = "")+ylab("Prop cells")
+  #scatter_plot_matching2 <- ggplot(matches_score, aes(x=score, y =perc_cells_expressing, col = as.factor(type)))+geom_point(size = 0.8)+labs( subtitle = paste0("# Matches ", n_matches))+scale_fill_manual(values = palette_plot_percentage)+
+ #           scale_color_manual(values = palette_plot_percentage)+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 22), legend.text = element_text(size = 18))+theme(legend.position = "")+ylab("Prop cells")
   
-  scatter_plot_matching_withboxplot2<- ggExtra::ggMarginal(scatter_plot_matching2,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
-  scatter_plot_matching_withboxplot2
+  #scatter_plot_matching_withboxplot2<- ggExtra::ggMarginal(scatter_plot_matching2,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
+  #scatter_plot_matching_withboxplot2
   
-  return(list(scatter_plot_matching_withboxplot, scatter_plot_matching_withboxplot2))
+  return(list(p, p5, test1, test2))
 }
 
-
-stats_specificity <- function(specificity_scores, plots = F){
+stats_specificity <- function(specificity_scores, plots = F, title = "specificity score"){
 
   # -----------------------------
   #     Load real Specificity Scores
   # -----------------------------
   specificity_scores_summary <- get_df_summary(specificity_scores)
   specificity_scores_summary$permutation <- "Real"
-  specificity_scores_summary$type <- ifelse(specificity_scores_summary$type == "lnc", "lncRNAs", "PC genes")
+  specificity_scores_summary$type <- ifelse(specificity_scores_summary$type == "lnc", "lncRNA", "mRNA")
   df_tot <- specificity_scores_summary
   
   
@@ -208,25 +262,20 @@ stats_specificity <- function(specificity_scores, plots = F){
   
   # ------------------ PLOT 1: permutaiton and markers ------------------------------
   # Compare Lnc and PC between permuted and real 
-  my_comparisons <- list( c("lncRNAs", "PC genes"))
-  p1b <- ggboxplot(df_tot, x = "type", y = "score",  col="type", fill = "type", alpha= 0.5, short.panel.labs = T) +
-                  theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-                  scale_fill_manual(values = rev(palette_plot_percentage))+
+  my_comparisons <- list( c("lncRNA", "mRNA"))
+  df_tot$type <- factor(df_tot$type, levels = c("lncRNA", "mRNA"))
+  p1b <- ggboxplot(df_tot, x = "type", y = "score",  col="black", fill = "type", alpha= 1, short.panel.labs = T) +    scale_color_manual(values = (palette_plot_percentage))+
+                  scale_fill_manual(values = (palette_plot_percentage))+
                   theme(legend.position = "none")+
-                  stat_compare_means(comparisons = my_comparisons)+xlab("")+ylab("Specificity Score")+theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-  #quantiles = quantile(df_tot$perc_cells_expressing) 
-  #df_tot <- within(df_tot, quartile <- as.integer(cut(df_tot$perc_cells_expressing, quantiles)))
-  #df_tot$quartile <- as.character(df_tot$quartile)
-  #p1b <- ggboxplot(df_tot, x = "quartile", y = "score",  col="type", fill = "type", alpha= 0.5) +
-  #               theme_paper+scale_color_manual(values = rev(palette_plot_percentage))+
-  #                scale_fill_manual(values = rev(palette_plot_percentage))+
-  #                theme(legend.position = "none")+
-  #                xlab("")+ylab("Specificity Score")+theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+                  stat_compare_means(comparisons = my_comparisons, label = "p.signif")+xlab("")+ylab(title)+
+                  theme(axis.ticks.x = element_blank(), text = element_text(size = 15), axis.line.x = element_blank())
+  
+
   
   # Add Markers
-  p1 <- p1b+geom_point(data=highlight_df, aes(x=type,y=score), color='red',size=2)+
+  p1 <- p1b+geom_point(data=highlight_df, aes(x=type,y=score), color='#02A237',size=3)+
     geom_point(data=highlight_df, aes(x=type,y=score), color='black',size=0.5)+
-    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='dark grey',size=2)+
+    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='dark grey',size=3)+
     geom_point(data=highlight_df_hk, aes(x=type,y=score), color='black',size=0.5)
   p1
   
@@ -273,41 +322,31 @@ stats_specificity <- function(specificity_scores, plots = F){
 # -----------------------------------
 ```{r matchmedian}
 
-tau <-  readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/03_specificity_tau.rds")
+tau <-  readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/03_specificity_tau.rds"))
 colnames(tau) <- gsub("tau", "score", colnames(tau))
 tau$gene <- rownames(tau)
+tau <- tau[tau$gene %in% c(df_lnc$gene_id, df_mrna$gene_id),]
+
 
 # Plot Stats
-stats_specificity(tau, plots = F)
-match_plots(get_df_summary(specificity_scores))
+stats_tau <- stats_specificity(tau, plots = F, title = "repurposed tau score")
 
-# Visualize some of the examples 
-# lnctau <- specificity_scores[all_lncrnas,]
-# FeaturePlot(immune.combined, rownames(lnctau[(order(lnctau$score, decreasing =T)),][4,]), order  = T )
+pdf(file.path(plots, "02/SUPPL_spec_matching_cells_tau.pdf"), width = 6, height = 6)
+match_plots(get_df_summary(tau), title  = "repurposed tau score")[[1]]
+dev.off()
 
-specificity_scores_summary <- get_df_summary(tau)
-specificity_scores_summary$permutation <- "Real"
-specificity_scores_summary$type <- ifelse(specificity_scores_summary$type == "lnc", "lncRNAs", "PC genes")
-
-ggscatter(specificity_scores_summary, x = "score", y = "perc_cells_expressing",  conf.int = T, 
-            cor.coef = TRUE, cor.method = "spearman", size=0.3, col = "#999999",add.params = list(color = "red", size = 0.3))+theme_sc+labs(x = "Specificity Score", y = "Number of cells")+theme_paper
+pdf(file.path(plots, "02/SUPPL_sepc_matching_score_tau.pdf"), width = 6, height = 6)
+match_plots(get_df_summary(tau), title = "repurposed tau score")[[2]]
+dev.off()
 
 
-
-cuts <- seq(0,1, by=0.1)
-specificity_scores_summary <- within(specificity_scores_summary, quartile <- as.integer(cut(specificity_scores_summary$perc_cells_expressing, cuts)))
-
-quartiles_with_enough_cells <- unlist(lapply(unique(specificity_scores_summary$quartile), function(x) ifelse(length(unique(specificity_scores_summary[specificity_scores_summary$quartile == x & specificity_scores_summary$type =="lncRNAs" , ]$gene)) > 30,x,NA)))
-quartiles_with_enough_cells <- quartiles_with_enough_cells[!is.na(quartiles_with_enough_cells)]
+match_plots(get_df_summary(tau))[[3]]
+match_plots(get_df_summary(tau))[[4]]
 
 
-specificity_scores_summary_filt <- specificity_scores_summary[specificity_scores_summary$quartile %in% quartiles_with_enough_cells,]
-
-ggboxplot(specificity_scores_summary_filt, x = "quartile", y = "score",  col="type", fill = "type", alpha= 0.5) +
-                  theme_paper+scale_color_manual(values = (palette_plot_percentage))+
-                  scale_fill_manual(values = (palette_plot_percentage))+
-                  ylab("Specificity Score")
-
+pdf(file.path(plots, "02/SUPPL_spec_tau_boxplotmarkers.pdf"), width = 3, height = 4)
+stats_tau[[1]]
+dev.off()
 
 ```
 
@@ -323,56 +362,34 @@ ggboxplot(specificity_scores_summary_filt, x = "quartile", y = "score",  col="ty
 
 ```{r matchmedian}
 
-specificity_scores <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/04_specificity_alternativescore.rds")
+specificity_scores <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/04_specificity_alternativescore.rds"))
 specificity_scores<- specificity_scores[!is.na(specificity_scores$gene),c("gene", "score")]
 rownames(specificity_scores) <- as.character(specificity_scores$gene)
 
 
+specificity_scores <- specificity_scores[specificity_scores$gene %in% c(df_lnc$gene_id, df_mrna$gene_id),]
 
 # Plot Stats
-stats_specificity(specificity_scores, plots = F)
-match_plots(get_df_summary(specificity_scores))
+alt_stats <- stats_specificity(specificity_scores, plots = F, title = "alternative specificity score")
+
+pdf(file.path(plots, "02/SUPPL_spec_alt_boxplotmarkers.pdf"), width = 3, height = 4)
+alt_stats[[1]]
+dev.off()
 
 
-df_test <- get_df_summary(specificity_scores)
-c <- df_test[complete.cases(df_test),]
-#c$type = ifelse(c$type == "lncRNAs", 1, 0)
-c$type = ifelse(c$type == "lnc", 1, 0)
-# Match % cells 
-mi_perc <- matchit(type ~ perc_cells_expressing,c)
-matches_perc <- get_matches(mi_perc, c)
-matches_perc$type = ifelse(matches_perc$type == 0, "PC genes", "lncRNAs")
-n_matches <- length(unique(matches_perc[matches_perc$type == "lncRNAs",]$gene_id))
-matches_perc$type <- as.factor(matches_perc$type)
+pdf(file.path(plots, "02/SUPPL_spec_matching_cells_alt.pdf"), width = 6, height = 6)
+match_plots(get_df_summary(specificity_scores), title = "alternative specificity score")[[1]]
+dev.off()
+
+pdf(file.path(plots, "02/SUPPL_sepc_matching_score_alt.pdf"), width = 6, height = 6)
+match_plots(get_df_summary(specificity_scores), title = "alternative specificity score")[[2]]
+dev.off()
 
 
-
-plot_matching_scatter <- function(matches_perc){
-    scatter_plot_matching <- ggplot(matches_perc, aes(x=score, y =perc_cells_expressing, col = factor(type)))+
-                            geom_point(size = 1, alpha = 0.7)+
-                            labs( subtitle = paste0("# Matches ", n_matches))+
-                            scale_color_manual(values = palette_plot_percentage)+
-                            theme_matching+labs(x = "Specificity Score", y = "% Cells expressing")
-  
-  
-  xbox <- axis_canvas(scatter_plot_matching, axis = "x", coord_flip = TRUE) + scale_x_discrete()+
-    geom_boxplot(data = matches_perc, aes(x=factor(type), y =score, col = factor(type), fill = factor(type)), alpha = 0.5) + coord_flip()+
-    scale_fill_manual(values = palette_plot_percentage)+
-    scale_color_manual(values = palette_plot_percentage)+ stat_compare_means( label = "p.signif")
-  
-  ybox <- axis_canvas(scatter_plot_matching, axis = "y") + 
-    geom_boxplot(data = matches_perc, aes(y = perc_cells_expressing, x = factor(type), color = factor(type), fill = factor(type), alpha = 0.5))+
-    scale_x_discrete()+
-    scale_fill_manual(values = palette_plot_percentage)+
-    scale_color_manual(values = palette_plot_percentage)
-  
-  p1 <- insert_xaxis_grob(scatter_plot_matching, xbox, grid::unit(1, "in"), position = "top")
-  p2 <- insert_yaxis_grob(p1, ybox, grid::unit(1, "in"), position = "right")
-  ggdraw(p2)
-}
+match_plots(get_df_summary(specificity_scores))[[3]]
+match_plots(get_df_summary(specificity_scores))[[4]]
 
 
-plot_matching_scatter(matches_perc)
 
 ```
 

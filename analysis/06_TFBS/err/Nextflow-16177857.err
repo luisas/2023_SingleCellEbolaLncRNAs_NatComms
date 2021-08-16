@@ -1,0 +1,33 @@
+remove bedtools/2.25.0 (PATH) 
+load bedtools/2.25.0 (PATH) 
+Feature (8:145679266-145679380) beyond the length of 8 size (145679320 bp).  Skipping.
+Feature (QNVO02000248.1:78885-78999) beyond the length of QNVO02000248.1 size (78939 bp).  Skipping.
+Feature (QNVO02000433.1:58945-59059) beyond the length of QNVO02000433.1 size (58999 bp).  Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+WARNING. chromosome (EBOV_Kikwit) was not found in the FASTA file. Skipping.
+Feature (QNVO02001115.1:1711-1825) beyond the length of QNVO02001115.1 size (1759 bp).  Skipping.
+Feature (QNVO02001146.1:1985-2099) beyond the length of QNVO02001146.1 size (2024 bp).  Skipping.
+Feature (QNVO02001155.1:2063-2177) beyond the length of QNVO02001155.1 size (2116 bp).  Skipping.
+Feature (QNVO02001244.1:2598-2712) beyond the length of QNVO02001244.1 size (2665 bp).  Skipping.
+Feature (QNVO02001313.1:2912-3026) beyond the length of QNVO02001313.1 size (2946 bp).  Skipping.
+Feature (QNVO02001551.1:3898-4012) beyond the length of QNVO02001551.1 size (3963 bp).  Skipping.
+Feature (QNVO02001615.1:4138-4252) beyond the length of QNVO02001615.1 size (4224 bp).  Skipping.
+Feature (QNVO02001793.1:4633-4747) beyond the length of QNVO02001793.1 size (4723 bp).  Skipping.
+Feature (QNVO02001836.1:4442-4556) beyond the length of QNVO02001836.1 size (4547 bp).  Skipping.
+Feature (QNVO02001865.1:4681-4795) beyond the length of QNVO02001865.1 size (4719 bp).  Skipping.
+Feature (QNVO02001912.1:57702-57816) beyond the length of QNVO02001912.1 size (57736 bp).  Skipping.
+Feature (QNVO02002441.1:1641-1755) beyond the length of QNVO02002441.1 size (1694 bp).  Skipping.
+Feature (QNVO02002463.1:5583-5697) beyond the length of QNVO02002463.1 size (5617 bp).  Skipping.
+Feature (QNVO02002481.1:2466-2580) beyond the length of QNVO02002481.1 size (2500 bp).  Skipping.
+Feature (QNVO02002497.1:3050-3164) beyond the length of QNVO02002497.1 size (3161 bp).  Skipping.
+Feature (QNVO02002500.1:4411-4525) beyond the length of QNVO02002500.1 size (4454 bp).  Skipping.
+Feature (QNVO02002527.1:4046-4160) beyond the length of QNVO02002527.1 size (4085 bp).  Skipping.

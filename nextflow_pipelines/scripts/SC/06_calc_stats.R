@@ -4,7 +4,6 @@ shhh(library(SingleCellExperiment))
 shhh(library(Seurat))
 shhh(library(stringr))
 shhh(library(dplyr))
-shhh(library(MAST))
 options(future.globals.maxSize = 10000 * 1024^2)
 
 
@@ -117,7 +116,11 @@ df_mrna_celltype <- data.frame( gene_id = c(),meanexpr = c(), not_na_cells = c()
 subset <- subset(immune.combined, features = annotated_mrnas)
 invisible(lapply(as.vector(unique(Idents(subset))), function(x) calc_mean_and_percentage_cell(subset, x, df_mrna_celltype)))
 
+df_lnc_celltype$type <- "lncRNA"
+df_mrna_celltype$type <- "mRNA"
+df_celltype <- rbind(df_lnc_celltype, df_mrna_celltype)
 
 # Save
+saveRDS(df_celltype, file.path(robjectsdir, "df_celltype.rds"))
 saveRDS(df_lnc_celltype, file.path(robjectsdir, "df_celltype_lnc.rds"))
 saveRDS(df_mrna_celltype, file.path(robjectsdir, "df_mrna_celltype.rds"))

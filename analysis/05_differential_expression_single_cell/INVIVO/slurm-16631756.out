@@ -1,0 +1,117 @@
+remove R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+load R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+WARNING: ignoring environment value of R_HOME
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Carico il pacchetto richiesto: SummarizedExperiment
+Carico il pacchetto richiesto: GenomicRanges
+Carico il pacchetto richiesto: stats4
+Carico il pacchetto richiesto: BiocGenerics
+Carico il pacchetto richiesto: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following object is masked from ‘package:Matrix’:
+
+    which
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Carico il pacchetto richiesto: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following object is masked from ‘package:Matrix’:
+
+    expand
+
+The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Carico il pacchetto richiesto: IRanges
+
+Attaching package: ‘IRanges’
+
+The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+Carico il pacchetto richiesto: GenomeInfoDb
+Carico il pacchetto richiesto: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Carico il pacchetto richiesto: DelayedArray
+Carico il pacchetto richiesto: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+Carico il pacchetto richiesto: BiocParallel
+
+Attaching package: ‘DelayedArray’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+
+Attaching package: ‘SummarizedExperiment’
+
+The following object is masked from ‘package:Seurat’:
+
+    Assays
+
+Error in unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in%  : 
+  oggetto "ref" non trovato
+Calls: get_gene_id -> unique
+Esecuzione interrotta

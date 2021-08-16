@@ -102,10 +102,10 @@ infected_cells <- rownames(ebola_genome_percentage_df[ebola_genome_percentage_df
 
 
 # Save information about infection 
-saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
+#saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
 
 # Plot infected cells 
-DimPlot(immune.combined, label=F, cells.highlight= list(infected_cells), sizes.highlight = 0.4, cols.highlight = c("#DA0202"), cols= "grey", pt.size = 0.1)+ 
+dim_infected <- DimPlot(immune.combined, label=F, cells.highlight= list(infected_cells), sizes.highlight = 0.4, cols.highlight = c("#DA0202"), cols= "grey", pt.size = 0.1)+ 
     labs(title = "Infected cells" )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
     theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
 
@@ -120,7 +120,7 @@ DimPlot(immune.combined, label=F, cells.highlight= list(infected_cells), sizes.h
 ebola_genome_percentage_df$hour <- as.character(ebola_genome_percentage_df$hour)
 ebola_genome_percentage_df[as.character(ebola_genome_percentage_df$hour) %in% c("D007", "D008"),]$hour <- "D007&D008"
 
-saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
+#saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
 
 summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype) %>% tally()
 summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype,hour) %>% tally()
@@ -144,16 +144,23 @@ ggplot(percentage_cells_infected_per_celltype, aes( x= celltype, y = perc_infect
 ```{r colocation}
 
 # Just visualize the threshold for calling a cell infected
-ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
+densityplot <- ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+xlab("")+theme(axis.text = element_text(size = 8, color = "black"))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text= element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("viral load (log)")+geom_vline(xintercept = threshold, lty =  2)+
+   theme(panel.grid.major = element_blank(),axis.title.x = element_text(size = 15),
+                  panel.grid.minor = element_blank(),
+                  axis.line.x=element_blank(),
+                  panel.background = element_blank(),
+                  axis.line.y = element_line(color = "black"))+theme(axis.ticks.length=unit(.2, "cm"))+
+        scale_y_continuous(limits = c(0,2.5), labels = seq(0,2.5,0.5),breaks = seq(0,2.5,0.5), expand = c(0,0))
 
-
+densityplot
 ```
 # RemoveEbolaGenes 
 # ---------------------------------
 #    Remove Ebola Genes  
 #----------------------------------
 ```{r removeEbolaGenes}
-length(rownames(immune.combined))
+
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10//05_RObjects/03_prep/immune.combined.infectionstatus.rds")
 length(setdiff(rownames(immune.combined), ebola_genes))
 immune.combined_ebolaremoved <- immune.combined[setdiff(rownames(immune.combined), ebola_genes),]
 immune.combined_ebolaremoved <- NormalizeData(immune.combined_ebolaremoved)

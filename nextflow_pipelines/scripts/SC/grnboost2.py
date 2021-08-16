@@ -13,10 +13,7 @@ if __name__ == '__main__':
     print("1) Gene expression matrix has been succesfully read")
 
     network = grnboost2(expression_data=ex_matrix)
-    
-    client.close()
-    local_cluster.close()
-    
+
     print("2) Network has been succesfully created")
 
     network.to_csv(sys.argv[2], sep='\t', index=False, header=False)

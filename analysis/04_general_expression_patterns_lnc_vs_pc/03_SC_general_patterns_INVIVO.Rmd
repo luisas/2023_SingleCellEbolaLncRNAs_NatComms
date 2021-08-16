@@ -13,33 +13,31 @@ output: html_document
 ### Imports 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggpubr)
-library(MatchIt)
+library(ggplot2)
 library(rtracklayer)
-library(wesanderson)
-require(cowplot)
-library(Seurat)
+
+source(file.path("../utils/00_datapaths.R"))
 source("../utils/02_sc_utils.R")
 
-# Palette used throughout the script
-col_lnc = "navy"
-col_mrna = "#8DC3A7"
+# 0. Palette used throughout the scripts
+col_lnc = "#f72631"
+col_mrna = "#3153a3"
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
+# 1. Theme for plots
 theme_sc_paper <- theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())+theme_paper
 
 
+# 2. Directories
 # Where stats about lnc and pc computed on cluster are stored
-robjectsdir<- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
-
-
+robjectsdir<- file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 # Read reference files 
-ref<- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- rtracklayer::import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref<- import(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- rtracklayer::import(file.path(data_path, "/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 # Import Seurat object 
-file <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+file <- file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+orthologs <- readRDS(file.paht(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 immune.combined <- readRDS(file)
 ```
 
@@ -117,8 +115,10 @@ df_mrna <- df_mrna[df_mrna$n_cells > 30, ]
 df_lnc$type <- "lncRNA"
 df_mrna$type <- "Protein Coding"
 df_complete <- rbind(df_lnc, df_mrna)
+df_complete$prop_cells <- df_complete$perc_cells_expressing
+df_complete$perc_cells_expressing <- df_complete$prop_cells*100
 
-
+table(df_complete$type)
 ```
 
 # ---------------------------------------------------------
@@ -148,19 +148,22 @@ saveRDS(df_complete_celltype, file.path(robjectsdir, "df_celltype.rds"))
 ```{r quartiles}
 
 # Figure 3A (Density plot of % cells expressing )
-ggdensity(df_complete, x = "perc_cells_expressing",
-   add = "median",
-   color = "type", fill = "type",
-   palette = palette_plot_percentage)+theme_paper+xlab("Proportion of cells (log10))")+scale_x_log10()+ylab("Density")
+density_cells <- ggdensity(df_complete, x = "perc_cells_expressing",
+   color = "type", fill = "type", alpha = 0.8, add = "median",
+   palette = palette_plot_percentage)+xlab("% cells where gene is expressed")+ylab("density")+scale_x_log10()+theme(text = element_text(size = 15))
+
+density_cells
 
 # Quartiles plot
-plot_quartiles(df_lnc, df_mrna, "proportion", palette = palette_plot_percentage)+theme_sc_paper
+plot_quartiles(df_lnc, df_mrna, "proportion", palette = palette_plot_percentage)+theme(text = element_text(size = 15))
 
 # Boxplot separated by cell-type
 ggplot(df_complete_celltype, aes( x= type, y = perc_cells_expressing, fill = type, col = type))+geom_boxplot(alpha= 0.4)+scale_fill_manual(values = palette_plot_percentage)+scale_color_manual(values = palette_plot_percentage)+theme_sc_paper+xlab ("")+ylab("Proportion of cells")+ facet_wrap(vars(ident))+theme(strip.text.x = element_text(size = 20, colour = "black", angle = 0))
 
 
 scatter_plot_both(df_lnc,df_mrna, y = "Cell Percentage", type = "Median",palette = palette_plot_percentage)
+
+table(df_complete$type)
 ```
 
 
@@ -189,7 +192,7 @@ matches_median <- get_matches(mi_median, c)
 # Calculate p-value 
 perc_cells_0 <- matches_median[matches_median$type == 0,]$perc_cells_expressing
 perc_cells_1 <- matches_median[matches_median$type == 1,]$perc_cells_expressing
-t.test(perc_cells_0, perc_cells_1)
+t.test(perc_cells_0, perc_cells_1, alternative = "greater")
 
 
 matches_median$type = ifelse(matches_median$type == 0, "mrna", "lnc")
@@ -214,22 +217,25 @@ matches_perc$type <- factor(matches_perc$type, levels = c("lnc", "mrna"))
 
 median_0 <- matches_perc[matches_perc$type == "lnc",]$medianexpr
 median_1 <- matches_perc[matches_perc$type == "mrna",]$medianexpr
-t.test(median_0, median_1)
+t.test(median_0, median_1,alternative = "less" )
 
 ```
 
 # Visualize
 ```{r matchperc}
 
-theme_matching <- theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(legend.position ="",legend.title = element_blank())+theme(legend.title = element_blank())+theme(axis.text = element_text(size = 15), axis.title = element_text(size = 13), legend.text = element_text(size = 13))
+theme_matching <- theme(panel.background = element_rect(fill = "white", color = "black"))+
+                  theme(legend.position ="",panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.length=unit(.2, "cm"))+
+                  theme(axis.text = element_text(size = 15, color ="black"), axis.title = element_text(size = 17))
 
 
 plot_matching_scatter <- function(matches_perc){
     scatter_plot_matching <- ggplot(matches_perc, aes(x=medianexpr, y =perc_cells_expressing, col = factor(type)))+
-                            geom_point(size = 1, alpha = 0.7)+
-                            labs( subtitle = paste0("# Matches ", n_matches))+
+                            geom_point(size = 1, alpha = 0.6)+
+                            labs( subtitle = paste0("# matches ", n_matches))+
                             scale_color_manual(values = palette_plot_percentage)+
-                            theme_matching+labs(x = "Median Expression", y = "% Cells expressing")
+                            theme_matching+labs(x = "median expression", y = "% cells")
   
   
   xbox <- axis_canvas(scatter_plot_matching, axis = "x", coord_flip = TRUE) + scale_x_discrete()+
@@ -252,6 +258,8 @@ plot_matching_scatter <- function(matches_perc){
 plot_matching_scatter(matches_perc)
 plot_matching_scatter(matches_median)
 
+
+df_lnc[order(df_lnc$medianexpr),]
 ```
 
 
@@ -291,14 +299,15 @@ df_genes <- data.frame(t(expr_matrix[genes, ]))
 colnames(df_genes) <-  gsub(".unknown", "", colnames(df_genes))
 df_genes_melted <- melt(df_genes)
 df_genes_melted <- df_genes_melted[df_genes_melted$value > 0, ]
-ggboxplot(df_genes_melted, x = "variable", y = "value", fill = "variable", col = "variable",alpha=0.5)+theme_sc_paper+theme()+scale_fill_manual(values = rev(palette_plot_percentage))+scale_color_manual(values = rev(palette_plot_percentage))+stat_compare_means(comparisons = list(c(colnames(df_genes))))+xlab("")+ylab("Expression (logCP10K)")+theme(axis.title = element_text(size=15))
+bp <- ggboxplot(df_genes_melted, x = "variable", y = "value", fill = "variable", col = "black",alpha=1)+theme()+scale_fill_manual(values = rev(palette_plot_percentage))+scale_color_manual(values = rev(palette_plot_percentage))+stat_compare_means(comparisons = list(c(colnames(df_genes))))+xlab("")+ylab("logCP10K")+theme(text = element_text(size=15))+scale_y_continuous(limits = c(0,5), expand = c(0,0))+theme(axis.line.x = element_blank(), legend.position = "", axis.ticks.x = element_blank(), axis.text.x = element_blank())
 
+bp
 # ----------------------------------------------
 #  2. Visualize that the expression of the 2 genes FEATURE PLOT
 # ----------------------------------------------
-f1 <- FeaturePlot(immune.combined,label = FALSE, features = c(genes[1]), pt.size = 0.6, order = TRUE,max.cutoff = 3.5,  cols = c("lightgrey", "#00613B"))+theme(axis.title.x.top = element_text())+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(axis.title = element_text(size=15), plot.title = element_text(size =22, hjust = 0.5))+labs(title = genes[1])
-
-f2 <- FeaturePlot(immune.combined,label = FALSE, features = c(genes[2]), pt.size = 0.6, order = TRUE, max.cutoff = 3.5,cols = c("lightgrey", palette_plot_percentage[1]))+theme(axis.title.x.top = element_text())+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(axis.title = element_text(size=15), plot.title = element_text(size =22, hjust = 0.5))+labs(title = gsub("-unknown", "", genes[2]))
+f1 <- FeaturePlot(immune.combined,label = FALSE, features = c(genes[1]), pt.size = 0.6, order = TRUE,max.cutoff = 3.5,  cols = c("lightgrey", "navy"))+theme(axis.title.x.top = element_text())+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(axis.title = element_text(size=15), plot.title = element_text(size =22, hjust = 0.5))+labs(title = genes[1])+theme_void()+theme(title = element_blank(), text = element_text(size = 20))
+f1
+f2 <- FeaturePlot(immune.combined,label = FALSE, features = c(genes[2]), pt.size = 0.6, order = TRUE, max.cutoff = 3.5,cols = c("lightgrey", "#B0052D"))+theme(axis.title.x.top = element_text())+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(axis.title = element_text(size=15), plot.title = element_text(size =22, hjust = 0.5))+labs(title = gsub("-unknown", "", genes[2]))+theme_void()+theme(title = element_blank(), text = element_text(size = 20))
 
 CombinePlots(list(f1,f2))
 

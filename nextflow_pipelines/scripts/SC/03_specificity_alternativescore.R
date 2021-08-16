@@ -7,7 +7,7 @@ shhh <- suppressPackageStartupMessages
 shhh(library(Seurat))
 shhh(library(stringr))
 shhh(library(dplyr))
-shhh(library(MAST))
+
 
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------

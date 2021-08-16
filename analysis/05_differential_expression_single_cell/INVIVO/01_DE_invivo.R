@@ -17,27 +17,28 @@ theme_paper <- theme(legend.title = element_blank())+theme(panel.background = el
 
 
 # Imports
+source("../../utils/00_datapaths.R")
 source("../../utils/02_sc_utils.R")
 source("../../utils/03_de_utils.R")
 source("../../utils/04_utils_graph.R")
 
 # Gene annotation
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+ebola_ref <- import(file.path(data_path,"/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 # Output paths
-robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+robjectsdir <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
 
 # LncRNAs
-robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+robjectsdir_stats <- file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 
 # Seurat object
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 # Ortholgs
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+orthologs <- readRDS(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 
 # Check LncPedia
 lncpedia_immune <- import("../../lncpedia_immune.gtf")
@@ -45,7 +46,7 @@ lncpedia_infection <- import("../../lncpedia_infection.gtf")
 
 lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
 
-immlnc <- read.table("/home/luisas/Desktop/cluster/data/00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+immlnc <- read.table(file.path(data_path,"00_RawData/ImmLnc/Lnc_Pathways_Sig.txt", header = TRUE, sep = "\t", stringsAsFactors = FALSE))
 reported_immlnc <- immlnc$lncRNA_symbol
 # -------------------------------------------
 #    Define threshold for the whole analysis
@@ -56,7 +57,7 @@ FDRTHRESHOLD<- 0.05
 # Fold-Change of 30%
 FCTHRESHOLD <- log(1.23)
 
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 orthologs <- distinct(orthologs)
 orthologs_red <- distinct(orthologs[,c("gene_id","lnc", "orthologGeneSymbol","alignScore")])
 orthologs_max <- orthologs_red %>% dplyr::group_by(orthologGeneSymbol) %>% dplyr::summarise(alignScore=max(alignScore))
@@ -220,8 +221,8 @@ de_all$direction <- factor(de_all$direction, c("down", "up"))
 de_all$stage <- factor(de_all$stage, c("early", "middle", "late"))
 
 
-saveRDS(de_all, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
-saveRDS(unique(unlist(de_lists_lnc)), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_lnc.rds")
+saveRDS(de_all, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
+saveRDS(unique(unlist(de_lists_lnc)), file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_lnc.rds"))
 
 
 set.seed(123)
@@ -238,9 +239,9 @@ m_significance<-xtabs(fdr~primerid+comparison, stats_complete)
 attr(m_significance, "class") <- NULL
 m_significance <- m_significance[,c("Monocyte_early" ,"Monocyte_middle","Monocyte_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
 
-saveRDS(stats_complete, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds")
-saveRDS(m, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds")
-m <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds")
+saveRDS(stats_complete, file.paht(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds"))
+saveRDS(m, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds"))
+m <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds"))
 
 # Neutrophils nly appear later on
 pal_celltypes <- brewer.pal(4, "Set2")
@@ -303,7 +304,7 @@ ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = c
 
 # Define which is the threshold to define when a gene is considered in CIS
 cis_threshold <- 1000000
-colocation <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_lncvsDE_df.rds")
+colocation <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_lncvsDE_df.rds"))
 isg <- read.table("../isg.csv", stringsAsFactors = F)
 distances <- data.frame(colocation, stringsAsFactors = F)
 colnames(distances)  <-  c("lnc", "gene", "d")
@@ -351,19 +352,17 @@ rownames(close_depc_summary) <- close_depc_summary$lnc
 # Add isg names
 de_dist <- distances[ distances$DEPC == T & distances$d < cis_threshold ,]
 #---------- HEATMAPS MAIN FIGURE
-pal_celltypes <-wes_palette("GrandBudapest1", 4)
-pal_celltypes[3] <- "#AE4E4E"
-pal_celltypes <- pal_celltypes[c(2,1,3,4)]
-
-png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/T_lnc_FC.png", width = 1300, height = 1100)
+pal_celltypes <- c("#FD6467","#F1BB7B","#AE4E4E","#D67236")
+pdf(file.path(plots, "05/T_DE.pdf"), width = 4, height = 6)
 FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_lnc_T)), "T",  pal_celltypes[2],orthologs, lncpedia, reported_immlnc, legend = T)
 dev.off()
 
-png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/B_lnc_FC.png", width = 1300, height = 1100)
+
+pdf(file.path(plots, "05/B_DE.pdf"), width = 4, height = 5)
 FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_lnc_B)), "B",  pal_celltypes[1],orthologs, lncpedia, reported_immlnc, legend = T )
 dev.off()
 
-png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/Mono_lnc_FC.png", width = 1300, height = 1100)
+pdf(file.path(plots, "05/Mono_DE.pdf"), width = 4, height = 8)
 FC_heatmap_subset_celltype(m, "Monocyte", unique(unlist(de_lists_lnc_my)), "Monocyte",  pal_celltypes[3],orthologs, lncpedia, reported_immlnc, legend = T )
 dev.off()
 

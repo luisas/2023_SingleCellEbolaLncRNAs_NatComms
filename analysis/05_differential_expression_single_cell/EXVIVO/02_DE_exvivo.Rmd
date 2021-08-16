@@ -7,9 +7,7 @@ output: html_document
 
 ```{r imports}
 knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
-library(Seurat)
-library(Matrix)
+library(dplyr); library(Seurat); library(Matrix)
 library(SingleCellExperiment)
 library(stringr)
 library(scales)
@@ -38,11 +36,10 @@ ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pard
 # Output paths
 robjectsdir <- file.path("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE/")
 
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.infectionstatus_neut.rds")
+immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
 
 ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep ="")
-saveRDS(ebola_genes, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/ebola_genes.rds")
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds")
 # LncRNAs
 robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/"
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
@@ -59,7 +56,7 @@ immune.combined$condition <- paste(immune.combined$cond, immune.combined$infecti
 immune.combined$celltype <- Idents(immune.combined)
 immune.combined$celltype_group <- paste(immune.combined$celltype, immune.combined$cond, sep = "_")
 
-mono <-  subset(immune.combined, ident="Myeloid")
+mono <-  subset(immune.combined, ident="Monocyte")
 mono <- mono[,mono$cond %in% c("media","live")]
 mono$condition <- factor(mono$condition, levels = c("media Not Infected", "live Not Infected", "live Infected"))
 
@@ -68,6 +65,7 @@ mono$labels  <- gsub("media Not Infected", "Control", mono$labels )
 mono$labels  <- gsub("live Not Infected", "Bystanders", mono$labels )
 mono$labels  <- gsub("live Infected", "Infected", mono$labels )
 mono$labels <- factor(mono$labels, levels = c("Control", "Bystanders", "Infected"))
+mono$log_viraload <- log(mono$viraload)
 
 
 
@@ -76,6 +74,12 @@ mono_live <- mono[,mono$cond == "live"]
 mono_live_h24 <- mono_live[,mono_live$dpi == "H024"]
 mono_live_h24_inf <- mono_live_h24[,mono_live_h24$infection == "Infected" ]
 mono_live_h24_notinf <- mono_live_h24[,mono_live_h24$infection == "Not Infected" ]
+saveRDS(mono_live_h24_inf, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds")
+print("")
+
+de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_lnc <- unique(de_all[de_all$type == "lnc" & de_all$celltype == "Monocyte",]$primerid)
+ebola_genome_percentage_df <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
 ```
 
 
@@ -84,173 +88,6 @@ mono_live_h24_notinf <- mono_live_h24[,mono_live_h24$infection == "Not Infected"
 DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 ```
 
-# Determine threshold to call a cell infected
-```{r DetermineThreshold}
-# Extract normalied expression values matrix
-expression_matrix <- immune.combined@assays$RNA@counts
-colnames(expression_matrix) <- Idents(immune.combined)
-
-
-# Per cell, check the % of ebola reads ( not normalized - just calculate the % of raw counts )
-ebola_reads <- expression_matrix[rownames(expression_matrix) %in% ebola_genes, ]
-ebola_genome_reads <-colSums(ebola_reads)
-
-total_reads <- colSums(expression_matrix)
-ebola_gene_percentage <- (ebola_reads/total_reads)*100
-ebola_genome_percentage<- (ebola_genome_reads/total_reads)*100
-
-ebola_genome_percentage_df <- data.frame(percentage_viral_reads = ebola_genome_percentage,
-                                         celltype = names(ebola_genome_percentage),
-                                         cond =immune.combined$cond,
-                                         hour = immune.combined$dpi)
-
-
-# Define the threshold for the percentage of viral reads identified per cell for it to be called Infected
-#threshold <- quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype != "Myeloid", ]$percentage_viral_reads, probs = c(0.99))
-threshold <- max(unlist(lapply(setdiff(unique(ebola_genome_percentage_df$celltype), "Myeloid"), function(x) quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == x, ]$percentage_viral_reads, probs = c(0.99)))))
-
-print(paste("Threshold", threshold))
-mono$viral_load <- ebola_genome_percentage_df[colnames(mono), ]$percentage_viral_reads
-mono$log_viralload <- log(mono$viral_load)
-
-```
-
-# Discriminate infected vs Bystander cells
-```{r CallInfectedCells}
-
-# Separate the cells into infected and not infected based on the threshold
-ebola_genome_percentage_df$classification <- ifelse(ebola_genome_percentage_df$percentage_viral_reads >= threshold, "Infected", "Not Infected")
-immune.combined$infection <- ebola_genome_percentage_df$classification
-
-saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
-
-table(immune.combined[,Idents(immune.combined) == "Myeloid" ]$infection)
-table(immune.combined[,Idents(immune.combined) == "B" ]$infection)
-table(immune.combined[,Idents(immune.combined) == "T" ]$infection)
-table(immune.combined[,Idents(immune.combined) == "NK" ]$infection)
-
-# Save information about infection
-#saveRDS(immune.combined, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
-
-# Add information about how many cells are found per celltype and, per celltype, which is the proportion of cells infected
-# How many cells are found per celltype
-summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype) %>% tally()
-ebola_genome_percentage_df$celltype_count <- unlist(apply(ebola_genome_percentage_df,1,function(x) summary_celltype[summary_celltype$celltype ==x[2],]$n))
-
-
-# Visualize the percentage of infected cells per celltype
-percentage_cells_infected_per_celltype <- ebola_genome_percentage_df %>% dplyr::group_by(celltype, classification, celltype_count, cond, hour) %>% tally()
-
-percentage_cells_infected_per_celltype <- percentage_cells_infected_per_celltype[percentage_cells_infected_per_celltype$classification == "Infected", ]
-
-percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infected_per_celltype$n / percentage_cells_infected_per_celltype$celltype_count)*100
-# reset levels in right order
-percentage_cells_infected_per_celltype$cond <- factor(percentage_cells_infected_per_celltype$cond , levels = c("media", "irrad", "live"))
-
-# Just visualize the threshold for calling a cell infectedimmune.combine
-ggplot(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == "Myeloid",], aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
-
-```
-
-# Visualize Infected cells
-```{r VisualizeInfectedCells}
-percentage_cells_infected_per_celltype$condhr <- paste(percentage_cells_infected_per_celltype$cond, percentage_cells_infected_per_celltype$hour)
-
-ggplot(percentage_cells_infected_per_celltype, aes( x= celltype, y = perc_infected , col = condhr, fill = condhr))+geom_bar(stat="identity",position = position_dodge(), alpha = 0.8)+theme_paper+xlab("")+ylab("% of cells infected")+theme(axis.text.y = element_text(size = 8))+scale_fill_manual(values = wes_palette("Zissou1", n = 3))+scale_color_manual(values = wes_palette("Zissou1", n = 3))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+geom_hline(yintercept =1, lty =2)
-
-
-percentage_cells_infected <- ebola_genome_percentage_df %>% dplyr::group_by(celltype, classification, celltype_count) %>% tally()
-percentage_cells_infected$perc_infected <- (percentage_cells_infected$n / percentage_cells_infected$celltype_count)*100
-percentage_cells_infected <- percentage_cells_infected[percentage_cells_infected$classification == "Infected", ]
-
-infected_cells <- rownames(ebola_genome_percentage_df[ebola_genome_percentage_df$classification == "Infected",])
-# Or with labels (Same plot just with cell-type labels)
-DimPlot(immune.combined, label=T, cells.highlight= list(infected_cells), sizes.highlight = 0.2, cols.highlight = c("#DA0202"), cols= "grey", pt.size = 0.1)+
-    labs(title = "Infected cells" )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
-    theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
-
-```
-
-#  DE Analysis results: Bystander vs Infected  
-```{r ReadDEInfectionResults}
-# General expression of gene
-mast_mono <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_InfectionStatus/Myeloid_MAST_infectedVSnotinfected_LIVE24.rds")
-# Corrected q-value .05
-FDRTHRESHOLD<- 0.1
-# Fold-Change of 30%
-FCTHRESHOLD <- 0
-
-de_mono <- mast_mono[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
-#de_mono <- de_mono[!(de_mono$primerid == "MSTRG.182795-unknown"),]
-de_mono$direction <- ifelse(de_mono$coef < 0 , "down", "up")
-de_mono$direction <- factor(de_mono$direction, c("down", "up"))
-de_mono_lnc <- de_mono[de_mono$primerid %in% all_lncrnas, ]
-de_mono_pc <- de_mono[de_mono$primerid %in% annotated_mrnas, ]
-
-de_mono_lnc_up <- de_mono_lnc[de_mono_lnc$coef> 0,]
-de_mono_lnc_down <- de_mono_lnc[de_mono_lnc$coef< 0,]
-```
-
-```{r EnrichmentPCDE}
-# 1. Check enrichment for DE pc genes
-# UP
-ego_pc_up <- clusterProfiler::enrichGO(gene = de_mono_pc[de_mono_pc$coef > 0 , ]$primerid,OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(gsub("-unknown", "", rownames(immune.combined))))
-clusterProfiler::dotplot(ego_pc_up)
-# DOWN
-ego_de_down <- clusterProfiler::enrichGO(gene = de_mono_pc[de_mono_pc$coef < 0 , ]$primerid,OrgDb =  org.Mmu.eg.db, keyType = 'SYMBOL',ont = "BP",universe =unique(gsub("-unknown", "", rownames(immune.combined))))
-clusterProfiler::dotplot(ego_de_down)
-
-de_stats_direction_plot <- de_mono %>% group_by(primerid) %>% dplyr::summarise(direction = toString((direction)))
-ggplot(de_stats_direction_plot, aes(x=direction, fill = direction))+geom_bar(stat="count")+theme_paper+scale_fill_manual(values = c( "#C0E4C6", "#FF6666"))+ylab("Number of DE genes")+xlab("")+theme(legend.position = "")
-
-# 2. Check wether we can also identify some that Broad people can, and compare directionality
-down_broad <- c("S100A9", "SELL", "MX1", "VCAN", "MS4A6A")
-up_broad <- c("FTL", "C3", "CTSC")
-de_mono[de_mono$primerid %in% down_broad,]
-de_mono[de_mono$primerid %in% up_broad,]
-
-de_mono_lnc_up <- de_mono_lnc[de_mono_lnc$coef> 0,]
-de_mono_lnc_down <- de_mono_lnc[de_mono_lnc$coef< 0,]
-```
-
-# Visualize Boxplots
-```{r BoxPlotsExpression}
-# Visualize boxplot
-monocyte <- mono
-lapply(de_mono_lnc$primerid, function(gene) boxplot_bystanders(get_expression_summary_gene(gene)))
-```
-
-# Visualize Dotplots
-```{r DotplotsUPDDOWN}
-# Upregulated
-plot.data_up <- Dotplot_data(mono, features = c(de_mono_lnc_up$primerid), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
-ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-#Heatmap
-heatmap_celltypes(plot.data_up)
-
-# Downregulated
-plot.data_down <- Dotplot_data(mono, features = c(de_mono_lnc_down$primerid), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_down$name <- unlist(lapply(plot.data_down$features.plot, get_orthologname))
-ggplot(plot.data_down, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-# Heatmap
-heatmap_celltypes(plot.data_down)
-
-
-plot.data_down[plot.data_down$name == "NEAT1",]
-
-plot.data_up <- Dotplot_data(mono, features = c(get_gene_id("MIR22HG"), "STAT3"), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
-ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-#Heatmap
-heatmap_celltypes(plot.data_up)
-```
-
-```{r Heatmapscomplete}
-plot.data_down_all <- Dotplot_data(immune.combined, features = c(de_mono_lnc_down$primerid), group.by = "celltype",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_down_all$name <- unlist(lapply(plot.data_down_all$features.plot, get_orthologname))
-heatmap_celltypes(plot.data_down_all)
-```
 
 ```{r MonocyteSubtypes}
 dp_dn <- as.data.frame(t(mono[c("CD14", "FCGR3"),]@assays$RNA@data))
@@ -264,61 +101,38 @@ mono$monocyte_subset <- dp_dn[colnames(mono),]$status
 DimPlot(mono, group.by = "monocyte_subset", cols =wes_palette("IsleofDogs1", 4, type = "discrete"))
 saveRDS(dp_dn, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/dp_dn.rds")
 ```
-# ------------------------------------------
-#           Gene by gene inspection
-# ------------------------------------------
-```{r NEAT1}
-# Visualize gene Ex Vivo
-gene_id <- get_gene_id("NEAT1")
 
-FeaturePlot(mono, feature = "log_viralload", cols =  c("lightgrey", "dark red"), order= T )+theme_sc
+# I am not finding any DE :( )
+#  DE Analysis results: Bystander vs Infected  
+```{r ReadDEInfectionResults}
+# General expression of gene
+mast_mono <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/04_DE_InfectionStatus/Monocyte_MAST_infectedVSnotinfected_LIVE24.rds")
+# Corrected q-value .05
+FDRTHRESHOLD<- 0.05
+# Fold-Change of 30%
+FCTHRESHOLD <- 0
 
-summary_gene <- function(gene_id, mono, ebola_genome_percentage_df = ebola_genome_percentage_df){
-  # Visual representation
+de_mono <- mast_mono[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
+#de_mono <- de_mono[!(de_mono$primerid == "MSTRG.182795-unknown"),]
+de_mono$direction <- ifelse(de_mono$coef < 0 , "down", "up")
+de_mono$direction <- factor(de_mono$direction, c("down", "up"))
+de_mono_lnc <- de_mono[de_mono$primerid %in% all_lncrnas, ]
+de_mono_pc <- de_mono[de_mono$primerid %in% annotated_mrnas, ]
 
-  p2 <- FeaturePlot(mono, feature = gene_id, cols =  c("lightgrey", "dark blue"), order = T)+theme_sc+ggtitle(get_orthologname_(gene_id))
-  # General inspections
-  p3 <- plot_viral_load_gene(gene_id, mono_live_h24_inf)
-  #p4 <- get_prop(gene_id)
-  #p5 <- boxplot_bystanders(get_expression_summary_gene(gene_id,mono))
-  p6 <- check_expressed_vs_infection(gene_id, mono, ebola_genome_percentage_df)
-  return(list(p2,p3,p6))
-}
+de_mono_lnc_up <- de_mono_lnc[de_mono_lnc$coef> 0,]
+de_mono_lnc_down <- de_mono_lnc[de_mono_lnc$coef< 0,]
+de_mono_lnc_up
+de_mono_lnc_down
 
-lapply(de_mono_lnc_down$primerid,summary_gene)
-
-check_expressed_vs_infection(gene_id, mono = mono, ebola_genome_percentage_df, dp_dn_invivo)
-
-
+monocyte <- mono
 ```
 
-```{r granular}
-mono_granular <- FindNeighbors(mono, reduction = "pca",dims = 1:20,force.recalc = T )
-mono_granular_c <- FindClusters(mono_granular, resolution = 0.05)
 
-# Visualize novel clusters
-DimPlot(mono_granular_c, reduction = "umap", label = TRUE, label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
+# Correlation with viral load
 
-# Check for batch effects
-DimPlot(mono_granular_c, group.by = "individual")
-DimPlot(mono_granular_c, group.by = "dpi", cols = c("blue", "red"))
-
-# Identify subtypes
-monocytes <- c("CD163", "CFD")
-cDC <- c("FLT3", "DQA1")
-marker.genes <- c(monocytes, cDC)
-
-FeaturePlot(mono, monocytes)
-FeaturePlot(mono, cDC)
-
-mono_granular_c <- RenameIdents(mono_granular_c, `0` = "Monocyte", `1` = "Monocyte", `2` = "cDC")
-DotPlot(mono_granular_c,features = marker.genes )
-```
-
-# Correlations
 ```{r correlations}
-RHOTHRESHOLD = 0
-correlations_infected_24 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10//05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds")
+RHOTHRESHOLD = 0.0
+correlations_infected_24 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds")
 correlations_infected_24 <- correlations_infected_24[!is.na(correlations_infected_24$pval),]
 sig_correlations_pc_infected_24 <- correlations_infected_24[!is.na(correlations_infected_24$pval) & correlations_infected_24$pval < FDRTHRESHOLD & abs(correlations_infected_24$rho) > RHOTHRESHOLD, ]
 
@@ -329,24 +143,172 @@ sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$gene %in% annota
 
 sig_cor_lnc <- sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$type == "lnc",]
 sig_cor_lnc$gene_name <- unlist(lapply(sig_cor_lnc$gene, get_orthologname_))
+```
 
-lapply(sig_cor_lnc$gene, function(gene) plot_viral_load_gene(gene, mono_live_h24_inf))
+
+```{r correlations}
+sig_cor_lnc <- sig_cor_lnc[abs(sig_cor_lnc$rho) > 0.1,]
+sig_cor_lnc[order(sig_cor_lnc$rho),]
+
+lapply(sig_cor_lnc$gene, function(gene) plot_viral_load_gene(gene, mono_live_h24))
+
+
+a <- "ENSMMUG00000061044-unknown"
+lapply(a, function(gene) plot_viral_load_gene(gene, mono_live_h24))
+```
+
+
+# -----------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------
+```{r EnrichmentPCDE}
+
+# 1. Which lncRNA enriched in infected cells ####
+# cell-type specific
+#                      Infected              Not infected
+# Gene expressed            x11               x12      
+# Gene not expressed        x21               x22
+
+get_infection_enrichment <- function(gene, mono, ebola_genome_percentage_df, plot = F, alternative = "greater"){
+  print(gene)
+  if(!(gene %in% rownames(mono))){
+    return()
+  }
+  gene_expression <- as.data.frame(t(mono[c(gene),]@assays$RNA@data))
+  colnames(gene_expression) <- c("geneExp")
+  gene_expression$geneExp <- ifelse(gene_expression$geneExp > 0.5, "Expressed", "NotExpressed")
+  gene_expression_ready <- merge(ebola_genome_percentage_df, gene_expression, by="row.names")
+  df_exp <- gene_expression_ready %>% dplyr::group_by(classification) %>% dplyr::ise(geneExp)
+  
+  
+  summary <- as.data.frame(table(df_exp))
+  if(sum(summary[summary$geneExp == "Expressed",]$Freq) < 50){
+   return(NA) 
+  }else{
+      m <- as.matrix(t(table(df_exp)))
+      if(alternative == "smaller"){
+        m <- m[,c(2,1)]
+        alternative <- "greater"
+      }
+      ft <- fisher.test(m,alternative = alternative)
+      df <- data.frame(gene = gene, pval = ft$p.value, or = ft$estimate)
+      p <- ggplot(as.data.frame(m), aes(x = geneExp, y = Freq, fill = classification))+geom_bar(stat="Identity", position="dodge")+theme_paper
+  
+     p_df <- as.data.frame(m)
+     p_df <- p_df %>% dplyr::group_by(classification) %>%  dplyr::mutate(prop = Freq / sum(Freq))
+     p_df$geneExp <- relevel(p_df$geneExp, "NotExpressed")
+     p1 <- ggplot(p_df, aes(x = classification, y = prop, fill = geneExp))+geom_bar(stat="Identity")+theme_paper+coord_flip()+xlab("")+ylab("")+scale_fill_manual(values = c("grey", "navy"))
+
+    if(plot == T){
+      return(list(p, p1))
+    }else{
+      return(df)
+    }
+  }
+}
+
+get_gene_id <- function(gene){
+  gene_id <- unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in% unique(orthologs[orthologs$orthologGeneSymbol == gene,]$lnc),]$gene_name)
+  if(length(gene_id) != 0 ){
+    gene_id  <- rownames(subset(immune.combined, features = c(gene_id)))
+  }else{
+    gene_id <- gene
+  }
+  return(gene_id)
+}
+
+# EX VIVO 
+ors <- Reduce("rbind", (lapply(de_lnc, function(x) get_infection_enrichment(get_gene_id(x), mono_live_h24, ebola_genome_percentage_df, alternative = "greater"))))
+ors$gene_name <- unlist(lapply( ors$gene,get_orthologname_))
+ors_sig_exvivo <- ors[!is.na(ors$gene) & ors$pval < FDRTHRESHOLD, ]
+ors_sig_exvivo <- ors_sig_exvivo[order(ors_sig_exvivo$or, decreasing = T),]
+ors_sig_exvivo$gene_name <- unlist(lapply( ors_sig_exvivo$gene,get_orthologname_))
+ors_sig_exvivo
+
+# IN VIVO 
+ors_invivo <- Reduce("rbind", (lapply(de_lnc, function(x) get_infection_enrichment(get_gene_id(x), mono_invivo, ebola_genome_percentage_df_invivo))))
+ors_invivo_sig <- ors_invivo[!is.na(ors_invivo$gene) & ors_invivo$pval < FDRTHRESHOLD, ]
+ors_invivo_sig <- ors_invivo_sig[order(ors_invivo_sig$or, decreasing = T),]
+ors_invivo_sig$gene_name <- unlist(lapply( ors_invivo_sig$gene,get_orthologname_))
+
+intersection_inex <- intersect(ors_sig_exvivo[order(ors_sig_exvivo$or, decreasing = F), ][1:20,]$gene,ors_invivo_sig[order(ors_invivo_sig$or, decreasing = F), ][1:20,]$gene)
+
+ors_sig_exvivo[ors_sig_exvivo$gene %in% intersection_inex,]
+ors_invivo[ors_invivo$gene %in% intersection_inex,]
+
+
+
+gene <-"ENSMMUG00000058644-unknown"
+get_infection_enrichment(gene, mono, ebola_genome_percentage_df, plot = T)
+get_infection_enrichment(gene, mono_invivo, ebola_genome_percentage_df_invivo, plot = T)
+
+gene <- "ENSMMUG00000058566-unknown"
+
+pall <- function(gene){
+  get_infection_enrichment(get_gene_id(gene), mono_invivo, ebola_genome_percentage_df_invivo, plot = T)
+  get_infection_enrichment(get_gene_id(gene), mono, ebola_genome_percentage_df, plot = T)
+}
+
+lapply(as.character(unique(ors_invivo_sig$gene)), function(x) get_infection_enrichment(get_gene_id(x), mono_invivo, ebola_genome_percentage_df_invivo, plot = T))
+
+
+
+lapply(as.character(unique("ENSMMUG00000061044-unknown")), function(x) get_infection_enrichment(get_gene_id(x), mono, ebola_genome_percentage_df, plot = T))
+
 ```
 
 # ------------------------------------------
+#           Gene by gene inspection
 # ------------------------------------------
+```{r NEAT1}
+# Visualize gene Ex Vivo
+gene_id <- get_gene_id("NEAT1")
+gene_id <- "MSTRG.181870-unknown"
+FeaturePlot(mono_live_h24, feature = "log_viraload", cols =  c("lightgrey", "dark red"), order= T )+theme_sc
+summary_gene(gene_id, mono_live_h24,ebola_genome_percentage_df)
+
+summary_gene <- function(gene_id, mono, ebola_genome_percentage_df ){
+  # Visual representation
+
+  p2 <- FeaturePlot(mono, feature = gene_id, cols =  c("lightgrey", "dark blue"), order = T)+theme_sc+ggtitle(get_orthologname_(gene_id))
+  # General inspections
+  p3 <- plot_viral_load_gene(gene_id, mono, ebola_genome_percentage_df)
+  #p4 <- get_prop(gene_id)
+  #p5 <- boxplot_bystanders(get_expression_summary_gene(gene_id,mono))
+  p6 <- check_expressed_vs_infection(gene_id, mono, ebola_genome_percentage_df)
+  return(list(p2,p3,p6))
+}
+
+plot_region(gene_id, palette_plot_percentage = c(rep("gray", 4)))
+
+
+```
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 # ------------------------------------------
 #       In vivo
 # ------------------------------------------
 ```{r inVivoimports}
-immune.combined_invivo <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.infectionstatus_neut.rds")
+immune.combined_invivo <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds")
 ebola_genome_percentage_df_invivo <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
-mono_invivo <- subset(immune.combined_invivo, ident = "Monocyte")
+
+
+table(colnames(immune.combined_invivo) == rownames(ebola_genome_percentage_df_invivo))
+immune.combined_invivo$viraload <- ebola_genome_percentage_df_invivo$percentage_viral_reads
 immune.combined_invivo$celltype <- Idents(immune.combined_invivo)
 immune.combined_invivo$group <- gsub("late", "ulate", immune.combined_invivo$group)
 immune.combined_invivo$celltype_group <- paste(immune.combined_invivo$celltype, immune.combined_invivo$group, sep = "_")
+mono_invivo <- subset(immune.combined_invivo, ident = "Monocyte")
 
-mono_invivo <- mono_invivo[,mono_invivo$group %in% c("baseline","late")]
+
+table(rownames(ebola_genome_percentage_df_invivo) == colnames(immune.combined_invivo))
+ebola_genome_percentage_df_invivo$cond <-immune.combined_invivo$group
+
+#mono_invivo <- mono_invivo[,mono_invivo$group %in% c("baseline","late")]
 mono_invivo$condition <- paste(mono_invivo$group, mono_invivo$infection)
 mono_invivo$condition <- factor(mono_invivo$condition, levels = c("baseline Not Infected", "late Not Infected", "late Infected"))
 
@@ -370,71 +332,21 @@ dp_dn_invivo[dp_dn_invivo$CD14 < 1 & dp_dn_invivo$FCGR3 > 1, ]$status <- "CD16+"
 
 # Prepare subsets
 mono_late_invivo <- mono_invivo[,mono_invivo$group == "late"]
-table(mono_invivo$labels)
-```
+mono_late_invivo_infected <- mono_invivo[,mono_invivo$infection == "Infected"]
+table(mono_invivo$infection)
+mono_late_invivo_infected$viraload
+saveRDS(mono_late_invivo_infected,"/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds")
 
-# DE infected vs bystanders
-```{r inVivoDotplotsInfectedBystanders}
-mast_mono <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE_InfectionStatus/Monocyte_MAST_infectedVSnotinfected_LIVE24_DPI58.rds")
-# Corrected q-value .05
-FDRTHRESHOLD<- 0.5
-# Fold-Change of 30%
-FCTHRESHOLD <- 0
-
-de_mono <- mast_mono[fdr<FDRTHRESHOLD &abs(coef) > FCTHRESHOLD,]
-de_mono <- de_mono[!(de_mono$primerid == "MSTRG.182795-unknown"),]
-de_mono$direction <- ifelse(de_mono$coef < 0 , "down", "up")
-de_mono$direction <- factor(de_mono$direction, c("down", "up"))
-de_mono_lnc <- de_mono[de_mono$primerid %in% all_lncrnas, ]
-de_mono_pc <- de_mono[de_mono$primerid %in% annotated_mrnas, ]
-
-de_mono_lnc_up <- de_mono_lnc[de_mono_lnc$coef> 0,]
-de_mono_lnc_down <- de_mono_lnc[de_mono_lnc$coef< 0,]
-
-unlist(lapply(de_mono_lnc$primerid, get_orthologname_))
+table(mono_late_invivo_infected$infection)
+print("")
 ```
 
 
-# Visualize Dotplots
-```{r DotplotsUPDDOWN}
-# Upregulated
-plot.data_up <- Dotplot_data(mono_invivo, features = c(de_mono_lnc_up$primerid), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
-ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-#Heatmap
-heatmap_celltypes(plot.data_up)
-
-# Downregulated
-plot.data_down <- Dotplot_data(mono_live, features = c(de_mono_lnc_down$primerid), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_down$name <- unlist(lapply(plot.data_down$features.plot, get_orthologname))
-ggplot(plot.data_down, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-# Heatmap
-heatmap_celltypes(plot.data_down)
-
-plot.data_up <- Dotplot_data(mono_live, features = c(get_gene_id("MIR22HG"), "STAT3"), group.by = "labels",scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname))
-ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
-#Heatmap
-heatmap_celltypes(plot.data_up)
-```
-```{r inVivoDotplotsCelltype}
-# IN VIVO DOWN across celltypes
-plot.data_down <- Dotplot_data(immune.combined_invivo, features = c(de_mono_lnc$primerid), group.by = "celltype_group", scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_down$name <- unlist(lapply(plot.data_down$features.plot, get_orthologname))
-heatmap_celltypes(plot.data_down)+ggtitle("In Vivo")
-
-# In vivo up across celltypes
-plot.data_down <- Dotplot_data(immune.combined_invivo, features = c(de_mono_lnc_up$primerid), group.by = "celltype_group", scale.by = "radius", cols = c( "lightblue", "darkred"))
-plot.data_down$name <- unlist(lapply(plot.data_down$features.plot, get_orthologname))
-heatmap_celltypes(plot.data_down)+ggtitle("In Vivo")
-```
 
 
 ```{r exVivoDotplotsCelltype}
-# Need to modify the object and add the clltype gruop
-
 # EX VIVO DOWN across celltypes
-plot.data_down <- Dotplot_data(immune.combined, features = c(de_mono_lnc_down$primerid), group.by = "celltype_group", scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data_down <- Dotplot_data(mono_late_invivo_infected, features = c("MX1"), group.by = "celltype_group", scale.by = "radius", cols = c( "lightblue", "darkred"))
 plot.data_down$name <- unlist(lapply(plot.data_down$features.plot, get_orthologname))
 heatmap_celltypes(plot.data_down)+ggtitle("In Vivo")
 
@@ -475,18 +387,115 @@ check_expressed_vs_infection(gene_id, mono = mono_late_invivo, ebola_genome_perc
 ```
 
 ```{r correlations}
+
+# 0. READ in correlations and pick the significant ones
 RHOTHRESHOLD = 0
 correlations_infected_24 <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds")
-correlations_infected_24 <- correlations_infected_24[!is.na(correlations_infected_24$pval),]
-sig_correlations_pc_infected_24 <- correlations_infected_24[!is.na(correlations_infected_24$pval) & correlations_infected_24$pval < FDRTHRESHOLD & abs(correlations_infected_24$rho) > RHOTHRESHOLD, ]
-
+sig_correlations_pc_infected_24 <- correlations_infected_24[!is.na(correlations_infected_24$pval) & !is.na(correlations_infected_24$pval) & correlations_infected_24$pval < FDRTHRESHOLD & abs(correlations_infected_24$rho) > RHOTHRESHOLD, ]
 # Add Gene Type
 sig_correlations_pc_infected_24$type <- "-"
 sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$gene %in% all_lncrnas ,]$type <- "lnc"
 sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$gene %in% annotated_mrnas ,]$type <- "pc"
-
 sig_cor_lnc <- sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$type == "lnc",]
 sig_cor_lnc$gene_name <- unlist(lapply(sig_cor_lnc$gene, get_orthologname_))
 
-lapply(sig_cor_lnc$gene, function(gene) plot_viral_load_gene(gene, mono_live_h24_inf))
+# 1. Example - check ISG related lncRNAs 
+# ISG genes-related 
+lapply(c("ENSMMUG00000064224-unknown","ENSMMUG00000062255-unknown"), function(gene) summary_gene(gene,mono_late_invivo_infected,ebola_genome_percentage_df_invivo))
+lapply(c("ENSMMUG00000064224-unknown","ENSMMUG00000062255-unknown"), function(gene) summary_gene(gene,mono_live_h24_inf,ebola_genome_percentage_df))
+
+mono
+# 2. Visualize all significant ones 
+lapply(sig_cor_lnc$gene, function(gene) plot_viral_load_gene(gene, mono_late_invivo, ebola_genome_percentage_df_invivo))
+
+
+# -------------------------------------
+# 3.  IDENTIFY GENE CLUSTER 
+# -------------------------------------
+plot_region("ENSMMUG00000064224-unknown", range = 500000, palette_plot_percentage = rep("grey",4))
+gene_id <- "ENSMMUG00000064224"
+range = 1000000
+chr <- paste("chr",unique(as.character(seqnames(ref[ref$gene_id == gene_id,]))), sep = "")
+# Define region nearby 
+from  <- max(0,(min(start(ref[ref$gene_id == gene_id,])) -range))
+to <- (max(end(ref[ref$gene_id == gene_id,]))+range)
+ref_small<- ref[start(ref) > from  & end(ref) < to   ,]
+# GENE CLUSTER 
+genes_nearby <- ref_small[seqnames(ref_small) == 12 & ref_small$type == "gene",]$gene_name
+#de_mono <- de_all[de_all$celltype == "Monocyte",]
+#overlap <- genes_nearby[genes_nearby %in% de_mono$primerid]
+cluster_names <- genes_nearby[genes_nearby %in% correlations_infected_24$gene]
+
+# Are PC in this cluster correlated? 
+sig_cluster_names <- cluster_names[cluster_names %in% correlations_infected_24$gene]
+lapply(overlap_exvivo$gene, function(gene) plot_viral_load_gene(gene, mono_live_h24_inf))
+lapply(overlap_exvivo$gene, function(gene) plot_viral_load_gene(gene, mono_late_invivo_infected, ebola_genome_percentage_df_invivo))
+
+
+# 2 . Checks: do we also see it ex vivo ? 
+correlations_infected_24_exvivo <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds")
+correlations_infected_24_exvivo <- correlations_infected_24_exvivo[!is.na(correlations_infected_24_exvivo$pval),]
+sig_correlations_pc_infected_24_exvivo <- correlations_infected_24_exvivo[!is.na(correlations_infected_24_exvivo$pval) & correlations_infected_24_exvivo$pval < FDRTHRESHOLD & abs(correlations_infected_24_exvivo$rho) > RHOTHRESHOLD, ]
+overlap_exvivo <- sig_correlations_pc_infected_24_exvivo[sig_correlations_pc_infected_24_exvivo$gene %in% cluster_names,]
+sig_correlations_pc_infected_24[sig_correlations_pc_infected_24$gene %in% cluster_names,]
+# Plot ex vivo 
+lapply(overlap_exvivo$gene, function(gene) plot_viral_load_gene(gene, mono_live_h24_inf))
+
+# -------- PLOTS 
+# -------- PLOT REGION 
+plot_region("ENSMMUG00000064224-unknown", range = 1200000, palette_plot_percentage = rep("grey",4), getmax = T )
+
+lapply(get_gene_id("MIR22HG"), function(gene) summary_gene(gene,mono_live_h24_inf,ebola_genome_percentage_df))
+
+check_expressed_vs_infection(get_gene_id("MIR22HG"), mono_live_h24, ebola_genome_percentage_df_invivo)
+check_expressed_vs_infection
 ```
+
+
+
+
+
+```{r correlations}
+m <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds")
+m[overlap_exvivo$gene,]
+hm(m= m,row_title = "", features  = overlap_exvivo$gene, first = TRUE, row_names = T)
+
+```
+
+
+```{r correlations}
+
+# Plot invivo 
+invivoplots <- lapply(overlap_exvivo$gene, function(x) boxplot_bystanders(get_expression_summary_gene(x,mono_invivo, ebola_genome_percentage_df_ = ebola_genome_percentage_df_invivo),  baseline = "baseline", live = "ulate") )
+# Plot 
+exvivoplots <- lapply(overlap_exvivo$gene, function(x) boxplot_bystanders(get_expression_summary_gene(x,mono, ebola_genome_percentage_df_ = ebola_genome_percentage_df)))
+exvivoplots
+invivoplots
+
+
+calc_correlation_genes <- function(gene1_vector,gene2_vector, type = "spearman"){
+  mask <- gene1_vector !=0 & gene2_vector !=0
+  # calculate the correlation coefficient
+  if(sum(mask)>50){
+    #pc <- bayes.cor.test(c1, c2)
+    pc <- cor.test(gene1_vector[mask], gene2_vector[mask], method = c(type))
+    df <- data.frame( pval=pc$p.value, rho=pc$estimate)
+    return(df)
+  }else{
+    return(NA)
+  }
+}
+gene1 <- overlap_exvivo$gene[2]
+gene2 <- overlap_exvivo$gene[3]
+gene3 <- overlap_exvivo$gene[1]
+# All significantly correlated 
+calc_correlation_genes(as.vector(mono[gene1, ]@assays$RNA@data), as.vector(mono[gene2, ]@assays$RNA@data))
+calc_correlation_genes(as.vector(mono[gene2, ]@assays$RNA@data), as.vector(mono[gene3, ]@assays$RNA@data))
+calc_correlation_genes(as.vector(mono[gene1, ]@assays$RNA@data), as.vector(mono[gene3, ]@assays$RNA@data))
+
+```
+
+
+
+
+

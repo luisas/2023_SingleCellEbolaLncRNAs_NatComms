@@ -1,11 +1,7 @@
 # This file contains all the function definition used throughout this project
 # They are sorted in the exact same order they are used in the analysis notebooks
-library(data.table);library(dplyr); library(Seurat); library(Matrix); library(scater)
-library(SingleCellExperiment); library(purrr); library(stringr); library(mvoutlier)
-library(dropbead); library(scater); library(stringr); library(scran); library(cowplot)
-library(rtracklayer); library(org.Mmu.eg.db); library(graphics); library(RCy3); library(ggsci)
 
-
+library(ggplot2)
 theme_sc <- theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
@@ -74,7 +70,19 @@ calc_mean_and_percentage_cell <- function(subset,ident = "", df, threshold = 1 )
   assign(dfo, df_complete, envir = .GlobalEnv);
 }
 
-plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.table(c(1,3,4,9))){
+
+plot_viral_load_gene <- function(gene_id, mono_live_h24_inf){
+  df <- get_expression_summary_gene(gene_id, mono =mono_live_h24_inf)
+  df_2 <- get_expression_summary_gene(gene_id, mono =mono_live_h24_notinf)
+  p1 <- ggplot(df, aes( x = classification, y = value, col = classification, fill = classification))+geom_boxplot(alpha = 0.1)+theme_paper+scale_y_log10()+ylab("logCP10K")+xlab("")+theme(axis.text.x = element_blank())+theme(legend.position = "")+theme(axis.ticks.x.bottom = element_blank(), plot.margin = unit(c(2.33,-0.9,0.95,0), "cm"))
+  # Visualize viral load and gene expression 
+  p2 <- ggMarginal(ggplot(df, aes(x = percentage_viral_reads, y = value, col = classification))+geom_point(alpha = 0.5)+theme_minimal()+theme_paper+theme(axis.text.y = element_blank(), legend.position = "")+xlab("Viral load")+ylab("")+ggtitle(get_orthologname_(unique(df$gene)))+geom_line(stat = "summary_bin", binwidth = 0.1)+geom_smooth()+scale_x_log10()+scale_y_log10()+theme(plot.margin = unit(c(0,0,0,0), "cm")),type = "histogram", bins = 40)
+  ggarrange(p1, p2, widths = c(0.15,2))
+}
+
+
+
+plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.table(c(1,2.5,5,10))){
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
   if(is.na(df_lnc$type[1])){
@@ -87,16 +95,16 @@ plot_quantiles <- function(df_lnc, df_mrna, y = "proportion", quantiles = as.tab
   df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(df_complete$maxexpr, quantiles, include.lowest=FALSE)))
   df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
   if(y == "proportion"){
-    title <- "Proportion of cells expressing genes"
-    ylab <- "% Cells"
+    title <- "proportion of cells expressing genes"
+    ylab <- "% cells"
     p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type, col = type))
   }else if( y == "number"){
-    title <- "Number of cells expressing genes"
-    ylab <- " # Cells"
+    title <- "number of cells expressing genes"
+    ylab <- " # cells"
     p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = n_cells, fill = type, col = type))
   }
   else if( y == "median"){
-    title <- "Number of cells expressing genes"
+    title <- "number of cells expressing genes"
     ylab <- " median"
     df_complete_quartiles <- within(df_complete, quartile <- as.integer(cut(df_complete$perc_cells_expressing, quantiles, include.lowest=FALSE)))
     df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
@@ -131,7 +139,7 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = b
   df_complete_quartiles$quartile <- as.character(df_complete_quartiles$quartile)
   if(y == "proportion"){
     title <- "Proportion of cells expressing genes"
-    ylab <- "Proportion of Cells"
+    ylab <- "% cells"
     p1 <- ggplot(df_complete_quartiles, aes(x = quartile, y = perc_cells_expressing, fill = type, col = type))
   }else if( y == "number"){
     title <- "Number of cells expressing genes"
@@ -154,14 +162,14 @@ plot_quartiles <- function(df_lnc, df_mrna, y = "proportion", n = 4, palette = b
   }
   
   p1 <- p1+geom_boxplot(alpha = 0.5)+
-          theme_classic()+
-          labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+
-          theme(plot.title = element_text(hjust = 0.5))+
-          scale_fill_manual(values = palette)+
-          scale_color_manual(values = palette)+
-          theme(legend.title = element_blank())+
-          scale_x_discrete(name ="Expression Quantiles on Median Expression values", 
-                                                                                                                                                                                                                                                                                                labels=c("1-25","25-50","50-75", "75-100"))
+    theme_classic()+
+    labs(title = paste0(title, "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = "",  y = ylab)+
+    theme(plot.title = element_text(hjust = 0.5))+
+    scale_fill_manual(values = palette)+
+    scale_color_manual(values = palette)+
+    theme(legend.title = element_blank())+
+    scale_x_discrete(name =" median expression quartiles", 
+                     labels=c("1-25","25-50","50-75", "75-100"))
   return(p1)
 }
 
@@ -234,31 +242,31 @@ scatter_plot_expression <- function(df, genetype, type = "Max", col = "blue"){
   return(p1)
 }
 
-scatter_plot_both<- function(df_lnc,df_mrna,highlight_genes = "",  y = "Variance", type = "Max", palette = brewer.pal("Set1", 2)){
+scatter_plot_both<- function(df_lnc,df_mrna,highlight_genes = "",  y = "Variance", type = "median", palette = brewer.pal("Set1", 2)){
   df_lnc$type <- "ncRNA"
   df_mrna$type   <- "Protein coding"
   df_complete <- rbind(df_mrna, df_lnc)
   total_lnc <-  length(unique(df_lnc$gene_id))
   total_mrna <-  length(unique(df_mrna$gene_id))
   if(y == "Variance"){
-    p1 <- ggplot(df_complete, aes(x = maxexpr , y = var, col = type))
+    p1 <- ggplot(df_complete, aes(x = maxexpr , y = var, col = type))+theme(axis.text= element_text(size= 18))
     print("herev")
-  }else if(y == "Cell Percentage"){
-    if(type == "Max"){
-      p1 <- ggplot(df_complete, aes(x = maxexpr , y = perc_cells_expressing, col = type))
-    }else if(type == "Median"){
+  }else if(y == "% cells"){
+    if(type == "max"){
+      p1 <- ggplot(df_complete, aes(x = maxexpr , y = perc_cells_expressing, col = type))+theme(axis.text= element_text(size= 18))+ theme(panel.border = element_rect(colour = "black", fill=NA))+theme(text = element_text(size = 30, color = "black"), legend.position = "")
+    }else if(type == "median"){
       p1 <- ggplot(df_complete, aes(x = medianexpr , y = perc_cells_expressing, col = type))
     }
   }
 
-  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  Expression", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(type," Expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
-          scale_alpha_manual(values = c(1,0.3))+ylim(0,1)
+  p1 <- p1+geom_point(size = 1, alpha = 0.4)+theme_classic()+labs(title = paste0(y, "vs ",type,"  expression (logCP10K)", "\n", "#lncRNAs: ", total_lnc,"\n", "#mRNAs: ", total_mrna), x = paste0(type," expression"), y = y)+theme(plot.title = element_text(hjust = 0.5))+ylim(0,1.5)+xlim(0,7)+scale_fill_manual(values = palette)+scale_color_manual(values = palette)+theme(legend.position = "")+
+          scale_alpha_manual(values = c(1,0.3))+ylim(0,1)+theme(axis.text= element_text(size= 18))+ theme(panel.border = element_rect(colour = "black", fill=NA))+theme(text = element_text(size = 20, color = "black"), legend.position = "")
   if(highlight_genes != ""){
     highlight_df <-  df_complete[unlist(lapply(rownames(df_complete), function(x) gsub( "-unknown", "",x))) %in% highlight_genes, ]
     print(highlight_df)
     p1 <- p1 + geom_point(data=highlight_df, 
                color='orange',
-               size=1.4)
+               size=1.4)+theme(axis.text= element_text(size= 18))
     
   }
   
@@ -805,7 +813,7 @@ plot_heatmap2 <- function(sce, title) {
   rownames(cell_annot) <- barcodes$barcode
   gap_cols <- match(unique(cell_annot$cluster), cell_annot$cluster)
   row_lab <- str_replace(rownames(mat_norm), pattern = "_", replacement = " ")
-  row_lab <- str_replace(row_lab, pattern = "4C", replacement = "4ºC")
+  row_lab <- str_replace(row_lab, pattern = "4C", replacement = "4??C")
   pos_col_lab <- c()
   tab_row <- table(sce$cell_identity)[c(rownames(mat_norm), "unassigned")]
   cell_count <- 0
@@ -934,7 +942,7 @@ plot_thresholds <- function(gg, threshs, df, bat, don) {
   #   ggplot object with the thresholds plotted.
   df <- filter(df, batch == bat)
   names(threshs) <- str_remove(names(threshs), "_RT")
-  names(threshs) <- str_replace(names(threshs), "_4C", " 4ºC")
+  names(threshs) <- str_replace(names(threshs), "_4C", " 4??C")
   if (any(str_detect(names(threshs), "Bioabank"))) {
     names(threshs)[str_detect(names(threshs), "Bioabank")] <-  "24h Bioabank"
   }
@@ -1697,7 +1705,7 @@ hm <- function(m,features, row_title, first  = FALSE, row_names = FALSE){
 }
 
 
-FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title, orthologs, reported_lncpedia, reported_immlnc, legend = F){
+FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_title, orthologs, reported_lncpedia, reported_immlnc, legend = F, height=10){
   # Filter per cellytype
   #close_isg <- close_isg[close_isg$celltype == celltype, ]
   #close_broad <- close_broad[close_broad$celltype == celltype, ]
@@ -1712,16 +1720,16 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
 
   
   column_ha <- HeatmapAnnotation( 
-    comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill =  brewer.pal(8, "Pastel2")[5:8]), location = 0.5, just = "center"),
+    comparison = anno_text( unlist(lapply(unlist(lapply( colnames(m), function(x) unlist(str_split(x, "_"))[2])), function(x) toupper(substr(x,1,1)))), rot = 0, gp = gpar(fontsize = 25, fill = "#E0E0E0"), location = 0.5, just = "center"),
     show_annotation_name = FALSE, 
     gap = unit(16, "points"),
     
-    col = list(celltype = c("Monocyte" = brewer.pal(3, "Set2")[3],
-                            "T" = brewer.pal(3, "Set2")[1],
-                            "B" = brewer.pal(3, "Set2")[2]),
-               comparison = c("baseline" = brewer.pal(8, "Pastel2")[5],"early" = brewer.pal(8, "Pastel2")[6],
-                              "middle" = brewer.pal(8, "Pastel2")[7],
-                              "late" = brewer.pal(8, "Pastel2")[8])), 
+    col = list(celltype = c("Monocyte" = "#A0A0A0",
+                            "T" = "#A0A0A0",
+                            "B" = "#A0A0A0"),
+               comparison = c("baseline" = "#E0E0E0","early" ="#E0E0E0",
+                              "middle" = "#E0E0E0",
+                              "late" ="#E0E0E0")), 
     
     show_legend = FALSE, 
     annotation_height =  unit(c(1), "cm")
@@ -1757,22 +1765,24 @@ FC_heatmap_subset_celltype <- function(m, celltype,de_lnc_all, title, color_titl
   reported_lncpedia <- ifelse(rownames(m) %in% reported_lncpedia, "reported lncpedia", "na")
   reported_immlnc <- ifelse(rownames(m) %in% reported_immlnc, "reported immlnc", "na")
 
-  row_ha_type <- rowAnnotation(ortholog =labels_orth, reported_immlnc = reported_immlnc,reported_lncpedia = reported_lncpedia, show_legend = FALSE,
+  row_ha_type <- rowAnnotation(ortholog =labels_orth, reported_immlnc = reported_immlnc,
+                               #reported_lncpedia = reported_lncpedia,
+                               show_legend = FALSE,
                                show_annotation_name = FALSE,
-                               col = list( ortholog = c("na" = "white", "Ortholog found in human" = "orange"),
-                               reported_lncpedia = c("na" = "white", "reported lncpedia" = "light blue"),
-                               reported_immlnc = c("na" = "white", "reported immlnc" = "navy")
+                               col = list( ortholog = c("na" = "white", "Ortholog found in human" = "black"),
+                               #reported_lncpedia = c("na" = "white", "reported lncpedia" = "#C0C0C0"),
+                               reported_immlnc = c("na" = "white", "reported immlnc" = "#808080")
                                ))
   row_ha_typel_nolabel <- rowAnnotation(genetype =genetypes,
                                 show_legend = FALSE,
                                 show_annotation_name = FALSE,
-                                col = list(genetype = c("ENS" = "grey",
-                                                        "MST" = "black"
+                                col = list(genetype = c("ENS" = "white",
+                                                        "MST" = "dark red"
                                 )))
   
-  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(17, "cm"), 
+  h <- Heatmap(m,name = "FC", show_row_dend = FALSE, heatmap_width = unit(12, "cm"), 
                show_column_dend = FALSE,
-               heatmap_height = unit(30, "cm"),
+               heatmap_height = unit(height, "cm"),
                cluster_columns = FALSE,
                cluster_rows = TRUE,
                cluster_row_slices = FALSE,
@@ -1803,3 +1813,27 @@ get_orthologname_ <- function(string, orthologs_ = orthologs){
 }
 
 
+get_expression <- function(gene, mono = monocyte, zeros = F ){
+  if(!(gene %in% rownames(mono) )){
+    return("Gene id not found!")
+  }
+  expression_gene <- mono[rownames(mono)== gene, ]@assays$RNA@data
+  df <- reshape2::melt(as.matrix(expression_gene))
+  names(df) <- c("gene", "cell", "value")
+  df_individual <- data.frame(mono$individual)
+  df_individual$cell <- rownames(df_individual)
+  
+  df_dpi <- data.frame(mono$dpi)
+  df_dpi$cell <- rownames(df_dpi)
+  
+  df_dpi <- data.frame(mono$dpi)
+  df_dpi$cell <- rownames(df_dpi)
+  
+  df <- merge(df_individual, df, by="cell")
+  df <- merge(df_dpi, df, by = "cell")
+  
+  if(zeros == F ){
+    df <- df[df$value !=0,]
+  }
+  return(df)
+}

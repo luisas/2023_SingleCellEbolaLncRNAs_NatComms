@@ -1,0 +1,141 @@
+remove R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+load R/3.6.1 (PATH, LD_LIBRARY_PATH, R_HOME) 
+WARNING: ignoring environment value of R_HOME
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Carico il pacchetto richiesto: SummarizedExperiment
+Carico il pacchetto richiesto: GenomicRanges
+Carico il pacchetto richiesto: stats4
+Carico il pacchetto richiesto: BiocGenerics
+Carico il pacchetto richiesto: parallel
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following object is masked from ‘package:Matrix’:
+
+    which
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Carico il pacchetto richiesto: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following object is masked from ‘package:Matrix’:
+
+    expand
+
+The following objects are masked from ‘package:dplyr’:
+
+    first, rename
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Carico il pacchetto richiesto: IRanges
+
+Attaching package: ‘IRanges’
+
+The following objects are masked from ‘package:dplyr’:
+
+    collapse, desc, slice
+
+Carico il pacchetto richiesto: GenomeInfoDb
+Carico il pacchetto richiesto: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Carico il pacchetto richiesto: DelayedArray
+Carico il pacchetto richiesto: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+The following object is masked from ‘package:dplyr’:
+
+    count
+
+Carico il pacchetto richiesto: BiocParallel
+
+Attaching package: ‘DelayedArray’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+
+Attaching package: ‘SummarizedExperiment’
+
+The following object is masked from ‘package:Seurat’:
+
+    Assays
+
+Warning message:
+Using `as.character()` on a quosure is deprecated as of rlang 0.3.0.
+Please use `as_label()` or `as_name()` instead.
+This warning is displayed once per session. 
+null device 
+          1 
+Warning message:
+In FetchData(object = object, vars = features, cells = cells) :
+  The following requested variables were not found: GNLY
+null device 
+          1 
+null device 
+          1 
+null device 
+          1 
+null device 
+          1 
+Warning messages:
+1: Transformation introduced infinite values in continuous x-axis 
+2: Removed 43424 rows containing non-finite values (stat_density). 
+null device 
+          1 
+null device 
+          1 
+Error in eval(quote(list(...)), env) : 
+  oggetto "percentage_cells_infected_per_celltype" non trovato
+Calls: paste -> standardGeneric -> eval -> eval -> eval
+Esecuzione interrotta

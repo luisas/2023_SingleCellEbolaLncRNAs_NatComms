@@ -22,8 +22,9 @@ library(Seurat)
 source("../utils/02_sc_utils.R")
 
 # Palette used throughout the script
-col_lnc = "navy"
-col_mrna = "#8DC3A7"
+col_lnc = "#f72631"
+col_mrna = "#3153a3"
+
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
 theme_sc_paper <- theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())+theme_paper

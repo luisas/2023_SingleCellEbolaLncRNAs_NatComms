@@ -17,29 +17,30 @@ library(RColorBrewer)
 library(scales)
 library(GENIE3)
 library(igraph)
-library(RCy3)
-library(Rgraphviz)
+#library(RCy3)
+#library(Rgraphviz)
 library(reshape2)
 library(org.Mmu.eg.db)
 library(enrichplot)
 library(networkD3)
 
+source("../../utils/00_datapaths.R")
 source("../../utils/02_sc_utils.R")
 source("../../utils/04_utils_graph.R")
 
 # IN VIVO 
-immune.combined <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
+immune.combined <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 dim(immune.combined)
 
 col_lnc = "#870052"
 col_mrna = "#2e88bf"
-de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_all<- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
 de_lnc <- de_all[de_all$type == "lnc", ]
 
 # get DE lnc names
 
 
-robjectsdir_stats <- "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/"
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 
 
@@ -47,11 +48,11 @@ de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
 de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
 
 
-ref <- import(file.path("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path("/home/luisas/Desktop/cluster/data/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
+ref <- import(file.path(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")))
+ebola_ref <- import(file.path(data_path,"/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
 
-orthologs <- readRDS("/home/luisas/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds")
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 ```
 
 #  CREATE AND SAVE EXPRESION MATRICES TO COMPUTE THE NETWORK 
@@ -72,8 +73,8 @@ de_monocyte<- monocyte[rownames(monocyte) %in% de_all[de_all$celltype == "Monocy
 #write.csv(t(exprMatr_monocyte), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_monocytes_all.csv", row.names = FALSE)
 
 # Monocytes DE
-exprMatr_monocyte_de <- de_monocyte@assays$RNA@data
-write.csv(t(exprMatr_monocyte_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_monocytes_de.csv", row.names = FALSE)
+#exprMatr_monocyte_de <- de_monocyte@assays$RNA@data
+#write.csv(t(exprMatr_monocyte_de), "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/matrix_monocytes_de.csv", row.names = FALSE)
 
 
 #exprMatr_b_de <- de_b@assays$integrated@data
@@ -98,7 +99,7 @@ universe_myeloids <- unique(rownames(monocyte))
 ```{r a}
 library(reshape2)
 # read in 
-weightdf_myeloids <- read.table("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_myeloids.tsv")
+weightdf_myeloids <- read.table(file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_monocytes_de.tsv"))
 weightMat_myeloids <- acast(weightdf_myeloids, V1~V2, value.var="V3")
 
 # Clean names 
@@ -107,17 +108,18 @@ rownames(weightMat_myeloids) <- gsub(".unknown", "", rownames(weightMat_myeloids
 
 # Check how many genes in the network
 dim(weightMat_myeloids)
-de_all<- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds")
+de_all<- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
 table(de_all$celltype)
-de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Myeloid" & de_all$type == "lnc",]$primerid)
-de_lnc_mono_names<- de_all[de_all$celltype == "Myeloid" & de_all$type == "lnc",]$primerid
+de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Monocyte" & de_all$type == "lnc",]$primerid)
+de_lnc_mono_names<- de_all[de_all$celltype == "Monocyte" & de_all$type == "lnc",]$primerid
 
 #mamu_dr <- c("MAMU-DRA", "MAMU-DRB1")
 #mamu_names <- gsub("-",".",unique(ref[ref$gene_name %in% mamu_dr,]$gene_name))
 #de_lnc_mono <- c(de_lnc_mono, mamu_names)
 
 
-de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Myeloid" & de_all$type == "lnc",]$primerid)
+de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Monocyte" & de_all$type == "lnc",]$primerid)
+length(unique(de_lnc_mono))
 ```
 
 
@@ -126,10 +128,11 @@ de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Myeloid" & de_all$
 ```{r a}
 #universe_local <- universe_myeloids
 linkList <- getLinkList(weightMat_myeloids)
-max_n <- nrow(linkList)*0.5/100
+max_n <- nrow(linkList)*0.9/100
 linkList <- getLinkList(weightMat_myeloids, reportMax = max_n)
 min(linkList$weight)
 
+unique(de_lnc_mono)
 lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% de_lnc_mono |as.character(linkList$targetGene) %in% de_lnc_mono, ]
 Gsi <- graph.data.frame(lnc_graphs,directed = F)
 
@@ -138,7 +141,7 @@ lou <- cluster_louvain(Gsi)
 LO = layout_with_fr(Gsi)
 
 # Only keep the ones haveing at least 5 nodes
-Small = which(table(lou$membership) < 5)
+Small = which(table(lou$membership) < 6)
 Keep = V(Gsi)[!(lou$membership %in% Small)]
 
 ## Get subgraph & plot
@@ -146,9 +149,11 @@ gD2  = induced_subgraph(Gsi, Keep)
 lou2 = cluster_louvain(gD2)
 LO2 = LO[Keep,]
 
-saveRDS(gD2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/gD2.rds")
-saveRDS(lou2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/lou.rds")
-saveRDS(linkList, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/linkList.rds")
+#saveRDS(gD2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2.rds")
+#saveRDS(lou2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds")
+#saveRDS(linkList, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList.rds")
+
+
 ```
 
 
@@ -156,25 +161,41 @@ saveRDS(linkList, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA
 #      Visualize the graph and the communities 
 # -----------------------------------------------------
 ```{r a}
+
+gD2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2.rds"))
+lou2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds"))
+linkList <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList.rds"))
+
 # Graph plotting Proprieties
-V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in% de_lnc_names, "red", "grey")
+V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in% de_lnc_names, "#F5F5F5", "grey")
 # highlight novel ones 
-V(gD2)[startsWith(names(as.list(V(gD2))), "MSTRG")]$color <- "purple"
+V(gD2)[startsWith(names(as.list(V(gD2))), "MSTRG")]$color <- "dark red"
 
 #V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in%  gsub("-",".",unique(ref[ref$gene_name %in% mamu_dr,]$gene_name)), "black", V(gD2)$color)
 
 # Highlight orthologs
-V(gD2)$frame.color <- ifelse( names(as.list(V(gD2))) %in% de_lnc_names & names(as.list(V(gD2))) %in% orthologs$gene_id , "blue", "#7A7A7A")
+V(gD2)$frame.color <- "#7A7A7A"
+#V(gD2)$frame.color <- ifelse( names(as.list(V(gD2))) %in% de_lnc_names & names(as.list(V(gD2))) %in% orthologs$gene_id , "black", "#7A7A7A")
 
 V(gD2)$community <- membership(lou2)
 # Hihglight memberships to community: testing 
 # V(gD2)$color <- ifelse(lou2$membership == 2, "black", "grey")
+```
+
+
+```{r a}
 
 dev.new(width=7, height=4)
 # ------------------------------------
 #       Visualize the communities
 # ------------------------------------
-plot(lou2, gD2,  vertex.size=2, edge.arrow.size = .1, col=V(gD2)$color, layout=layout.fruchterman.reingold(gD2, niter=10000), edge.color= "#7A7A7A", vertex.frame.width = 8, mark.col=c(brewer.pal(11 , "Set3"), alpha.f = .3),  mark.border=brewer.pal(11 , "Set3"),vertex.label = ifelse(names(as.list(V(gD2))) %in% de_lnc_mono, names(as.list(V(gD2))), NA))
+plot(lou2, gD2,  vertex.size=4, edge.arrow.size = .1,
+     col=V(gD2)$color, layout=layout.fruchterman.reingold(gD2, niter=10000),
+     edge.color= "#7A7A7A", vertex.frame.width = 10,
+     mark.col=adjustcolor(pal_jco()(10), alpha = 0.4),
+     mark.border=c(pal_jco()(10)),
+     vertex.col = V(gD2)$color,
+     vertex.label = ifelse(names(as.list(V(gD2))) %in% de_lnc_mono, names(as.list(V(gD2))), NA))
 
 legend("topright",
        legend=unique(lou2$membership),
@@ -190,14 +211,32 @@ legend("topright",
 #  print(gene_name)
 #  return(orthologs[orthologs$lnc %in% transcripts_of_gene,])
 #}
+
+
+
 ```
-
-
 ```{r colocation}
-png(filename = "/home/luisas/Desktop/graph.png", width = 2300, height = 2100)
-plot(lou2, gD2,  vertex.size=2, edge.arrow.size = .1, col=V(gD2)$color, layout=layout.fruchterman.reingold(gD2, niter=10000), edge.color= "#7A7A7A", vertex.frame.width = 8, mark.col=c(brewer.pal(11 , "Set3"), alpha.f = .3),  mark.border=brewer.pal(11 , "Set3"),vertex.label = ifelse(names(as.list(V(gD2))) %in% de_lnc_mono, names(as.list(V(gD2))), NA))
+png(filename = "/home/luisas/Desktop/graph.png", width = 900, height = 600)
+
+l <- layout.fruchterman.reingold(gD2, niter=10000)
+
+plot(lou2, gD2,  vertex.size=4, edge.arrow.size = .1,
+     col=V(gD2)$color, layout=l,
+     edge.color= "#7A7A7A", vertex.frame.width = 10,
+     mark.col=adjustcolor(pal_jco()(10), alpha = 0.4),
+     mark.border=c(pal_jco()(10)),
+     vertex.col = V(gD2)$color,
+     vertex.label = ifelse(names(as.list(V(gD2))) %in% de_lnc_mono, names(as.list(V(gD2))), NA))
+
+legend("topright",
+       legend=unique(lou2$membership),
+       fill=adjustcolor(pal_jco()(10), alpha = 0.4), border=NA)
 dev.off()
 ```
+
+
+
+
 
 
 # Subselect in one community 
@@ -205,7 +244,6 @@ dev.off()
 ```{r a}
 lapply(unique(V(gD2)$community), function(n) visualize_community_expression(monocyte,gD2 , n))
 
-visualize_community_expression(monocyte,gD2 , 3)
 ```
 
 
@@ -218,11 +256,13 @@ inspect_gene_expression(immune.combined, monocyte, gene)
 
 
 ```{r a}
+set.seed(1)
+library(ComplexHeatmap)
 # ---------------------------------------------
 #       Check the enrichment per community 
 # --------------------------------------------
 do_go_community<- function(list, universe,n,de_lnc_names, genes = T, npathways=5 ){
-   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =universe)
+   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "ALL",universe =universe)
    p1 <- clusterProfiler::dotplot(ego,showCategory =5)
    p1b <-barplot(ego,showCategory =5)
    p2 <- heatplot(ego, showCategory =5)
@@ -257,80 +297,164 @@ get_orth <- function(n){
 
 community_check <- function(n, genes = F){ do_go_community(lou2$names[lou2$membership == n],universe_myeloids,n, de_lnc_mono, genes = genes) }
 
-
-list <- lou2$names[lou2$membership == 3]
-
+get_ortholog <- get_orthologname_
+list <- lou2$names[lou2$membership == 2]
+library(gplots)
 c1 <- community_check(1)
 c1
 c2 <- community_check(2)
+#c2
 c3 <- community_check(3)
+#c3
 # No enrichment for 4!!
 c4 <- community_check(4)
+c4
 # No enrichment for 4!!
-#c5 <- community_check(5)
+c5 <- community_check(5)
+#c5
 c6 <- community_check(6)
+c6
 c7 <- community_check(7)
+#c7
 
 c1_genes <- community_check(1, genes = T)
 c2_genes <- community_check(2, genes = T)
-c3_genes <- community_check(3, genes = T)
-c5_genes <- community_check(4, genes = T)
-c6_genes <- community_check(6, genes = T)
-c7_genes <- community_check(7, genes = T)
+c4_genes <- community_check(4, genes = T)
 
 
-go_genes <- c(c1_genes, c2_genes, c3_genes, c5_genes, c6_genes, c7_genes)
+go_genes <- c(c1_genes, c4_genes)
 
-
-
+c1
+c4
+lou2$names[lou2$membership == 1]
+??enrichGO
 
 ```
+
 
 ```{r colocation}
 png(filename = "/home/luisas/Desktop/graph1.png", width = 3300, height = 2100)
 
+l <- layout.fruchterman.reingold(gD2, niter=5000)
 
-V(gD2)$size <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), 2, 2)
+plot(lou2, gD2,  vertex.size=3, edge.arrow.size = .1,
+     col=V(gD2)$color, layout=l,
+     edge.color= "#7A7A7A", vertex.frame.width = 15,
+     mark.col=adjustcolor(pal_jco()(10), alpha = 0.4),
+     mark.border=c(pal_jco()(10)),
+     vertex.col = V(gD2)$color,
+     vertex.label = NA)
 
-l <- layout_nicely(gD2)
+legend("topright",
+       legend=unique(lou2$membership),
+       fill=adjustcolor(pal_jco()(10), alpha = 0.4), border=NA)
+dev.off()
+```
+
+
+```{r colocation}
+library(ggsci)
+library(ggrepel)
+
+png(filename = file.path(data_path,"plots/05/graph1.png"), width = 3300, height = 2100)
+#l <- layout.fruchterman.reingold(gD2, niter=5000)
+#saveRDS(l, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds")
+l <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds"))
+
+go_genes <- c(go_genes, "FCGR3", "MS4A7", "ZFP36")
+V(gD2)$size <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), 4, 1)
+V(gD2)$label <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), unlist(lapply(names(as.list(V(gD2))), get_orthologname_)), NA)
+V(gD2)$degree <- -pi/2 
+# Below
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("IL7R", "S100A9", "S100A8","GADD45B", "ISG15", "MSTRG.195139", "MS4A7", "LGALS3"), pi/2, V(gD2)$degree )
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("FCGR3" ), pi/1.4, V(gD2)$degree )
+
+# Right
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B", "HBEGF", "MSTRG.168139", "LINC00861"), 0, V(gD2)$degree )
+V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B","HBEGF", "LINC00861"), 1.5,0.55 )
+
+# Left
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("ENSMMUG00000058644", "MSTRG.228510", "MSTRG.17705"), pi, V(gD2)$degree )
+V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("ENSMMUG00000058644" ), 3.5,V(gD2)$dist)
+V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c( "MSTRG.228510", "MSTRG.17705", "MSTRG.168139"), 2.5,V(gD2)$dist)
+
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("KLF4"), pi, V(gD2)$degree )
+V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("KLF4" ), 1,V(gD2)$dist)
+
+
+V(gD2)$font <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono), 2, 1 )
+#l <- layout_nicely(gD2)
+
+
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
     layout=l,
-    edge.color= "#7A7A7A", vertex.frame.width = 15,
-    mark.col=c(brewer.pal(11 , "Set3"), alpha.f = .9),
-    mark.border=brewer.pal(11 , "Set3"),
-    vertex.label.color="black", vertex.label.font=1.9,
-    vertex.label.cex=2.9,
-    vertex.label.dist=0.0, 
-    vertex.label = V(gD2)$label )
+    edge.color= "#7A7A7A", vertex.frame.width = 10,
+    mark.col=adjustcolor(pal_jco()(7), alpha = 0.3),
+    mark.border=(pal_jco()(7)),
+    vertex.label.color="black", vertex.label.font=1,
+    vertex.label.cex=3,
+    vertex.label.dist=V(gD2)$dist , 
+    vertex.label.degree=V(gD2)$degree, 
+    vertex.label.family="Helvetica",
+    vertex.label = V(gD2)$label )+ geom_text_repel()
+
+legend("topright",
+       legend=unique(lou2$membership),
+       fill=adjustcolor(pal_jco()(8), alpha = 0.4), border=NA)
 dev.off()
 
+c(de_lnc_mono, go_genes)
+```
+# Orthology, reported in immlnc
+```{r readfilesDE}
+png(filename = file.path(data_path,"plots/05/graphsuppl.png"), width = 3300, height = 2100)
 
-V(gD2)$label <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), unlist(lapply(names(as.list(V(gD2))), get_orthologname_)), NA)
 
-names(as.list(V(gD2)))[(names(as.list(V(gD2))) %in% c(de_lnc_mono))]
-length(unique(de_lnc_mono))
+# ---- 1. Get the direction 
+genes <- names(as.list(V(gD2)))
+de_all_genes$id <- gsub("-unknown","",de_all_genes$primerid) 
+mono_de <- de_all_genes[de_all_genes$celltype == "Monocyte",]
+mono_de <- mono_de %>% group_by(id, type) %>% dplyr::summarise(direction = toString((direction)))
+a_red <- lapply(mono_de$direction, function(x) unique(str_split(x, ", ")[[1]]))
+summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
+mono_de$summarized_direction_lnc <- summarized_direction
 
-orthologs
-unlist(lapply(names(as.list(V(gD2)))[names(as.list(V(gD2))) %in% c(de_lnc_mono)], get_orthologname_))
+mono_de$id <- gsub("MAMU-", "MAMU.", mono_de$id, fixed = T)
+mono_de <- distinct(mono_de[mono_de$id %in% genes, ])
+mono_de$color <- "grey"
+mono_de[mono_de$summarized_direction_lnc == "up", ]$color <- "red"
+mono_de[mono_de$summarized_direction_lnc == "down", ]$color <- "blue"
+rownames(mono_de) <- mono_de$id
+
+V(gD2)$color  <- mono_de[names(as.list(V(gD2))),]$color
+V(gD2)$size <- 1
+V(gD2)$size <- ifelse(mono_de[names(as.list(V(gD2))),]$type == "pc", 2,4)
+  
+genes[!(genes %in% rownames(mono_de))]
+  
+plot(lou2, gD2,
+    edge.arrow.size = .1,
+    col=V(gD2)$color,
+    layout=l,
+    edge.color= "#7A7A7A",
+    mark.col=adjustcolor(pal_jco()(7), alpha = 0.3),
+    mark.border=(pal_jco()(7)),
+    vertex.label.color="black", vertex.label.font=1,
+    vertex.label.cex=3,
+    vertex.label.dist=V(gD2)$dist , 
+    vertex.label.degree=V(gD2)$degree, 
+    vertex.label.family="Helvetica",
+    vertex.label = V(gD2)$label )+ geom_text_repel()
+dev.off()
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ISG Module 
+```{r readfilesDE}
+plot_seperate_features(monocyte, "MAMU-DRA", ident = "group")
+```
 
 
 
@@ -343,7 +467,6 @@ unlist(lapply(names(as.list(V(gD2)))[names(as.list(V(gD2))) %in% c(de_lnc_mono)]
 ```{r readfilesDE}
 
 # Settings 
-library(plyranges)
 pal <- c(brewer.pal(8, "Pastel2")[5:9])
 pal_g <- c(rep(pal[1],3), pal[2], rep(pal[3],2), rep(pal[4],3))
 
@@ -394,8 +517,8 @@ ggplot(df, aes( x = gene, y = value, color = gr, fill = gr ) )+theme_paper+theme
 
 ```{r readfilesDE}
 # Create all the pairs
-cor_lnc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_alllnc_ Monocyte .rds")
-cor_pc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_allpc_ Monocyte .rds")
+cor_lnc <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_alllnc_ Monocyte .rds"))
+cor_pc <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/01_spearman/Spearman_correlations_MAMU_allpc_ Monocyte .rds"))
 
 # Check fo significant correlations
 c_lnc <- Reduce("rbind", cor_lnc)
@@ -420,7 +543,10 @@ pos_2_pc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g
 # Top 10 Positively correlated lnc
 # -------------------------------------------
 df_cor_sig_pos <- df_cor_sig[df_cor_sig$type == "lnc" & df_cor_sig$rho > 0, ]
-pos_10_lnc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)[1:10]
+pos_10_lnc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]$g1)[1:4]
+unlist(lapply(pos_10_lnc, function(x) get_orthologname_(x)))
+
+df_cor_sig[df_cor_sig$g1 == "ENSMMUG00000064224-unknown",]
 ```
 
 
@@ -432,23 +558,23 @@ pos_10_lnc <- unique(df_cor_sig_pos[order(df_cor_sig_pos$pval, decreasing = F),]
 genes <-c(mamu_dr, pos_2_pc, pos_10_lnc )
 df <-Reduce("rbind", lapply((genes), function(gene2) get_df_z(gene2, monocyte, z = F ) ))
 
-table(as.character(df$group) %in% c("D007","D008"))
 
 df$group  <- ifelse(as.character(df$group) %in% c("D007","D008"), "D007/8", as.character(df$group ))
 #df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007","D008"))
 df$group <- factor(df$group, levels = c("D-30","D-04","D000","D003","D004","D005","D006","D007/8"))
 df$gr <- factor(df$gr, levels = c("baseline", "early", "middle","late"))
+df
 
 correspondence <- distinct(data.frame(gene = df$gene))
 correspondence$orth <- unlist(lapply(correspondence$gene, get_orthologname_))
 rownames(correspondence) <- correspondence$gene
 
-df$label <- ifelse(df$label %in% correspondence$gene, correspondence[df$gene, ], df$gene)
-
-ggplot(df, aes( x = label, y = value, color = gr, fill = gr ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=unique(pal_g) )+xlab("")+ylab("logCP10K")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))
 
 
-ggplot(df, aes( x = label, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+xlab("")+ylab("logCP10K")+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggplot(df, aes( x = gene, y = value, color = gr, fill = gr ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=unique(pal_g) )+xlab("")+ylab("logCP10K")+theme(axis.text.x = element_text(size = 12, angle =24, vjust =0.9, hjust = 1.0))
+
+
+ggplot(df, aes( x = gene, y = value, color = group, fill = group ) )+theme_paper+theme(axis.text.x = element_text(size =10 ))+geom_boxplot(alpha = 0.7, color = "dark grey ")+theme_paper+scale_fill_manual(values=pal_g )+xlab("")+ylab("logCP10K")+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 ```
@@ -458,70 +584,47 @@ ggplot(df, aes( x = label, y = value, color = group, fill = group ) )+theme_pape
 
 ```{r readfilesDE}
 source("../../utils/04_utils_graph.R")
-#neat1_gene <- unique(ref[!is.na(ref$transcript_id) & ref$transcript_id %in%
-#orthologs[orthologs$orthologGeneSymbol == "NEAT1",]$lnc,]$gene_name)
-genes <-c(mamu_dr, pos_2_pc, pos_10_lnc )
+
+
+# Prepare dataset for plotting
+scale.func <- switch(EXPR = "radius", size = scale_size, 
+                       radius = scale_radius, stop("'scale.by' must be either 'size' or 'radius'"))
 monocyte$group <- factor(toupper(substring(monocyte$group, 1,1)), levels = c("B", "E", "M", "L"))
 
+# Select genes 
+genes <-c(mamu_dr, c("CD74", "ZFP36"), pos_10_lnc[3:4], "MSTRG.181325-unknown" )
 
-plot.data <- Dotplot_data(monocyte, features = genes, group.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred"))
+plot.data <- Dotplot_data(monocyte, features = genes, dot.scale =25,group.by = "group",scale.by = "radius", cols = c( "blue", "red"))
 plot.data$name <- unlist(lapply(plot.data$features.plot, get_orthologname_))
-ggplot(plot.data, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))
+#Relevel
+plot.data$name <- factor(plot.data$name, levels = rev(c(mamu_dr, c(pos_2_pc, "ZFP36"), unlist(lapply(pos_10_lnc, get_orthologname_)), "MSTRG.181325")))
 
 
-Dotplot_mod(monocyte, features = c(genes), group.by = "group", dot.scale =8,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Monocytes")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
 
 
-#Dotplot_mod(neutrophils, features = c(genes), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Neutrophils")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
+dotplot_mhc <- ggplot(plot.data[!(plot.data$features.plot %in% c("MAMU-DRAZ", "MAMU-DRB1Z")),], aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_classic()+xlab("")+ylab("")+
+        scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+
+        scale.func(range = c(0, 13))+ggtitle("")+
+        theme(axis.text.x= element_text(size = 20, color = "black"), axis.text.y= element_text(size = 15, color = "black"))
 
-#Dotplot_mod(b, features = c(genes), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("B")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
-
-#Dotplot_mod(t, features = c(genes), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("T")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
-
-# Visulize community 
-n <- 7
-gn <- subgraph(gD2, V(gD2)[community==n])
-V(gn)$color <- ifelse(names(as.list(V(gn))) %in% gsub("-unknown", "",de_lnc_names), "red", "grey")
-plot(gn,vertex.size=7, edge.arrow.size = .1, col=V(gn)$color, layout=layout.fruchterman.reingold(gn, niter=10000), edge.color= "#7A7A7A", vertex.frame.width = 8, mark.col=c(brewer.pal(11 , "Set3"), alpha.f = .3),  mark.border=brewer.pal(11 , "Set3"),vertex.label = names(as.list(V(gn))),    vertex.label.color="black", vertex.label.font=1.9,
-    vertex.label.cex=0.9,
-    vertex.label.dist=0.1 )
+pdf(file.path(plots, "05/dotplot.pdf"), width = 8, height = 6)
+dotplot_mhc
+dev.off()
 
 
-plot_region("MSTRG.41819-unknown", range = 100000)
+dotplot_mhc1 <- ggplot(plot.data[(plot.data$features.plot %in% c("MAMU-DRA", "MAMU-DRB1")),], aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_classic()+xlab("")+ylab("")+
+        scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+
+        scale.func(range = c(0, 13))+ggtitle("")+
+        theme(axis.text.x= element_text(size = 20, color = "black"), axis.text.y= element_text(size = 15, color = "black"))
+dotplot_mhc1
+#Dotplot_mod(monocyte, features = c(genes), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Monocytes")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
 
+# Check for correlation of the reported genes 
+df_cor[df_cor$g1 %in% c(get_gene_id("MIR22HG"), "MSTRG.181325-unknown","ENSMMUG00000058644-unknown" ),]
 
-```
-
-# ---------------------------------------------------------------------
-#                         Approach number 2 (Not ok)
-# Instead of getting the candidate lncRNAs through the correation direclty 
-# First identify any DE lncRNA in the graph which is connected to MAMU-DRA or MAMU-DR1B
-# Indeed i could also try to identify any lnc in the graph ( if i do not create it with DE only )
-# ---------------------------------------------------------------------
-
-```{r readfilesDE}
-
-
-mamu_dr <- c("MAMU-DRA", "MAMU-DRB1")
-mamu_names <- gsub("-",".",unique(ref[ref$gene_name %in% mamu_dr,]$gene_name))
-de_lnc_mono <- c(de_lnc_mono, mamu_names)
-
-linkList <- getLinkList(weightMat_myeloids)
-max_n <- nrow(linkList)*0.5/100
-linkList <- getLinkList(weightMat_myeloids, reportMax = max_n)
-
-
-lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% mamu_names |as.character(linkList$targetGene) %in% mamu_names, ]
-
-# One connection from HLA-DR 
-one_c_hladr <- unique(c(as.character(lnc_graphs$regulatoryGene),as.character(lnc_graphs$targetGene)))
-one_c_hladr_LNC <- one_c_hladr[one_c_hladr %in% de_lnc_mono]
-one_c_hladr_LNC <- paste(one_c_hladr_LNC, "-unknown",sep = "")
-
-
-Dotplot_mod(monocyte, features = c(mamu_names, one_c_hladr_LNC[3:8]), group.by = "group", dot.scale =10,scale.by = "radius", cols = c( "lightblue", "darkred"))+coord_flip()+theme_paper+xlab("")+ylab("")+theme_bw()+ggtitle("Monocytes")+theme_test()+theme(axis.text.x= element_text(size = 15),axis.text.y= element_text(size = 12))+theme(title = element_text(size = 15))
 
 
 ```
+
 
 

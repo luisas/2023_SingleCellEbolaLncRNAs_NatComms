@@ -94,7 +94,10 @@ print(paste("Threshold", threshold))
 
 # Separate the cells into infected and not infected based on the threshold
 ebola_genome_percentage_df$classification <- ifelse(ebola_genome_percentage_df$percentage_viral_reads >= threshold, "Infected", "Not Infected")
+# Check that the order of the cells is the same 
+table(colnames(immune.combined) == rownames(ebola_genome_percentage_df))
 immune.combined$infection <- ebola_genome_percentage_df$classification
+immune.combined$viraload <- ebola_genome_percentage_df$percentage_viral_reads
 
 saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
 
