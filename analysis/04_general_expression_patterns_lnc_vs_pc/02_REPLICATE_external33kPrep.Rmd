@@ -1,0 +1,111 @@
+---
+title: "sc test analyses"
+author: "Luisa Santus"
+date: "3/16/2020"
+output: html_document
+---
+
+
+# Replicate general expression patterns 
+# General Expression Patterns of lncRNAs Ex Vivo
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggpubr)
+library(MatchIt)
+library(rtracklayer)
+library(Seurat)
+
+# Palette used throughout the script
+col_lnc = "navy"
+col_mrna = "#8DC3A7"
+palette_plot_percentage <- c(col_lnc, col_mrna)
+
+source("../utils/00_datapaths.R")
+source("../utils/02_sc_utils.R")
+
+# Read reference files 
+ref<- import(file.path(gene_annotation_path,"/ensembl_release100/homo_sapiens/Homo_sapiens.GRCh38.100.gtf"))
+table(ref$gene_biotype)
+lnc <- ref[ref$gene_biotype == "lncRNA",]$gene_name
+length(unique(lnc))
+pc <- ref[ref$gene_biotype == "protein_coding",]$gene_name
+
+# Import Seurat object 
+data <- Read10X(file.path(data_path,"02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/filtered_gene_bc_matrices/hg19/"))
+immune.combined = CreateSeuratObject(counts = data)
+dim(immune.combined)
+immune.combined <- NormalizeData(immune.combined)
+immune.combined <- FindVariableFeatures(immune.combined)
+immune.combined <- ScaleData(immune.combined)
+immune.combined <- RunPCA(immune.combined, npcs = 20, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
+immune.combined <- FindClusters(immune.combined, resolution = 0.02)
+saveRDS(immune.combined, file.path(data_path,"02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/01_immunecombined_clustered.rds"))
+
+
+#immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/01_immunecombined_idents.rds"))
+dim(immune.combined)
+
+annotated_lncrnas <- rownames(immune.combined)[rownames(immune.combined) %in% lnc]
+saveRDS(annotated_lncrnas, file.path(data_path, "02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/05_stats/all_lncrnas.rds"))
+annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% pc]
+saveRDS(annotated_mrnas, file.path(data_path, "02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/05_stats/annotated_mrnas.rds"))
+
+
+```
+
+
+
+# Visualize dataset 
+
+```{r check}
+DimPlot(immune.combined, reduction = "umap", label = TRUE, label.size = 9)+theme_void()
+
+# remove ambigous cluster of < 150 cells
+keep_cluster <- names(table(Idents(immune.combined))[as.vector(table(Idents(immune.combined)) > 150)])
+immune.combined <- immune.combined[,Idents(immune.combined) %in% keep_cluster]
+DimPlot(immune.combined, reduction = "umap", label = TRUE, label.size = 9)+theme_void()
+
+b <- c("CD79B", "MS4A1", "CD19", "IGHM")
+CD8T <- c("CD3D", "GZMB", "GNLY")
+CD4T <-  c("CD3D", "IL7R")
+t <- c(CD4T, CD8T)
+nk <- c("KLRB1", "GZMB","FCGR3")
+mono <- c("LYZ", "PSAP", "CFD") 
+neut <- c( "CD177","LCN2") 
+marker.genes_red <- c(t,b,mono,neut)
+
+
+FeaturePlot(immune.combined, b, order = T )
+FeaturePlot(immune.combined, t, order = T )
+FeaturePlot(immune.combined, nk, order = T )
+FeaturePlot(immune.combined, mono, order = T )
+
+immune.combined <- RenameIdents(immune.combined, `0` = "T", `1` = "Monocyte", `2` = "B", 
+   `3` = "NK")
+
+DimPlot(immune.combined, reduction = "umap", label = TRUE, label.size = 9)+theme_void()
+saveRDS(immune.combined, file.path(data_path,"02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/01_immunecombined_idents.rds"))
+```
+
+
+# Calculate expression 
+
+```{r quartiles}
+# Calculate expression POOLED
+# (Big, can be run on cluster)
+df_lnc <- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(), tot_cells = c())
+invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = annotated_lncrnas), "",df_lnc, 1))
+df_mrna<- data.frame( gene_id = c(), meanexpr = c(), perc_cells_expressing = c(), maxexpr = c(), medianexpr = c(), var = c(), n_cells = c(),tot_cells = c())
+invisible(calc_mean_and_percentage_cell(subset(immune.combined, features = annotated_mrnas), "",df_mrna, 1))
+saveRDS(df_lnc, file.path(data_path, "/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/df_lnc.rds"))
+saveRDS(df_mrna, file.path(data_path,"/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/df_mrna.rds"))
+#saveRDS(df_pseudogenes, "/home/luisas/Desktop/cluster/data/RObjects_old/df_pseudogenes.rds")
+#df_lnc <- readRDS("/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/df_lnc.rds")
+#df_mrna <- readRDS(file.path(robjectsdir, "df_mrna.rds"))
+```
+
+
