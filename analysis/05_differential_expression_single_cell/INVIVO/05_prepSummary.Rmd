@@ -17,31 +17,58 @@ colnames(lnc_DE) <- gsub("coef","DE_coefficient",colnames(lnc_DE))
 colnames(lnc_DE) <- gsub("fdr","DE_fdr",colnames(lnc_DE))
 lnc_DE$orth_temp <- unlist(lapply(lnc_DE$gene_name, get_orthologname_))
 
-# Load community stats
+# --------------------------------------------------------------
+#               GRAPH INFO 
+# --------------------------------------------------------------
 
 # InGraph, Community, Community members 
 graph_info <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/Graph_communitybelonging.rds"))
 colnames(graph_info) <- c("community", "gene_name")
 graph_info$orth_temp <- unlist(lapply(graph_info$gene_name,get_orthologname_ ))
+# ------------------------------add gene ids
+# Table correspondence 
+genes <- ref[ref$type =="gene",]
+correspondence <- data.frame(genes$gene_id, genename=genes$gene_name, stringsAsFactors = F)
+graph_info$gene_name <- gsub("MAMU.","MAMU-", graph_info$gene_name)
 
+correspondence_red <- correspondence[correspondence$genename %in% graph_info$gene_name, ]
+rownames(correspondence_red) <- correspondence_red$genename
+
+graph_info$gene_id <- correspondence_red[graph_info$gene_name,]$genes.gene_id
+graph_info[is.na(graph_info$gene_id),]$gene_id <- graph_info[is.na(graph_info$gene_id),]$gene_name
+
+
+# Select community members 
 community_members_pre <- graph_info %>% dplyr::group_by(community) %>% dplyr::mutate("community_members" = paste(orth_temp, collapse = "; "))
 community_members <- unique(community_members_pre[,c("community", "community_members")])
+
+community_members_pre_id <- graph_info %>% dplyr::group_by(community) %>% dplyr::mutate("community_members_id" = paste(gene_id, collapse = "; "))
+community_members_id <- unique(community_members_pre_id[,c("community", "community_members_id")])
+community_members <- merge(community_members, community_members_id)
 
 
 graph_de_summary <- left_join(lnc_DE,graph_info[,c("community", "orth_temp")], by = "orth_temp")
 summary_de_graph <- left_join(graph_de_summary, community_members)
 
-# Add colocation : CIS
+
+# --------------------------------------------------------------
+#               CIS INFO 
+# --------------------------------------------------------------
 complete_cis_corr_de <- readRDS(file.path(data_path, "plots/04/correlations_de_cis.rds"))
-cis_summary <- distinct(complete_cis_corr_de[,c("lnc_name", "pc_name")])
+cis_summary <- distinct(complete_cis_corr_de[,c("lnc_name", "pc_name", "pc_id")])
 cis_summary_names <- cis_summary %>% dplyr::group_by(lnc_name) %>% dplyr::mutate("cis_genes" = paste(pc_name, collapse = "; "))
-cis_summary_names <- cis_summary_names[,c(1,3)]
-colnames(cis_summary_names) <- c("gene_name", "cis_genes")
+cis_summary_ids<- cis_summary %>% dplyr::group_by(lnc_name) %>% dplyr::mutate("cis_ids" = paste(pc_id, collapse = "; "))
+cis_summary_names <- distinct(cis_summary_names[,c(1,4)])
+cis_summary_ids <- distinct(cis_summary_ids[,c(1,4)])
+cis_summary_names <- merge(cis_summary_names, cis_summary_ids)
+colnames(cis_summary_names) <- c("gene_name", "cis_genes", "cis_genes_id")
 
 summary_de_graph_cis <- left_join(summary_de_graph, cis_summary_names, by = "gene_name")
 
 
-# Add lncpedia and Immlnc
+# --------------------------------------------------------------
+#               lncpedia and immlnc  INFO 
+# --------------------------------------------------------------
 lncpedia_immune <- import(file.path(data_path, "/00_RawData/lncpedia/lncpedia_immune.gtf"))
 lncpedia_infection <- import(file.path(data_path,"/00_RawData/lncpedia/lncpedia_infection.gtf"))
 lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
@@ -52,10 +79,10 @@ reported_immlnc <- immlnc$lncRNA_symbol
 
 summary_de_graph_cis$reported_in_lncpedia <- ifelse((summary_de_graph_cis$ortholog_found == T &summary_de_graph_cis$ortholog %in% lncpedia), TRUE, FALSE)
 summary_de_graph_cis$reported_in_immlnc<- ifelse((summary_de_graph_cis$ortholog_found == T &summary_de_graph_cis$ortholog %in% reported_immlnc), TRUE, FALSE)
-
-
 final_summary <- summary_de_graph_cis[,setdiff(colnames(summary_de_graph_cis), "orth_temp")]
 
+
+# --------------  STORE
 write.table(final_summary, file = file.path(data_path, "00_Metadata/final_DE_summary.csv"), row.names = F, col.names = T, sep = ",")
 
 

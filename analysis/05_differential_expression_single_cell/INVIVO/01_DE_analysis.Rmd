@@ -660,6 +660,7 @@ get_gene_id <- function(gene){
 
 
 plot_expression_gene <- function(gene){
+  neat1exp <- mono[gene,]
   baseline <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
   early <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
   middle <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
@@ -677,28 +678,32 @@ plot_expression_gene <- function(gene){
   exp$type <- factor(exp$type, levels = c("baseline", "early", "middle", "late"))
   
   
-  
   #pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
   p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = "blue")+theme(legend.title = element_blank())+ylab("average expression (logCP10K)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
   #dev.off()
   
 
-  p2 <- DotPlot(mono, features=c(neat1), group.by  = "group")
-  tab <- Dotplot_data(mono, features=c(neat1), group.by  = "group")
+  p2 <- DotPlot(mono, features=c(gene), group.by  = "group")+coord_flip()
+  tab <- Dotplot_data(mono, features=c(gene), group.by  = "group")
   return(list(p,p2,tab))
 
 }
 
 
 mono$group <- factor(mono$group, levels = c("baseline", "early","middle", "late"))
-neat1 <- get_gene_id("NEAT1")
-neat1exp <- mono[neat1,]
+
 
 
 pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
-plot_expression_gene(neat1)
+plot_expression_gene("MALAT1")
 dev.off()
 
+
+
+#mono@active.assay <- "RNA"
+#plot_expression_gene(get_gene_id("NEAT1"))
+#plot_expression_gene(get_gene_id("MALAT1"))
+#plot_expression_gene("SRRM2")
 
 ```
 

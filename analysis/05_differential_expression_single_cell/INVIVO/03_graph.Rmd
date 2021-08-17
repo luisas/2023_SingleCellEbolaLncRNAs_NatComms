@@ -264,7 +264,7 @@ png(filename = file.path(data_path,"plots/05/graph1.png"), width = 3300, height 
 #saveRDS(l, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds")
 l <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds"))
 
-go_genes <- c(go_genes, "FCGR3", "MS4A7", "ZFP36")
+go_genes <- c(go_genes, "FCGR3", "MS4A7", "ZFP36", "ENSMMUG00000052424", "SRRM2")
 V(gD2)$size <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), 4, 1)
 V(gD2)$label <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), unlist(lapply(names(as.list(V(gD2))), get_orthologname_)), NA)
 V(gD2)$degree <- -pi/2 
@@ -459,11 +459,6 @@ dev.off()
 df <- ldply ( groups(lou2), data.frame)
 colnames(df) <- c("Community", "gene_name")
 saveRDS(df, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/Graph_communitybelonging.rds"))
-
-get_gene_id("NEAT1")
-lou2[lou2$membership == 5]
-
-V(gD2)
 ```
 
 
