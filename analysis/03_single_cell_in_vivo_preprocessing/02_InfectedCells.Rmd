@@ -55,6 +55,9 @@ FCTHRESHOLD <- log(1.23)
 ```{r readfilesDE}
 # Define Ebola genes 
 ebola_genes <- unique(ebola_ref$gene_id)
+ebola_genes_names <- paste(ebola_genes, "-unknown", sep = "")
+saveRDS(ebola_genes_names, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/ebolagenes.rds"))
+saveRDS(ebola_genes_names, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/ebolagenes.rds"))
 
 # Extract normalized expression values matrix
 expression_matrix <- immune.combined@assays$RNA@counts
@@ -72,6 +75,7 @@ ebola_genome_percentage<- (ebola_genome_reads/total_reads)*100
 
 # 1c. Store the % of ebola reads per cell in a dataframe
 ebola_genome_percentage_df <- data.frame(percentage_viral_reads = ebola_genome_percentage,
+                                         ebola_reads = ebola_genome_reads,
                                          celltype = names(ebola_genome_percentage),
                                          cond =immune.combined$cond, 
                                          hour = immune.combined$dpi)
@@ -96,6 +100,7 @@ print(paste("Threshold", threshold))
 
 # Separate the cells into infected and not infected based on the threshold
 ebola_genome_percentage_df$classification <- ifelse(ebola_genome_percentage_df$percentage_viral_reads >= threshold, "Infected", "Not Infected")
+saveRDS(ebola_genome_percentage_df,  file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentageNEW.rds"))
 immune.combined$infection <- ebola_genome_percentage_df$classification
 
 table(immune.combined[,Idents(immune.combined) == "Monocyte" ]$infection)
@@ -175,5 +180,7 @@ immune.combined_ebolaremoved <- immune.combined[setdiff(rownames(immune.combined
 immune.combined_ebolaremoved <- NormalizeData(immune.combined_ebolaremoved)
 
 saveRDS(immune.combined_ebolaremoved,file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10//05_RObjects/03_prep/03_immune.combined.infectionstatus_ebolaremoved.rds"))
+
+immune.combined
 ```
 

@@ -7,11 +7,7 @@ output: html_document
 
 
 # Imports 
-
-# No sliding window 
-# Still with viral reads 
-
-```{r imports}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr); library(Seurat); library(Matrix); library(SingleCellExperiment)
 library(stringr); library(rtracklayer); library(RColorBrewer); library(scales)
@@ -26,44 +22,10 @@ source("../../utils/04_utils_graph.R")
 
 # --------------------------------
 # Set thresholds 
-RHOTHRESHOLD = 0.05
+RHOTHRESHOLD = 0.25
 FDRTHRESHOLD<- 0.05
 
 
-# ---------------------------------------------------
-#           Load  references 
-# ---------------------------------------------------
-ref <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_addedgenesNovel.gtf"))
-orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
-
-# Methods
-filter_significant_correlations <- function(correlations_exvivo, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD){
-  correlations_exvivo <- correlations_exvivo[!is.na(correlations_exvivo$pval) & correlations_exvivo$pval < FDRTHRESHOLD & abs(correlations_exvivo$rho) > RHOTHRESHOLD, ]
-  # Add Gene Type
-  correlations_exvivo$type <- "-"
-  correlations_exvivo[correlations_exvivo$gene %in% all_lncrnas ,]$type <- "lnc"
-  correlations_exvivo[correlations_exvivo$gene %in% annotated_mrnas ,]$type <- "pc"
-  # Extract lnc only
-  sig_cor_lnc_exvivo <- correlations_exvivo[correlations_exvivo$type == "lnc",]
-  sig_cor_lnc_exvivo$gene_name <- unlist(lapply(sig_cor_lnc_exvivo$gene, get_orthologname_))
-  # Remove ebola gene 
-  sig_cor_lnc_exvivo <- sig_cor_lnc_exvivo[!(sig_cor_lnc_exvivo$gene %in% unique(ref[seqnames(ref) == "EBOV_Kikwit",]$gene_name)),]
-  return(list(correlations_exvivo, sig_cor_lnc_exvivo))
-}
-
-PercentAbove <- function(x, threshold){
-  return(length(x = x[x > threshold]) / length(x = x))
-}
-
-# Compute mean expression and % cells 
-get_average <- function(gene, mono_live_h24_inf){
-  exp <- mono_live_h24_inf[gene,]@assays$RNA@data
-  v <- as.vector(exp)
-  b <- data.frame(t(Rmisc::CI(v[v>1])), gene = gene)
-  b$pct.exp <- PercentAbove(v,1)*100
-  b$n_cells <- count(v > 1)
-  return(b)
-}
 ```
 
 
@@ -72,22 +34,24 @@ get_average <- function(gene, mono_live_h24_inf){
 # ---------------------------------------------------
 #           Load  files EX VIVO 
 # ---------------------------------------------------
-# Annotated lncRNAS and PC genes
-#immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
-robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/")
-all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
-annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 ebola_genome_percentage_df <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
-mono_live_h24_inf_exvivo <- readRDS( file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds"))
 
-# 1 - Correlations 
-correlations_exvivo_all <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds"))
-correlations_exvivo <- correlations_exvivo_all[!is.na(correlations_exvivo_all$pval),]
+immune.combined_exvivo$viral_load <- ebola_genome_percentage_df[colnames(immune.combined_exvivo),]$percentage_viral_reads
+immune.combined_exvivo$log_viralload <- log10(immune.combined_exvivo$viral_load+1)
 
+#0. --------------------------------------------
+# Plot the UMAP whole
+pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+viralload_umap_full <- Seurat::FeaturePlot(immune.combined_exvivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+viralload_umap_full
+dev.off()
 
-correlations_exvivo <- filter_significant_correlations(correlations_exvivo, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD)[[1]]
-sig_cor_lnc_exvivo <- filter_significant_correlations(correlations_exvivo, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD)[[2]]
-correlations_exvivo[correlations_exvivo$gene == "MX2",]
+mono_exvivo <- subset(immune.combined_exvivo, ident = "Monocyte")
+Seurat::FeaturePlot(mono_exvivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.4, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+
+DimPlot(immune.combined_exvivo, reduction = "umap", label = TRUE, cols =c(rep("grey",3), "black"), pt.size = 0.1, label.size = 0)+theme_void()
+
 
 ```
 
@@ -97,38 +61,33 @@ correlations_exvivo[correlations_exvivo$gene == "MX2",]
 # ---------------------------------------------------
 #   Load IN VIVO 
 # ---------------------------------------------------
-mono_live_h24_inf_invivo <- readRDS( file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds"))
 
-correlations_invivo_all <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds"))
-correlations_invivo <- correlations_invivo_all[!is.na(correlations_invivo_all$pval) & !is.na(correlations_invivo_all$pval) & correlations_invivo_all$pval < FDRTHRESHOLD & abs(correlations_invivo_all$rho) > RHOTHRESHOLD, ]
+immune.combined_invivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+ebola_genome_percentage_df_invivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+immune.combined_invivo$viral_load <- ebola_genome_percentage_df_invivo[colnames(immune.combined_invivo),]$percentage_viral_reads
+immune.combined_invivo$log_viralload <- log10(immune.combined_invivo$viral_load+1)
+
+#0. --------------------------------------------
+# Plot the UMAP whole
+pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+viralload_umap_full <- Seurat::FeaturePlot(immune.combined_invivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+viralload_umap_full
+dev.off()
+
+mono_invivo <- subset(immune.combined_invivo, ident = "Monocyte")
+Seurat::FeaturePlot(mono_invivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.8, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+
+DimPlot(immune.combined_invivo, reduction = "umap", label = TRUE, cols =c(rep("grey",3), "black"), pt.size = 0.1, label.size = 0)+theme_void()
 
 
-all_lncrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "all_lncrnas.rds"))
-annotated_mrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "annotated_mrnas.rds"))
-
-
-correlations_invivo <- filter_significant_correlations(correlations_invivo_all, ref, all_lncrnas_invivo, annotated_mrnas_invivo, FDRTHRESHOLD, RHOTHRESHOLD)[[1]]
-sig_cor_lnc_invivo <- filter_significant_correlations(correlations_invivo_all, ref, all_lncrnas_invivo, annotated_mrnas_invivo, FDRTHRESHOLD, RHOTHRESHOLD)[[2]]
-
-
-
+immune.combined_invivo$viral_load > 0 
 ```
 
 
 # Visualize umap plot EX VIVO
 ```{r lala}
-infected_cells <- rownames(ebola_genome_percentage_df[ebola_genome_percentage_df$classification == "Infected",])
-immune.combined$viral_load <- ebola_genome_percentage_df[colnames(immune.combined),]$percentage_viral_reads
-immune.combined$log_viralload <- log10(immune.combined$viral_load+1)
 
-#0. --------------------------------------------
-# Plot the UMAP whole
-pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
-viralload_umap_full <- Seurat::FeaturePlot(immune.combined, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
-viralload_umap_full
-dev.off()
-
-viralload_umap_full
 
 
 ```
@@ -206,7 +165,7 @@ dim_big <- 0.8
 cols <- c('ENSMMUG00000064224-unknown' = 'red',  "ENSMMUG00000056793-unknown" = "#6C0202", "NDUFA10" = "grey", "HDLBP" = "black")
 highlights <- c('ENSMMUG00000064224-unknown' ,  "ENSMMUG00000056793-unknown", "HDLBP", "NDUFA10")
 sizes <- c('ENSMMUG00000064224-unknown' = dim_big,  "ENSMMUG00000056793-unknown" = dim_big, "NDUFA10" = dim_big, "HDLBP" = dim_big, "other" = 0.2)
-genes_expression <-  Reduce("rbind", lapply(highlights, function(gene) get_expression_summary_gene(gene, mono_live_h24_inf_exvivo, ebola_genome_percentage_df_exvivo)))
+genes_expression <-  Reduce("rbind", lapply(highlights, function(gene) get_expression_summary_gene(gene, mono_live_h24_inf_exvivo)))
 
 
 # 2. Plot 

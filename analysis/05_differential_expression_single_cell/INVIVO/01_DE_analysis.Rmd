@@ -27,7 +27,7 @@ library(circlize)
 library(reshape2)
 library(Gviz)
 
-theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "black"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
 theme_umap <- theme(panel.background = element_rect(fill = "white"),
                     panel.grid.major = element_blank(),
@@ -71,6 +71,8 @@ reported_immlnc <- immlnc$lncRNA_symbol
 
 orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 mono <- subset(immune.combined, ident = "Monocyte")
+B <- subset(immune.combined, ident = "B")
+T <- subset(immune.combined, ident = "T")
 # -------------------------------------------
 #    Define threshold for the whole analysis
 # -------------------------------------------
@@ -87,8 +89,7 @@ FCTHRESHOLD <- log(1.23)
 ```{r readfilesDE}
 files <- iterate_files(robjectsdir, "MAST_invivo_model_*")
 get_celltype <- function(x){strsplit(basename(x), "_")[[1]][4]}
-get_stage <- function(x){strsplit(strsplit(basename(x), "_")[[1]][5], '.', fixed = T )[[1]][1]}
-
+get_stage <- function(x){strsplit(strsplit(basename(x), "_")[[1]][5], '.rds', fixed = T )[[1]][1]}
 
 # Read Rds files resulting from DE Analysis and assign to correct variable name
 mast_objects_celltype <- unlist(lapply(files, function(name) {  appendix <- paste(get_celltype(name), get_stage(name),  sep="_")
@@ -280,7 +281,6 @@ summary[!is.na(summary$ortholog),]$ortholog_found <- TRUE
 summary$ortholog <- as.character(summary$ortholog)
 
 write.table(summary, file.path(data_path, "plots/03/lncDE.csv"), sep = ",", row.names = F)
-unique(summary[summary$ortholog_found == T, c("ortholog", "celltype")])
 ```
 # -----------------------------------------------
 #     STATS DE
@@ -646,6 +646,61 @@ m_type
 fisher.test(m_type,alternative = "greater")
 
 ```
+# Plot the expression of shared genes 
+
+```{r expression}
+# Load summary
+final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
+
+
+# Gene 1 should go up mostly 
+shared_1 <- shared_all[2]
+de_all[de_all$primerid == shared_1,]
+
+plot_expression_gene(shared_1, mono)
+plot_expression_gene(shared_1, B)
+plot_expression_gene(shared_1, T)
+monosafe <- mono
+immune.combined$celltype <- Idents(immune.combined)
+immune.combined$group
+mono$group
+DotPlot(mono, features = shared_all[1], group.by = "group",cols = c("light grey", "dark red"))+coord_flip()+theme_bw()
+
+gene <- shared_1
+pal_celltypes <- c("#FD6467","#F1BB7B","#AE4E4E","#D67236")
+col_mono <- pal_celltypes[1]
+
+plot_genes_celltypes <- function(gene, mono, name){
+  p <- plot_expression_gene(gene, mono, "blue", name)[[1]]
+  pdf(file.path(plots, paste("03/", get_orthologname_(gene), "_", name,".pdf", sep = "")), width = 5, height = 4)
+  print(p)
+  dev.off()
+}
+
+plot_genes_ALL_celltypes <- function(gene){
+  plot_genes_celltypes(gene, mono,"monocytes")
+  plot_genes_celltypes(gene, B,"B")
+  plot_genes_celltypes(gene, T,"T")
+}
+
+plot_genes_ALL_celltypes(shared_all[1])
+plot_genes_ALL_celltypes(shared_all[1])
+plot_genes_ALL_celltypes("ENSMMUG00000058532-unknown")
+
+
+
+
+test <-final_summary[final_summary$celltype == "B", ]
+test[order(test$DE_coefficient, decreasing = TRUE),]
+
+plot_genes_ALL_celltypes("ENSMMUG00000057439-unknown")
+
+de_all[de_all$primerid =="ENSMMUG00000057439-unknown",  ]
+DotPlot(mono, features  = "ENSMMUG00000057439-unknown", group.by = "group")
+
+```
+
+
 
 # Is NEAT1 Downregulated? 
 
@@ -658,13 +713,14 @@ get_gene_id <- function(gene){
 }
 
 
-
-plot_expression_gene <- function(gene){
+plot_expression_gene <- function(gene, mono, col = "blue", title = ""){
   neat1exp <- mono[gene,]
-  baseline <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
-  early <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
-  middle <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
-  late <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
+  B <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
+  E <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
+  M <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
+  L <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
+  
+  neat1exp$type <- toupper(substring(neat1exp$group, 1,1))
   
   #name <- "baseline"
   get_average <- function(name){
@@ -674,12 +730,12 @@ plot_expression_gene <- function(gene){
     return(b)
   }
   
-  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$group)), function(x) get_average(x)))
-  exp$type <- factor(exp$type, levels = c("baseline", "early", "middle", "late"))
+  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
+  exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
   
   
   #pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
-  p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = "blue")+theme(legend.title = element_blank())+ylab("average expression (logCP10K)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+  p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = col)+theme(legend.title = element_blank())+ylab("log(CP10K+1)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+theme_paper+ggtitle(get_orthologname_(gene))+labs(subtitle = title )+theme(plot.title = element_text(hjust = 0.5),plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))
   #dev.off()
   
 
@@ -699,11 +755,14 @@ plot_expression_gene("MALAT1")
 dev.off()
 
 
+shared_all
+
 
 #mono@active.assay <- "RNA"
 #plot_expression_gene(get_gene_id("NEAT1"))
 #plot_expression_gene(get_gene_id("MALAT1"))
 #plot_expression_gene("SRRM2")
+
 
 ```
 

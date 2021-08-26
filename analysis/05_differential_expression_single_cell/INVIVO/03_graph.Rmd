@@ -168,13 +168,7 @@ gD2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhem
 lou2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds"))
 linkList <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList.rds"))
 
-# Graph plotting Proprieties
-V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in% de_lnc_names, "#F5F5F5", "grey")
-# highlight novel ones 
-V(gD2)[startsWith(names(as.list(V(gD2))), "MSTRG")]$color <- "dark red"
-# Highlight orthologs
-V(gD2)$frame.color <- "#7A7A7A"
-V(gD2)$community <- membership(lou2)
+
 
 
 #saveRDS(gD2,"/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph_neut/gD2.rds" )
@@ -194,30 +188,35 @@ set.seed(1)
 #       Check the enrichment per community 
 # --------------------------------------------
 do_go_community<- function(list, universe,n,de_lnc_names, genes = T, npathways=5 ){
-   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "ALL",universe =universe)
+   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =universe)
    p1 <- clusterProfiler::dotplot(ego,showCategory =5)
    p1b <-barplot(ego,showCategory =5)
    p2 <- heatplot(ego, showCategory =5)
    
-   p3 <- plot_graph_heatmap(subgraph(gD2, V(gD2)[community==n]))
+   #p3 <- plot_graph_heatmap(subgraph(gD2, V(gD2)[community==n]))
    
    # Extarct the lnc in the community 
-   lnc_comm <- rownames(gD2[V(gD2)$community  == n])[rownames(gD2[V(gD2)$community  == n]) %in% de_lnc_names]
+   #lnc_comm <- rownames(gD2[V(gD2)$community  == n])[rownames(gD2[V(gD2)$community  == n]) %in% de_lnc_names]
+   
+   lnc_comm <- unlist(lou2[lou2$membership == n])[unlist(lou2[lou2$membership == n]) %in% de_lnc_names]
    orth <- Reduce("rbind", lapply(lnc_comm, get_ortholog))
    if(genes == T ){
      go_genes <- unique(unlist(lapply(ego@result[1:npathways, ]$geneID, function(x) str_split(x,"/")[[1]])))
      return(go_genes)
    }else{
-     return(list(p1,p1b,p2, p3, orth))
+     return(list(p1,p1b,p2, orth))
    }
    
 }
+
+
 
 get_gene <- function(t){
   return(unique(ref[!is.na(ref$transcript_id) & ref$transcript_id == t, ]$gene_id))
 }
 get_orth <- function(n){
-   lnc_comm <- rownames(gD2[V(gD2)$community  == n])[rownames(gD2[V(gD2)$community  == n]) %in% de_lnc_mono]
+   #lnc_comm <- rownames(gD2[V(gD2)$community  == n])[rownames(gD2[V(gD2)$community  == n]) %in% de_lnc_mono]
+  lnc_comm <- unlist(lou2[lou2$membership == n])[unlist(lou2[lou2$membership == n]) %in% de_lnc_names]
    o <- Reduce("rbind", lapply(lnc_comm, get_ortholog))
    o$gene <- unlist(lapply(as.character(o$lnc), get_gene))
    return(o)
@@ -233,7 +232,7 @@ get_ortholog <- get_orthologname_
 c1 <- community_check(1)
 c1
 c2 <- community_check(2)
-#c2
+c#2
 c3 <- community_check(3)
 #c3
 c4 <- community_check(4)
@@ -242,14 +241,16 @@ c4
 c5 <- community_check(5)
 #c5
 c6 <- community_check(6)
-c6
+#c6
 c7 <- community_check(7)
 #c7
 
 c1_genes <- community_check(1, genes = T)
-c2_genes <- community_check(2, genes = T)
 c4_genes <- community_check(4, genes = T)
 go_genes <- c(c1_genes, c4_genes)
+
+
+
 
 ```
 # ---------------------------------------
@@ -258,23 +259,40 @@ go_genes <- c(c1_genes, c4_genes)
 
 
 ```{r colocation}
+# Graph plotting Proprieties
+V(gD2)$color <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_names, "ENSMMUG00000052424") ,  "dark red", "grey")
+# highlight novel ones 
+V(gD2)[startsWith(names(as.list(V(gD2))), "MSTRG")]$color <- "dark red"
+# Highlight orthologs
+V(gD2)$frame.color <- "black"
+V(gD2)$community <- membership(lou2)
 
-png(filename = file.path(data_path,"plots/05/graph1.png"), width = 3300, height = 2100)
+
+
+# ------ Set layout --------------------
 #l <- layout.fruchterman.reingold(gD2, niter=5000)
 #saveRDS(l, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds")
 l <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/layout.rds"))
 
+# ------ Which genes to highlight --------------------
 go_genes <- c(go_genes, "FCGR3", "MS4A7", "ZFP36", "ENSMMUG00000052424", "SRRM2")
+
+
+# ------ General proprieties -------------------------
 V(gD2)$size <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), 4, 1)
 V(gD2)$label <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono, go_genes), unlist(lapply(names(as.list(V(gD2))), get_orthologname_)), NA)
+V(gD2)$font <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono), 2, 1 )
 V(gD2)$degree <- -pi/2 
+
+
+# ------------- Change position of specific genes 
 # Below
-V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("IL7R", "S100A9", "S100A8","GADD45B", "ISG15", "MSTRG.195139", "MS4A7", "LGALS3"), pi/2, V(gD2)$degree )
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("IL7R", "S100A9", "S100A8","GADD45B", "ISG15", "MSTRG.195139", "MS4A7", "LGALS3", "ENSMMUG00000058532"), pi/2, V(gD2)$degree )
 V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("FCGR3" ), pi/1.4, V(gD2)$degree )
 
 # Right
-V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B", "HBEGF", "MSTRG.168139", "LINC00861"), 0, V(gD2)$degree )
-V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B","HBEGF", "LINC00861"), 1.5,0.55 )
+V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B", "HBEGF", "MSTRG.168139", "LINC00861", "ENSMMUG00000052424", "SRRM2"), 0, V(gD2)$degree )
+V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("CDKN1A", "GADD45B","HBEGF", "LINC00861", "ENSMMUG00000052424", "SRRM2"), 1.5,0.55 )
 
 # Left
 V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("ENSMMUG00000058644", "MSTRG.228510", "MSTRG.17705"), pi, V(gD2)$degree )
@@ -285,17 +303,16 @@ V(gD2)$degree <- ifelse(names(as.list(V(gD2))) %in% c("KLF4"), pi, V(gD2)$degree
 V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("KLF4" ), 1,V(gD2)$dist)
 
 
-V(gD2)$font <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono), 2, 1 )
-#l <- layout_nicely(gD2)
 
-
+# -------------------Plot the Graph 
+png(filename = file.path(data_path,"plots/05/graph_main.png"), width = 3300, height = 2100)
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
     layout=l,
-    edge.color= "#7A7A7A", vertex.frame.width = 10,
-    mark.col=adjustcolor(pal_jco()(7), alpha = 0.3),
-    mark.border=(pal_jco()(7)),
+    edge.color= "black", vertex.frame.width = 10,
+    mark.col=adjustcolor("grey", alpha = 0.3),
+    mark.border=adjustcolor("grey", alpha = 0.3),
     vertex.label.color="black", vertex.label.font=1,
     vertex.label.cex=3,
     vertex.label.dist=V(gD2)$dist , 
@@ -307,13 +324,15 @@ legend("topright",
        legend=unique(lou2$membership),
        fill=adjustcolor(pal_jco()(8), alpha = 0.4), border=NA)
 dev.off()
+
+
 ```
-# --------------------------------------
-#    Plot graph for supplementary
-# --------------------------------------
+# ---------------------------------------------------------------------
+#    Plot graph for supplementary: Dyrectionality of dyregulation 
+# ----------------------------------------------------------------------
 
 ```{r readfilesDE}
-png(filename = file.path(data_path,"plots/05/graphsuppl.png"), width = 3300, height = 2100)
+
 
 
 # ---- 1. Get the direction 
@@ -333,18 +352,19 @@ mono_de[mono_de$summarized_direction_lnc == "down", ]$color <- "blue"
 rownames(mono_de) <- mono_de$id
 
 V(gD2)$color  <- mono_de[names(as.list(V(gD2))),]$color
-V(gD2)$size <- 1
-V(gD2)$size <- ifelse(mono_de[names(as.list(V(gD2))),]$type == "pc", 2,4)
+#V(gD2)$size <- 1
+#V(gD2)$size <- ifelse(mono_de[names(as.list(V(gD2))),]$type == "pc", 2,4)
   
 genes[!(genes %in% rownames(mono_de))]
-  
+
+png(filename = file.path(data_path,"plots/05/SUPPL_graph_directionalityDysregulation.png"), width = 3300, height = 2100)
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
     layout=l,
-    edge.color= "#7A7A7A",
-    mark.col=adjustcolor(pal_jco()(7), alpha = 0.3),
-    mark.border=(pal_jco()(7)),
+    edge.color= "black", vertex.frame.width = 10,
+    mark.col=adjustcolor("grey", alpha = 0.3),
+    mark.border=adjustcolor("grey", alpha = 0.3),
     vertex.label.color="black", vertex.label.font=1,
     vertex.label.cex=3,
     vertex.label.dist=V(gD2)$dist , 
@@ -353,7 +373,61 @@ plot(lou2, gD2,
     vertex.label = V(gD2)$label )+ geom_text_repel()
 dev.off()
 ```
+# ---------------------------------------------------------------------
+#    Plot graph for supplementary: Stage of dyregulation 
+# ----------------------------------------------------------------------
 
+```{r readfilesDE}
+
+# ---- 1. Get the direction 
+# All genes in graph 
+genes <- names(as.list(V(gD2)))
+# Get table with DE information 
+de_all$id <- gsub("-unknown","",de_all$primerid) 
+# Only extract cell-type concerned and genes used
+mono_de <- de_all[de_all$celltype == "Monocyte",]
+mono_de$id <- gsub("MAMU-", "MAMU.", mono_de$id, fixed = T)
+mono_de <- distinct(mono_de[mono_de$id %in% genes, ])
+length(unique(mono_de$primerid))
+mono_de <- mono_de[,c("id", "type", "coef", "stage")]
+
+# Retain DE info for maximum FC
+mono_de <- mono_de %>% dplyr::group_by(id) %>%  dplyr::filter(abs(coef) == max(abs(coef)))
+length(unique(mono_de$id))
+
+mono_de <- mono_de %>% group_by(id, type) %>% dplyr::summarise(stage = toString((stage)))
+a_red <- lapply(mono_de$stage, function(x) unique(str_split(x, ", ")[[1]]))
+summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
+mono_de$summarized_direction_lnc <- summarized_direction
+
+
+mono_de$color <- "grey"
+mono_de[mono_de$summarized_direction_lnc == "early", ]$color <- "yellow"
+mono_de[mono_de$summarized_direction_lnc == "middle", ]$color <- "orange"
+mono_de[mono_de$summarized_direction_lnc == "late", ]$color <- "red"
+rownames(mono_de) <- mono_de$id
+
+V(gD2)$color  <- mono_de[names(as.list(V(gD2))),]$color
+
+  
+
+
+png(filename = file.path(data_path,"plots/05/SUPPL_graph_stage.png"), width = 3300, height = 2100)
+plot(lou2, gD2,
+    edge.arrow.size = .1,
+    col=V(gD2)$color,
+    layout=l,
+    edge.color= "black", vertex.frame.width = 10,
+    mark.col=adjustcolor("grey", alpha = 0.3),
+    mark.border=adjustcolor("grey", alpha = 0.3),
+    vertex.label.color="black", vertex.label.font=1,
+    vertex.label.cex=3,
+    vertex.label.dist=V(gD2)$dist , 
+    vertex.label.degree=V(gD2)$degree, 
+    vertex.label.family="Helvetica",
+    vertex.label = V(gD2)$label )+ geom_text_repel()
+dev.off()
+```
 
 # ----------------------------------------------------------------------------------
 #    LncRNAs are involved in co-regulatory network involved in MHCII presentation  
@@ -406,6 +480,8 @@ c_pc$type <- "pc"
 c <- rbind(c_lnc,c_pc)
 df_cor <- c[!is.na(c$pval), ]
 df_cor_sig <- df_cor[df_cor$pval < 0.05,]
+
+de_all[de_all$primerid == "FTH1",]
 ```
 
 

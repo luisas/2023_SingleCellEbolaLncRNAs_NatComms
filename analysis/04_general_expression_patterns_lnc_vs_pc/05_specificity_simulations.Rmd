@@ -15,7 +15,7 @@ library(multiplyr)
 # Set-up general information 
 # Global variable 
 celltypes <- identities <- c("B", "T", "M") 
-props <- c(0.2, 0.5, 0.3)
+props <- c(0.5, 0.3, 0.2)
 tot_cells <- 40000
 
 p <- c("#A30808", "#ff0000", "#ff4000", "#ff8000", "#ffbf00", "#CBCA1C",  "#6C8DBF", "#1D56AB", "#23265A")
@@ -64,7 +64,7 @@ genes_proportions <- list(c(1,0,0),  #Highly specific:100%
                           c(0.1,0.5,0.5), #Medium-low specific:50%, 10%, 50%
                           
                           c(0.5,0.1,0), #Medium-high specific
-                          c(0.5,0.1,0), #Medium-high specific
+                          c(0.5,0,0.1), #Medium-high specific
                           c(0.1,0.5,0), #Medium-high specific
                           c(0,0.5,0.1), #Medium-high specific
                           c(0.1,0,0.5), #Medium-high specific
@@ -78,12 +78,16 @@ genes_proportions <- list(c(1,0,0),  #Highly specific:100%
 # Case2: super specfici.  0.5 cells of one cell-type. (One per celltype)
 # Case3: super specfici.  0.2 cells of one cell-type. (One per celltype)
 
-labels <- c(rep("High",9), rep("Medium", 3), rep("Medium",3), rep("Medium", 6), rep("Low", 3))
+#labels <- c(rep("High",9), rep("Medium", 3), rep("Medium",3), rep("Medium", 6), rep("Low", 3))
 labels <- factor(labels, levels= c("Low", "Medium", "High"))
-labels_prop <- c(rep("100", 3), rep("50", 3), rep("20",3), rep("-",3),  rep("low",3),rep("high",6), "10", "50", "100")
+#labels_prop <- c(rep("100", 3), rep("50", 3), rep("20",3), rep("-",3),  rep("low",3),rep("high",6), "10", "50", "100")
+labels_prop <- c(rep("100", 3), rep("50", 3), rep("20",3), "50-10-10","10-50-10", "10-10-50","50-50-10", "50-10-50","10-50-50","50-10-0", "50-0-10", "10-50-0", "0-50-10", "10-0-50", "0-10-50", "10", "50", "100")
 labels_full <- paste(labels, labels_prop)
-labels_full  <- factor(labels_full, levels=c("High 100","High 50","High 20", "Medium high","Medium -","Medium low","Low 100","Low 50", "Low 10"  ))
+#labels_full  <- factor(labels_full, levels=c("High 100","High 50","High 20", "Medium high","Medium -","Medium low","Low 100","Low 50", "Low 10"  ))
 
+
+
+ labels_full  <- factor(labels_full, levels=c("High 100","High 50","High 20", "Medium high","Medium 50-10-10", "Medium 10-50-10" ,"Medium 10-10-50" ,"Medium 50-50-10" ,"Medium 50-10-50","Medium 10-50-50" , "Medium 50-10-0" , "Medium 50-0-10"  ,"Medium 10-50-0" , "Medium 0-50-10" , "Medium 10-0-50","Medium 0-10-50","Medium low","Low 100","Low 50", "Low 10"))
 
 genes <- unlist(lapply(genes_proportions, get_expression_vector))
 n_genes <- length(genes)/tot_cells
@@ -179,9 +183,12 @@ specificity_scores$label_full <- labels_full
 
 specificity_scores$gene <- factor(specificity_scores$gene, levels = specificity_scores$gene[rev(order(specificity_scores$score))])
 
-pdf(file.path(plots, "02/SUPPL_SPECSCORE_tau.pdf"), width = 8, height = 6)
-ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("reproposed tau score")+ xlab("simulated gene expression")
-dev.off()
+write.table(specificity_scores[,c("tau", "label_full", "gene")], file = file.path(data_path, "00_Metadata/Tau_simulations.csv"), row.names = F, col.names = T, sep = ",")
+
+
+#pdf(file.path(plots, "02/SUPPL_SPECSCORE_tau.pdf"), width = 8, height = 6)
+#ggplot(specificity_scores[order(specificity_scores$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("reproposed tau score")+ xlab("simulated gene expression")
+#dev.off()
 ```
 
 
@@ -240,16 +247,18 @@ specificity_scores_filt <- Reduce("rbind", lapply(unique(specificity_scores_filt
 
 
 
-ggplot(specificity_scores_filt[order(specificity_scores_filt$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ggtitle("Not ranged")
+#ggplot(specificity_scores_filt[order(specificity_scores_filt$score),], aes(y = score, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ggtitle("Not ranged")
 
 
 specificity_scores_filt$gene <- factor(specificity_scores_filt$gene, levels = specificity_scores_filt$gene[rev(order(specificity_scores_filt$score_ranged))])
 
-pdf(file.path(plots, "02/SUPPL_SPECSCORE_alternative.pdf"), width = 8, height = 6)
-ggplot(specificity_scores_filt[order(specificity_scores_filt$score_ranged),], aes(y = score_ranged, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("alternative specificity score")+xlab("simulated gene expression")
-dev.off()
+#pdf(file.path(plots, "02/SUPPL_SPECSCORE_alternative.pdf"), width = 8, height = 6)
+#ggplot(specificity_scores_filt[order(specificity_scores_filt$score_ranged),], aes(y = score_ranged, x = gene, col = label_full ))+geom_point(size = 6)+theme_paper+theme(axis.text.x = element_blank(), axis.ticks = element_blank())+scale_color_manual(values=p)+ylab("alternative specificity score")+xlab("simulated gene expression")
+#dev.off()
 
-
+a <- specificity_scores_filt[,c("score_ranged", "label_full", "gene")]
+a$score_ranged <- as.character(a$score_ranged)
+write.table(a[order(a$score_ranged, decreasing = T),], file = file.path(data_path, "00_Metadata/Upsilon_simulations.csv"), row.names = F, col.names = T, sep = ",")
 
 ```
 

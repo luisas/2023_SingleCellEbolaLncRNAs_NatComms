@@ -81,8 +81,15 @@ density_cells <- ggdensity(df_complete, x = "perc_cells_expressing",
    palette = palette_plot_percentage)+xlab("% cells")+ylab("density")+scale_x_log10()+theme(text = element_text(size = 20))
 
 # Save plot 
-pdf(file.path(plots, "02/density_cells.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/density_cells_scalexlog.pdf"), width = 6, height = 6)
 density_cells
+dev.off()
+
+
+pdf(file.path(plots, "02/density_cells_NOscalexlog.pdf"), width = 6, height = 6)
+ggdensity(df_complete, x = "perc_cells_expressing",
+   color = "type", fill = "type", alpha = 0.8, add = "median",
+   palette = palette_plot_percentage)+xlab("% cells")+ylab("density")+theme(text = element_text(size = 20))
 dev.off()
 
 
@@ -111,12 +118,20 @@ dev.off()
 # 1a. Density plot of % cells expressing 
 density_cells <- ggdensity(df_complete, x = "medianexpr",
    color = "type", fill = "type", alpha = 0.8, add = "median",
-   palette = palette_plot_percentage)+xlab("median expression")+ylab("density")+theme(text = element_text(size = 20))
+   palette = palette_plot_percentage)+xlab("median expression")+ylab("density")+theme(text = element_text(size = 20))+scale_x_log10()
 
 # Save plot 
-pdf(file.path(plots, "02/density_medianexpression.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/density_medianexpression_scalexlog.pdf"), width = 6, height = 6)
 density_cells
 dev.off()
+
+# Save plot 
+pdf(file.path(plots, "02/density_medianexpression_NOscalexlog.pdf"), width = 6, height = 6)
+ggdensity(df_complete, x = "medianexpr",
+   color = "type", fill = "type", alpha = 0.8, add = "median",
+   palette = palette_plot_percentage)+xlab("median expression")+ylab("density")+theme(text = element_text(size = 20))
+dev.off()
+
 
 # 1b. boxplot median expression 
 density_expr <- ggboxplot(df_complete, x = "type", y = "medianexpr",
@@ -402,6 +417,23 @@ dev.off()
 pdf(file.path(plots, "02/matches_median.pdf"), width = 6, height = 6)
 plot_matching_scatter(matches_median)
 dev.off()
+
+
+
+
+pdf(file.path(plots, "02/MedianExpression_matchedByCells.pdf"), width = 4, height = 6)
+ggboxplot(matches_perc, x = "type", y = "medianexpr",
+   color = "type", fill = "type", alpha = 0.8,
+   palette = palette_plot_percentage)+xlab("")+ylab("median expression")+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+theme(legend.position = "")
+dev.off()
+
+pdf(file.path(plots, "02/PercCells_matchedByExpr.pdf"), width = 4, height = 6)
+ggboxplot(matches_median, x = "type", y = "perc_cells_expressing",
+   color = "type", fill = "type", alpha = 0.8, 
+   palette = palette_plot_percentage)+xlab("")+ylab("% cells")+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+scale_y_continuous(limits = c(0,1), expand = c(0,0))+theme(legend.position = "")
+dev.off()
+
+
 
 
 ```

@@ -194,6 +194,12 @@ match_plots <- function(df_test, title = "specificity score"){
   
   test1 <- wilcox.test(matches_perc[matches_perc$type == "lncRNA", ]$score, matches_perc[matches_perc$type == "mRNA", ]$score, paired = T)
   
+  # Pure boxplot
+  scores_boxplot_matched <- ggboxplot(matches_perc, x = "type", y = "score",
+   color = "black", fill = "type", 
+   palette = palette_plot_percentage)+xlab("")+ylab(title)+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+theme(legend.position = "")
+  
+  
   # .-------------------------------------------------------------------
   # Match by the score
   c <- df_test[complete.cases(df_test),]
@@ -241,7 +247,7 @@ match_plots <- function(df_test, title = "specificity score"){
   #scatter_plot_matching_withboxplot2<- ggExtra::ggMarginal(scatter_plot_matching2,type = 'boxplot',margins = "both",size = 3,colour = "darkgrey", alpha = 0.3,groupColour = TRUE, groupFill = TRUE)
   #scatter_plot_matching_withboxplot2
   
-  return(list(p, p5, test1, test2))
+  return(list(p, p5, test1, test2, scores_boxplot_matched))
 }
 
 stats_specificity <- function(specificity_scores, plots = F, title = "specificity score"){
@@ -370,27 +376,28 @@ rownames(specificity_scores) <- as.character(specificity_scores$gene)
 specificity_scores <- specificity_scores[specificity_scores$gene %in% c(df_lnc$gene_id, df_mrna$gene_id),]
 
 # Plot Stats
-alt_stats <- stats_specificity(specificity_scores, plots = F, title = "alternative specificity score")
+alt_stats <- stats_specificity(specificity_scores, plots = F, title = "upsilon")
 
 pdf(file.path(plots, "02/SUPPL_spec_alt_boxplotmarkers.pdf"), width = 3, height = 4)
 alt_stats[[1]]
 dev.off()
 
+plots_ups <- match_plots(get_df_summary(specificity_scores), title = "upsilon")
 
 pdf(file.path(plots, "02/SUPPL_spec_matching_cells_alt.pdf"), width = 6, height = 6)
-match_plots(get_df_summary(specificity_scores), title = "alternative specificity score")[[1]]
+plots_ups[[1]]
 dev.off()
 
 pdf(file.path(plots, "02/SUPPL_sepc_matching_score_alt.pdf"), width = 6, height = 6)
-match_plots(get_df_summary(specificity_scores), title = "alternative specificity score")[[2]]
+plots_ups[[2]]
 dev.off()
 
+plots_ups[[3]]
+plots_ups[[4]]
 
-match_plots(get_df_summary(specificity_scores))[[3]]
-match_plots(get_df_summary(specificity_scores))[[4]]
-
-
-
+pdf(file.path(plots, "02/MAIN_2I.pdf"), width = 4, height = 6)
+plots_ups[[5]]
+dev.off()
 ```
 
 
