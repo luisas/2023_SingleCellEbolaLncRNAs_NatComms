@@ -41,12 +41,6 @@ pal_celltypes <- c("#FD6467","#F1BB7B","#AE4E4E","#D67236")
 
 
 
-# Load the PBMC dataset
-pbmcs <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/pbmc_tutorial.rds"))
-# Initialize the Seurat object with the raw (non-normalized data).
-pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
-pbmc
-
 ```
 
 # --------------------------------------------------
@@ -70,7 +64,7 @@ dev.off()
 # --------------------------------------------------
 
 ```{r readfilesDE}
-pdf(file.path(plots, "02/B_dotplot.pdf"), width = 5, height = 5)
+pdf(file.path(plots, "02/B_dotplot.pdf"), width = 8, height = 5)
 DotPlot(immune.combined, features = unique(marker.genes_red), cols = c("grey", "dark red", "white"), dot.scale = 11) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())+ theme(panel.background = element_rect(fill = "white"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=21))
 dev.off()
 ```
@@ -82,15 +76,13 @@ dev.off()
 
 # S1 
 ```{r readfilesDE}
-pdf(file.path(plots, "02/SUPPL_DPI.pdf"), width = 5, height = 5)
+pdf(file.path(plots, "02/SUPPL_DPI.pdf"), width = 6, height = 5)
 
 immune.combined$group_dpi <- gsub("DPI-04", "DPI000", immune.combined$group_dpi)
 immune.combined$group_dpi <- gsub("DPI-30", "DPI000", immune.combined$group_dpi)
 immune.combined$group_dpi_plot <- gsub("DPI00", "", immune.combined$group_dpi)
 # Day post infection 
 colfunc <- colorRampPalette(c("black", "white"))
-pal_grad <-plot(rep(1,10),col=colfunc(10),pch=19,cex=3)
-
 DimPlot(immune.combined, reduction = "umap", group.by = "group_dpi_plot", pt.size = 0.1, cols =rev(colfunc(9)[1:7]))+theme_umap+theme()
 
 dev.off()

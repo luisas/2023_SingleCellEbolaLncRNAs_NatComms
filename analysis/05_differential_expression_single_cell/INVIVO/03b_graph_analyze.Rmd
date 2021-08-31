@@ -172,7 +172,7 @@ V(gD2)$dist <- ifelse(names(as.list(V(gD2))) %in% c("KLF4" ), 1,V(gD2)$dist)
 
 
 # -------------------Plot the Graph 
-png(filename = file.path(data_path,"plots/05/graph_main.png"), width = 3300, height = 2100)
+png(filename = file.path(data_path,"plots/04/graph_main.png"), width = 3300, height = 2100)
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
@@ -204,13 +204,13 @@ dev.off()
 genes <- names(as.list(V(gD2)))
 de_all$id <- gsub("-unknown","",de_all$primerid) 
 mono_de <- de_all[de_all$celltype == "Monocyte",]
-mono_de <- mono_de %>% group_by(id, type) %>% dplyr::summarise(direction = toString((direction)))
+mono_de <- mono_de %>% dplyr::group_by(id, type) %>% dplyr::summarise(direction = toString((direction)))
 a_red <- lapply(mono_de$direction, function(x) unique(str_split(x, ", ")[[1]]))
 summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
 mono_de$summarized_direction_lnc <- summarized_direction
 
 mono_de$id <- gsub("MAMU-", "MAMU.", mono_de$id, fixed = T)
-mono_de <- distinct(mono_de[mono_de$id %in% genes, ])
+mono_de <- dplyr::distinct(mono_de[mono_de$id %in% genes, ])
 mono_de$color <- "grey"
 mono_de[mono_de$summarized_direction_lnc == "up", ]$color <- "red"
 mono_de[mono_de$summarized_direction_lnc == "down", ]$color <- "blue"
@@ -220,7 +220,7 @@ V(gD2)$color  <- mono_de[names(as.list(V(gD2))),]$color
 
   
 # 2. ------------- PLOT 
-png(filename = file.path(data_path,"plots/05/SUPPL_graph_directionalityDysregulation.png"), width = 3300, height = 2100)
+png(filename = file.path(data_path,"plots/04/SUPPL_graph_directionalityDysregulation.png"), width = 3300, height = 2100)
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
@@ -249,7 +249,7 @@ de_all$id <- gsub("-unknown","",de_all$primerid)
 # Only extract cell-type concerned and genes used
 mono_de <- de_all[de_all$celltype == "Monocyte",]
 mono_de$id <- gsub("MAMU-", "MAMU.", mono_de$id, fixed = T)
-mono_de <- distinct(mono_de[mono_de$id %in% genes, ])
+mono_de <- dplyr::distinct(mono_de[mono_de$id %in% genes, ])
 length(unique(mono_de$primerid))
 mono_de <- mono_de[,c("id", "type", "coef", "stage")]
 # Retain DE info for maximum FC
@@ -257,7 +257,7 @@ mono_de <- mono_de %>% dplyr::group_by(id) %>%  dplyr::filter(abs(coef) == max(a
 length(unique(mono_de$id))
 
 # ---------------    Only get the stage with maximum FC ------------------------
-mono_de <- mono_de %>% group_by(id, type) %>% dplyr::summarise(stage = toString((stage)))
+mono_de <- mono_de %>% dplyr::group_by(id, type) %>% dplyr::summarise(stage = toString((stage)))
 a_red <- lapply(mono_de$stage, function(x) unique(str_split(x, ", ")[[1]]))
 summarized_direction <- unlist(ifelse(lapply(a_red, function(x) length(x))>1, "mixed", a_red))
 mono_de$summarized_direction_lnc <- summarized_direction
@@ -272,7 +272,7 @@ rownames(mono_de) <- mono_de$id
 V(gD2)$color  <- mono_de[names(as.list(V(gD2))),]$color
 
 # --------- PLOT 
-png(filename = file.path(data_path,"plots/05/SUPPL_graph_stage.png"), width = 3300, height = 2100)
+png(filename = file.path(data_path,"plots/04/SUPPL_graph_stage.png"), width = 3300, height = 2100)
 plot(lou2, gD2,
     edge.arrow.size = .1,
     col=V(gD2)$color,
@@ -321,7 +321,7 @@ dotplot_isgs <- ggplot(plot.data_up, aes(x = type, y = name, size= pct.exp, col 
   theme(axis.ticks.x = element_blank(), axis.title.y = element_blank() )
 
 
-pdf(file.path(plots, "05/dotplot_isgs.pdf"), width = 8, height = 6)
+pdf(file.path(plots, "04/dotplot_isgs.pdf"), width = 8, height = 6)
 dotplot_isgs
 dev.off()
 
@@ -333,7 +333,7 @@ plot.data_up$name <- unlist(lapply(plot.data_up$gene, get_orthologname_))
 dotplot_leukprol <- ggplot(plot.data_up, aes(x = type, y = name, size= pct.exp, col = mean))+geom_point()+theme_paper+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+scale_size(range = c(5,10))+
   theme(axis.ticks.x = element_blank(), axis.title.y = element_blank() )
 
-pdf(file.path(plots, "05/dotplot_isgs.pdf"), width = 8, height = 6)
+pdf(file.path(plots, "04/dotplot_leuk.pdf"), width = 8, height = 6)
 dotplot_leukprol
 dev.off()
 

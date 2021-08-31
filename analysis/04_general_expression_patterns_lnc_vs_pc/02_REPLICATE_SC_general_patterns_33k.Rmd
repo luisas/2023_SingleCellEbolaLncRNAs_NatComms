@@ -37,6 +37,12 @@ pc <- ref[ref$gene_biotype == "protein_coding",]$gene_name
 immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/03_validation_pbmcs_external/01_10xGenomic_10kPBMCs/01_immunecombined_idents.rds"))
 annotated_lncrnas <- rownames(immune.combined)[rownames(immune.combined) %in% lnc]
 annotated_mrnas <- rownames(immune.combined)[rownames(immune.combined) %in% pc]
+
+theme_matching <- theme(panel.background = element_rect(fill = "white", color = "black"))+
+                  theme(legend.position ="",panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.length=unit(.2, "cm"))+
+                  theme(axis.text = element_text(size = 15, color ="black"), axis.title = element_text(size = 17))
+
 ```
 
 # Visualize how many lncRNAs and PC genes are present in the object 

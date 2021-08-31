@@ -60,24 +60,34 @@ orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05
 
 # Only keep relevant columns 
 orthologs_red <- distinct(orthologs[,c("gene_id","lnc", "orthologGeneSymbol","alignScore")])
-# Only keep maximum score of alignment per ortholog
+
+# 1. Retain maximum score of alignment per ortholog
 orthologs_max <- orthologs_red %>% dplyr::group_by(orthologGeneSymbol) %>% dplyr::summarise(alignScore=max(alignScore))
 orthologs_max$key <- paste(orthologs_max$orthologGeneSymbol, orthologs_max$alignScore, sep ="_")
+orthologs_red$key <- paste(orthologs_red$orthologGeneSymbol, orthologs_red$alignScore, sep ="_")
 
-# Only keep maximum score of alignment per gene
-orthologs_max_gene <- orthologs_red %>% dplyr::group_by(gene_id) %>% dplyr::summarise(alignScore=max(alignScore))
-orthologs_max_gene$key_gene <- paste(orthologs_max_gene$gene_id, orthologs_max_gene$alignScore, sep ="_")
-
-#orthologs_red$key <- paste(orthologs_red$orthologGeneSymbol, orthologs_red$alignScore, sep ="_")
-orthologs_red$key_gene <- paste(orthologs_red$gene_id, orthologs_red$alignScore, sep ="_")
+# 2. Retain maximum score of alignment per gene
+#orthologs_max_gene <- orthologs_red %>% dplyr::group_by(gene_id) %>% dplyr::summarise(alignScore=max(alignScore))
+#orthologs_max_gene$key_gene <- paste(orthologs_max_gene$gene_id, orthologs_max_gene$alignScore, sep ="_")
+#orthologs_red$key_gene <- paste(orthologs_red$gene_id, orthologs_red$alignScore, sep ="_")
 
 
 # Join 
-#orthologs_max_ortholog <- orthologs_max %>% dplyr::left_join(orthologs_red, by = c("key"))
-orthologs_max_gene <- orthologs_max_gene %>% dplyr::left_join(orthologs_red, by = c("key_gene"))
-#colnames(orthologs_max_ortholog) <- gsub("orthologGeneSymbol.x","orthologGeneSymbol",colnames(orthologs_max_ortholog))
-#colnames(orthologs_max_ortholog) <- gsub("gene_id.x","gene_id",colnames(orthologs_max_ortholog))
-#orthologs_max_ortholog <- distinct(orthologs_max_ortholog[,c("orthologGeneSymbol", "gene_id", "alignScore.x")])
+orthologs_max_ortholog <- orthologs_max %>% dplyr::left_join(orthologs_red, by = c("key"))
+
+colnames(orthologs_max_ortholog) <- gsub("orthologGeneSymbol.x","orthologGeneSymbol",colnames(orthologs_max_ortholog))
+colnames(orthologs_max_ortholog) <- gsub("gene_id.x","gene_id",colnames(orthologs_max_ortholog))
+orthologs_max_ortholog <- distinct(orthologs_max_ortholog[,c("orthologGeneSymbol", "gene_id", "alignScore.x")])
+
+#  Retain maximum score of alignment per gene
+orthologs_max_gene <- orthologs_max_ortholog %>% dplyr::group_by(gene_id) %>% dplyr::summarise(alignScore=max(alignScore.x))
+orthologs_max_gene$key_gene <- orthologs_max_gene$key_gene <- paste(orthologs_max_gene$gene_id, orthologs_max_gene$alignScore, sep ="_")
+orthologs_max_ortholog$key_gene <- paste(orthologs_max_ortholog$gene_id, orthologs_max_ortholog$alignScore.x, sep ="_")
+orthologs_max_gene <- orthologs_max_gene %>% dplyr::left_join(orthologs_max_ortholog, by = c("key_gene"))
+
+# Check all is fine 
+orthologs_max_gene %>% dplyr::group_by(gene_id.x) %>% dplyr::count(orthologGeneSymbol) %>% dplyr::filter(n>1)
+
 
 colnames(orthologs_max_gene) <- gsub("orthologGeneSymbol.x","orthologGeneSymbol",colnames(orthologs_max_gene))
 colnames(orthologs_max_gene) <- gsub("gene_id.x","gene_id",colnames(orthologs_max_gene))

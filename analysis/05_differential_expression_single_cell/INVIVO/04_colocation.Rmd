@@ -70,9 +70,16 @@ plot_colocation <- function(cis_celltype_plot, celltype){
 
 
 plot_colocation(cis_mono, "Monocyte")
+
 plot_colocation(cis_B, "B")
+
 plot_colocation(cis_T, "T")
+
+
+
 plot_colocation(cis_celltype, "All")
+
+
 ```
 
 
@@ -81,7 +88,7 @@ plot_colocation(cis_celltype, "All")
 # Monocytes
 stat_cis <- function(cis){
   # Number of pairs
-  print(paste("Number of Pairs:", nrow(distinct(cis[,c("lnc", "gene")]))))
+  print(paste("Number of Pairs:", nrow(unique(cis[,c("lnc", "gene")]))))
   # Number of lnc
   print(paste("Number of Pairs:", length(unique(cis[,c("lnc")]))))
   print("----------")
@@ -138,10 +145,13 @@ plot_s <- function(links){
   p
   return(p)
 }
-
 plot_s( significant_plot[significant_plot$celltype == "Monocyte",])
+
 plot_s( significant_plot[significant_plot$celltype == "B",])
-plot_s( significant_plot[significant_plot$celltype == "T",])
+
+
+print(plot_s( significant_plot[significant_plot$celltype == "T",]))
+
 
 
 

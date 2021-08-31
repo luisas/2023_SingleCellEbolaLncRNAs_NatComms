@@ -18,8 +18,18 @@ library(MatchIt)
 library(gridExtra)
 library(reshape2)
 
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+
+
 
 theme_sc_paper <- theme(panel.background = element_rect(fill = "white", colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())+theme_paper
+
+
+
+theme_matching <- theme(panel.background = element_rect(fill = "white", color = "black"))+
+                  theme(legend.position ="",panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+              axis.ticks.length=unit(.2, "cm"))+
+                  theme(axis.text = element_text(size = 15, color ="black"), axis.title = element_text(size = 17))
 
 
 # Set themes and palette
@@ -29,6 +39,9 @@ theme_sc <- theme(axis.title.x.top = element_text())+theme_minimal()+ theme(pane
 col_lnc = "#f72631"
 col_mrna = "#3153a3"
 palette_plot_percentage <- c(col_lnc, col_mrna)
+
+source(file.path("../utils/00_datapaths.R"))
+source("../utils/02_sc_utils.R")
 
 # Load objects
 robjectsdir <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
@@ -337,11 +350,11 @@ tau <- tau[tau$gene %in% c(df_lnc$gene_id, df_mrna$gene_id),]
 # Plot Stats
 stats_tau <- stats_specificity(tau, plots = F, title = "repurposed tau score")
 
-pdf(file.path(plots, "02/SUPPL_spec_matching_cells_tau.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_spec_matching_cells_tau.pdf"), width = 6, height = 6)
 match_plots(get_df_summary(tau), title  = "repurposed tau score")[[1]]
 dev.off()
 
-pdf(file.path(plots, "02/SUPPL_sepc_matching_score_tau.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_sepc_matching_score_tau.pdf"), width = 6, height = 6)
 match_plots(get_df_summary(tau), title = "repurposed tau score")[[2]]
 dev.off()
 
@@ -350,7 +363,7 @@ match_plots(get_df_summary(tau))[[3]]
 match_plots(get_df_summary(tau))[[4]]
 
 
-pdf(file.path(plots, "02/SUPPL_spec_tau_boxplotmarkers.pdf"), width = 3, height = 4)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_spec_tau_boxplotmarkers.pdf"), width = 3, height = 4)
 stats_tau[[1]]
 dev.off()
 
@@ -378,24 +391,24 @@ specificity_scores <- specificity_scores[specificity_scores$gene %in% c(df_lnc$g
 # Plot Stats
 alt_stats <- stats_specificity(specificity_scores, plots = F, title = "upsilon")
 
-pdf(file.path(plots, "02/SUPPL_spec_alt_boxplotmarkers.pdf"), width = 3, height = 4)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_spec_alt_boxplotmarkers.pdf"), width = 3, height = 4)
 alt_stats[[1]]
 dev.off()
 
 plots_ups <- match_plots(get_df_summary(specificity_scores), title = "upsilon")
 
-pdf(file.path(plots, "02/SUPPL_spec_matching_cells_alt.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_spec_matching_cells_alt.pdf"), width = 6, height = 6)
 plots_ups[[1]]
 dev.off()
 
-pdf(file.path(plots, "02/SUPPL_sepc_matching_score_alt.pdf"), width = 6, height = 6)
+pdf(file.path(plots, "02/SPECIFICITY/SUPPL_sepc_matching_score_alt.pdf"), width = 6, height = 6)
 plots_ups[[2]]
 dev.off()
 
 plots_ups[[3]]
 plots_ups[[4]]
 
-pdf(file.path(plots, "02/MAIN_2I.pdf"), width = 4, height = 6)
+pdf(file.path(plots, "02/SPECIFICITY/MAIN_2I.pdf"), width = 4, height = 6)
 plots_ups[[5]]
 dev.off()
 ```

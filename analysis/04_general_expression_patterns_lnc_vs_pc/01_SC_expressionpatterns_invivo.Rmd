@@ -14,6 +14,7 @@ output: html_document
 ```{r include=FALSE}
 library(ggplot2)
 library(ggpubr)
+library(reshape2)
 library(cowplot)
 library(MatchIt)
 
@@ -63,7 +64,7 @@ df_complete_celltype[df_complete_celltype$gene_id %in% df_mrna$gene_id,]$type <-
 
 # Import Seurat object 
 file <- file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds")
-orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 immune.combined <- readRDS(file)
 ```
 
@@ -557,7 +558,7 @@ df_complete_celltype<- df_complete_celltype[df_complete_celltype$n_cells >= 30, 
 df_complete_celltype$type <- gsub("mRNA", "protein coding", df_complete_celltype$type)
 
 c <- df_complete_celltype[complete.cases(df_complete_celltype),]
-c$type = ifelse(c$type == "lncRNA", 1, 0)
+c$type <-  ifelse(c$type == "lncRNA", 1, 0)
 
 
 # ---------------new 
@@ -565,7 +566,7 @@ match_in_one_celltype_median_boxplotonly <- function(c, celltype_test){
   
   c <- c[c$ident == celltype_test,]
   # match expression 
-  mi_median <- matchit(type ~ medianexpr, data = c)
+  mi_median <- MatchIt::matchit(type ~ medianexpr, data = c)
   matches_median <-df_ident <-  get_matches(mi_median, data = c)
 
   df_ident <- df_ident[!is.na(df_ident$perc_cells_expressing),]
@@ -573,7 +574,7 @@ match_in_one_celltype_median_boxplotonly <- function(c, celltype_test){
   df_ident$type <- factor(df_ident$type, levels = c("lncRNA", "protein coding"))
 
   my_comparisons <- list( c("lncRNA", "protein coding"))
-  p <- ggboxplot(df_ident, x = "type", y = "perc_cells_expressing", fill = "type", col = "type",alpha=0.7)+theme()+scale_fill_manual(values = (palette_plot_percentage))+scale_color_manual(values = (palette_plot_percentage))+xlab("")+ylab("% cells")+theme(text = element_text(size=15))+scale_y_continuous(limits = c(0,1.1), expand = c(0,0))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank()) + theme(axis.text.x = element_text(size=10), legend.position = "")+stat_compare_means(comparisons = my_comparisons)+ggtitle(ident)+theme(plot.title = element_text(hjust = 0.5))+theme(axis.text.x.bottom =element_blank() )
+  p <- ggboxplot(df_ident, x = "type", y = "perc_cells_expressing", fill = "type", col = "type",alpha=0.7)+theme()+scale_fill_manual(values = (palette_plot_percentage))+scale_color_manual(values = (palette_plot_percentage))+xlab("")+ylab("% cells")+theme(text = element_text(size=15))+scale_y_continuous(limits = c(0,1.1), expand = c(0,0))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank()) + theme(axis.text.x = element_text(size=10), legend.position = "")+stat_compare_means(comparisons = my_comparisons)+ggtitle(celltype_test)+theme(plot.title = element_text(hjust = 0.5))+theme(axis.text.x.bottom =element_blank() )
   return(p)
 }
 
@@ -631,69 +632,3 @@ dev.off()
 
 ```
 
-
-
-```{r matchmedian}
-
-match_in_one_celltype_perccells_get_median <- function(c, celltype_test){
-  
-  c <- c[c$ident == celltype_test,]
-  
-  # match expression 
-  mi_perc <- matchit(type ~ perc_cells_expressing,c)
-  matches_perc <- get_matches(mi_perc, c)
-  matches_perc$type = ifelse(matches_perc$type == 0, "mrna", "lnc")
-  n_matches <- length(unique(matches_perc[matches_perc$type == "lnc",]$gene_id))
-  
-  median_0 <- matches_perc[matches_perc$type == "lnc",]$medianexpr
-  median_1 <- matches_perc[matches_perc$type == "mrna",]$medianexpr
-  test <- wilcox.test(median_0, median_1, paired = TRUE)
-  pval <- test$p.value
-  
-  df_0 <- data.frame(val = median_0, type = "lnc", celltype = celltype_test, stringsAsFactors = F)
-  df_1 <- data.frame(val = median_1, type = "mrna", celltype = celltype_test, stringsAsFactors = F)
-  return(rbind(df_0, df_1))
-}
-
-df_medians_matched <- do.call(rbind, lapply(unique(Idents(immune.combined)), function(celltype) match_in_one_celltype_perccells_get_median(c, celltype)))
-
-
-ggplot(df_medians_matched, aes(x = celltype,col = type,  fill = type, y = val))+geom_boxplot(alpha = 0.5)+theme_paper+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+ylab("Median Expression")+ggtitle("Matched by the percentage of cells expressing")
-
-
-
-
-match_in_one_celltype_median_get_perc <- function(c, celltype_test){
-  
-  c <- c[c$ident == celltype_test,]
-  # match expression 
-  mi_median <- matchit(type ~ medianexpr,c)
-  matches_median <- get_matches(mi_median, c)
-  matches_perc$type = ifelse(matches_perc$type == 1, "lnc", "mrna")
-
-  # Calculate p-value 
-  perc_cells_0 <- matches_median[matches_median$type == 0,]$perc_cells_expressing
-  perc_cells_1 <- matches_median[matches_median$type == 1,]$perc_cells_expressing
-  test <- wilcox.test(perc_cells_0, perc_cells_1, paired = TRUE)
-  pval <- test$p.value
-  
-  df_0 <- data.frame(val = perc_cells_0, type = "mrna", celltype = celltype_test, stringsAsFactors = F)
-  df_1 <- data.frame(val = perc_cells_1, type = "lnc", celltype = celltype_test, stringsAsFactors = F)
-  return(rbind(df_0, df_1))
-}
-
-
-
-df_perc_matched <- do.call(rbind, lapply(unique(Idents(immune.combined)), function(celltype) match_in_one_celltype_median_get_perc(c, celltype)))
-
-
-# When matched by the median 
-ggboxplot(df_perc_matched, col = "type",  fill = "type", y = "val",alpha = 0.5)+theme_paper+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+ylab("% Cells expressing")+ggtitle("Matched by the median")+facet_grid(cols = vars(celltype))+ stat_compare_means(aes(group=type))+theme(legend.position = "")
-
-
-# When matched by the prop of cells
-ggboxplot(df_medians_matched, col = "type",  fill = "type", y = "val",alpha = 0.5)+theme_paper+scale_fill_manual(values = palette_plot_percentage)+
-            scale_color_manual(values = palette_plot_percentage)+ylab("Median Expression (logCP10K")+ggtitle("Matched by the median")+facet_grid(cols = vars(celltype))+ stat_compare_means(aes(group=type))+theme(legend.position = "")
-```

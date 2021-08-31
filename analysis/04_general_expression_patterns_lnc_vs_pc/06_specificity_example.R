@@ -54,32 +54,32 @@ fplot <- function(gene, col){
 
 
 
-pdf(file.path(plots,"02/GENE_annot_spec.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_annot_spec.pdf"), width = 6, height = 6)
 fplot(annotated_lnc_celltypespec, col_lnc)
 dev.off()
 
 
-pdf(file.path(plots,"02/GENE_novel_spec.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_novel_spec.pdf"), width = 6, height = 6)
 fplot(novel_lnc_celltypespec, col_lnc)
 dev.off()
 table_summary_scores[novel_lnc_celltypespec,]
 
 
-pdf(file.path(plots,"02/GENE_PC_spec.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_PC_spec.pdf"), width = 6, height = 6)
 fplot(pc_celltype_spec, col_mrna)
 dev.off()
 table_summary_scores[pc_celltype_spec,]
 
-pdf(file.path(plots,"02/GENE_novel_ubi.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_novel_ubi.pdf"), width = 6, height = 6)
 fplot(novel_lnc_ubiq, col_lnc)
 dev.off()
 
 
-pdf(file.path(plots,"02/GENE_annot_ubi.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_annot_ubi.pdf"), width = 6, height = 6)
 fplot(annot_lnc_ubiq, col_lnc)
 dev.off()
 
-pdf(file.path(plots,"02/GENE_pc_spec.pdf"), width = 6, height = 6)
+pdf(file.path(plots,"02/SPECIFICITY/GENE_pc_spec.pdf"), width = 6, height = 6)
 fplot(t_spec, col_mrna)
 dev.off()
 

@@ -11,7 +11,7 @@ library(ggplot2)
 
 
 # 0 ------------ Define paths for data
-source(file.path("../utils/00_datapaths.R"))
+source("../utils/00_datapaths.R")
 source("../utils/02_sc_utils.R")
 
 theme_umap <- theme(panel.background = element_rect(fill = "white"),
@@ -37,8 +37,8 @@ pal3 <- c( "#3B9AB2","#78B7C5","#EBCC2A")
 
 # -----------2  Plots 
 # 1. Celltypes 
-pdf(file.path(plots, "05/A_celltypes.pdf"), width = 7, height = 5)
-DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =pal_celltypes, label.size = 9)+theme_void()+theme_umap
+pdf(file.path(plots, "05/A_celltypes_nolabel.pdf"), width = 7, height = 5)
+DimPlot(immune.combined, reduction = "umap", label = FALSE, cols =pal_celltypes)+theme_void()+theme_umap
 dev.off()
 
 # 2. Dotplot
@@ -47,19 +47,19 @@ DotPlot(immune.combined, features = unique(marker.genes_red), cols = c("grey", "
 dev.off()
 
 # 3. SUPPL : DPI 
-pdf(file.path(plots, "05/SUPPL_DPI.pdf"), width = 7, height = 5)
+pdf(file.path(plots, "05/SUPPL_hourPostInfection.pdf"), width = 7, height = 5)
 # Day post infection 
 colfunc <- colorRampPalette(c("black", "white"))
 DimPlot(immune.combined, red = "umap", group.by = "dpi", pt.size = 0.1, cols = rev(brewer.pal(8, "Paired")))+theme_umap
 dev.off()
 
 # 3. SUPPL : Individual
-pdf(file.path(plots, "05/SUPPL_individual.pdf"), width = 7, height = 5)
+pdf(file.path(plots, "05/SUPPL_macaque.pdf"), width = 7, height = 5)
 DimPlot(immune.combined, reduction = "umap", group.by = "individual_nhp",cols = c(brewer.pal(10, "Paired")[c(1,2)]), pt.size = 0.1)+theme_umap
 dev.off()
 
 # 3: SUPPL: Condition 
-pdf(file.path(plots, "05/SUPPL_hours.pdf"), width = 7, height = 5)
+pdf(file.path(plots, "05/SUPPL_condition.pdf"), width = 7, height = 5)
 p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "cond",cols =pal4, pt.size = 0.01)+theme_umap
 p4
 dev.off()
@@ -95,9 +95,9 @@ ebola_genome_percentage_df <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/0
 
 
 
-pdf(file.path(plots, "05/SUPPL_density.pdf"), width = 7, height = 5)
-ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
-dev.off()
+#pdf(file.path(plots, "05/SUPPL_density.pdf"), width = 7, height = 5)
+#ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
+#dev.off()
 
 
 pdf(file.path(plots, "05/Infectedcells.pdf"), width = 5, height = 5)
@@ -123,7 +123,7 @@ percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infect
 percentage_cells_infected_per_celltype$cond <- factor(percentage_cells_infected_per_celltype$cond , levels = c("media", "irrad", "live"))
 
 
-pdf(file.path(plots, "05/barplot.pdf"), width = 5, height = 5)
+pdf(file.path(plots, "05/SUPPL_barplot_infection.pdf"), width = 5, height = 5)
 percentage_cells_infected_per_celltype$condhr <- paste(percentage_cells_infected_per_celltype$cond, percentage_cells_infected_per_celltype$hour)
 ggplot(percentage_cells_infected_per_celltype, aes( x= celltype, y = perc_infected , col = condhr, fill = condhr))+geom_bar(stat="identity",position = position_dodge(), alpha = 0.8)+theme_paper+xlab("")+ylab("% of cells infected")+theme(axis.text.y = element_text(size = 8))+scale_fill_manual(values = pal3)+scale_color_manual(values =pal3)+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+geom_hline(yintercept =1, lty =2)
 dev.off()

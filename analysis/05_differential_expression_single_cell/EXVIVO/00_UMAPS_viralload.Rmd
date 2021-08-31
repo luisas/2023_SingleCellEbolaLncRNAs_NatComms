@@ -36,7 +36,7 @@ immune.combined_exvivo$log_viralload <- log10(immune.combined_exvivo$viral_load+
 
 #0. --------------------------------------------
 # Plot the UMAP whole
-pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+pdf(file.path(plots, "05/viralload_exvivo.pdf"), width = 7, height = 6)
 viralload_umap_full <- Seurat::FeaturePlot(immune.combined_exvivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
 viralload_umap_full
 dev.off()
@@ -64,7 +64,7 @@ immune.combined_invivo$log_viralload <- log10(immune.combined_invivo$viral_load+
 
 #0. --------------------------------------------
 # Plot the UMAP whole
-pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+pdf(file.path(plots, "05/viralload_invivo.pdf"), width = 7, height = 6)
 viralload_umap_full <- Seurat::FeaturePlot(immune.combined_invivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
 viralload_umap_full
 dev.off()
