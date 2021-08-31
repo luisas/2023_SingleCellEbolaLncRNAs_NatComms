@@ -1,0 +1,37 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Imports 
+
+
+```{r include=FALSE}
+library(Seurat);
+
+# Define paths for data
+source("../../utils/00_datapaths.R")
+
+# ---------------------------------------------------
+#           Load  references 
+# ---------------------------------------------------
+# Leave commented for now
+# immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_COPY.rds"))
+# 0 . Add infection status
+# ebola_genome_percentage_df_exvivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+# table(colnames(immune.combined_exvivo) == rownames(ebola_genome_percentage_df_exvivo))
+# immune.combined_exvivo$viral_load <- ebola_genome_percentage_df_exvivo$percentage_viral_reads
+# immune.combined_exvivo$infection <- ebola_genome_percentage_df_exvivo$classification
+#saveRDS(immune.combined_exvivo, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_infection_COPY.rds"))
+
+immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready_infection_COPY.rds"))
+
+
+# Example to select cells with viral load higher than 0 
+immune.combined_exvivo[,immune.combined_exvivo$viral_load > 0]
+
+
+```

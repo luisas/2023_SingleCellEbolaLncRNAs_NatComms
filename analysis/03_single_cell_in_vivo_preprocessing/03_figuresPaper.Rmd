@@ -58,6 +58,11 @@ pdf(file.path(plots, "02/A_celltypes.pdf"), width = 5, height = 5)
 # Plot with correct
 DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =pal_celltypes, label.size = 9)+theme_minimal()+theme_umap
 dev.off()
+
+pdf(file.path(plots, "02/A_celltypes_nolabel.pdf"), width = 5, height = 5)
+# Plot with correct
+DimPlot(immune.combined, reduction = "umap", label = FALSE, cols =pal_celltypes)+theme_minimal()+theme_umap+theme(legend.position = "")
+dev.off()
 ```
 
 # --------------------------------------------------

@@ -3,21 +3,24 @@ params.dirData = "/gpfs/projects/bsc83/Data/Ebola"
 params.dirProj = "/gpfs/projects/bsc83/Projects/Ebola"
 
 params.output_dir_name = "01_scRNA-Seq_inVivo_rhemac10"
+params.input_dir_name = "01_scRNA-Seq_inVivo_rhemac10"
 params.output_dir = "${params.dirData}/02_scRNA-Seq_PBMCs/${params.output_dir_name}"
+params.input_dir = "${params.dirData}/02_scRNA-Seq_PBMCs/${params.input_dir_name}"
 params.output_prefix = "immune.combined"
 params.scripts="${baseDir}/scripts/"
-qc_script = Channel.fromPath("${params.scripts}/SC/01_QC.R").collect()
+params.qc = "01_QC.R"
+qc_script = Channel.fromPath("${params.scripts}/SC/${params.qc}").collect()
 scrublet_script = Channel.fromPath("${params.scripts}/SC/02_scrublet_script.py").collect()
 
 Channel.fromPath("${params.dirData}/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")
        .into{ GtfChannel;GtfChannel2; GtfChannel3;GtfChannel4; GtfChannel5;   }
 
-quantification_channel_1 = Channel.fromPath("${params.output_dir}/04_DigitalExpressionMatrix_OK/*/*/*/*/*/*.dge.txt.gz").collect()
+quantification_channel_1 = Channel.fromPath("${params.input_dir}/04_DigitalExpressionMatrix_OK/*/*/*/*/*/*.dge.txt.gz").collect()
 quantification_channel_1.into{quantification_channel; quantification_channel_2}
 
 quantification_channel_2.subscribe{ println "$it" }
-
 println("${params.output_dir}")
+
 process QC{
 
   cpus 1

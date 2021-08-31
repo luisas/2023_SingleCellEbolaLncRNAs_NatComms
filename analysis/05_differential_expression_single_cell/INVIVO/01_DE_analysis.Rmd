@@ -27,7 +27,7 @@ library(circlize)
 library(reshape2)
 library(Gviz)
 
-theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "black"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+theme_paper <- theme(panel.background = element_rect(fill = "white", colour = "black", size = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())+theme_paper
 
 theme_umap <- theme(panel.background = element_rect(fill = "white"),
                     panel.grid.major = element_blank(),
@@ -363,24 +363,17 @@ de_stats_direction_plot$direction <- factor(de_stats_direction_plot$direction, c
 
 
 pdf(file.path(plots, "03/SUPPL_directionalityPC.pdf"), width = 8, height = 6)
-ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("# DE mRNAs")+xlab("")
+p1<- ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("# DE mRNAs")+xlab("")
+p1
 dev.off()
 
 pdf(file.path(plots, "03/SUPPL_directionalityLNC.pdf"), width = 8, height = 6)
-ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("#DE lncRNAs")+xlab("")
+p2 <- ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("#DE lncRNAs")+xlab("")
+p2
 dev.off()
 
-ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype+subtype)+scale_fill_manual(values = rev(c("#FF6B6B", "#6BABFF")))+ylab("Number of DE lncRNAs")+xlab("")+theme(legend.position = "")
-
-
-de_stats_direction_plot <- de_all %>%  dplyr::group_by(primerid, celltype,type) %>% dplyr::summarise(direction = toString((direction)))
-de_stats_direction_plot <- de_all %>%  dplyr::group_by(primerid, celltype,type,subtype) %>% dplyr::summarise(direction = toString((direction)))
-
-ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = celltype, col = direction, fill = direction))+geom_bar(stat="count", position= position_dodge())+theme_paper
-
-
-ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = celltype, col = direction, fill = direction))+geom_bar(stat="count", position= position_dodge())+theme_paper
-
+p1
+p2
 ```
 
 # ---------------------
@@ -426,8 +419,8 @@ de_lnc <- de_all[de_all$type == "lnc", ]
 de_lnc$ortholog <- unlist(lapply(de_lnc$primerid, get_orthologname_))
 de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "ENS"), FALSE,  TRUE)
 de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "MST"), FALSE,  de_lnc$ortholog_found)
-de_lnc$ImmLnc <- ifelse(de_lnc$ortholog %in% immlnc$lncRNA_symbol, "reported in Immlnc", "not reported in ImmLnc")
-de_lnc$ImmLnc <- factor(de_lnc$ImmLnc, levels = c( "not reported in ImmLnc","reported in Immlnc"))
+de_lnc$ImmLnc <- ifelse(de_lnc$ortholog %in% immlnc$lncRNA_symbol, "present", "absent")
+de_lnc$ImmLnc <- factor(de_lnc$ImmLnc, levels = c( "absent","present"))
 de_lnc_red <- de_lnc[,c("ortholog","ortholog_found", "ImmLnc")]                    
 
 # How many DE genes have an ortholog 
@@ -438,12 +431,13 @@ de_lnc[de_lnc$ortholog_found == TRUE, ] %>% dplyr::group_by(ImmLnc) %>% dplyr::s
 
 ortholog_summary <-de_lnc[de_lnc$ortholog_found == TRUE, ] %>% dplyr::group_by( celltype,ortholog_found, ImmLnc) %>% dplyr::summarise(n =  dplyr::n()) %>% dplyr::mutate(freq = n / sum(n))
 
-ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = n))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("#genes")+xlab("")+ggtitle("DE genes for which an ortholog was found")
-
+ortholog_summary$celltype <- gsub("B", "B cell", ortholog_summary$celltype )
+ortholog_summary$celltype <- gsub("T", "T cell", ortholog_summary$celltype )
+ortholog_summary$celltype <- factor(ortholog_summary$celltype, levels  = c("Monocyte", "B cell", "T cell"))
 pdf(file.path(plots, "03/SUPPL_orthologs.pdf"), width = 7, height = 6)
-ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = freq))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("% DE genes")+xlab("")+theme_classic()+theme(axis.ticks.x = element_blank(), text = element_text(size = 20), axis.line.x = element_blank()) +theme(axis.line.y.left  = element_line(color= "black"), legend.title = element_blank())
+p <- ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = n))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("# genes")+xlab("")+labs(fill = "in ImmLnc")+theme(legend.title = element_text(size = 20))+theme(text = element_text(colour = "black"))
+p
 dev.off()
-
 ```
 
 # ---------------------------------------------------------------
@@ -455,16 +449,26 @@ library(UpSetR)
 x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))
 length(unique(unlist(x)))
 names(x)  <-  c( "T " , "B  ","Monocyte" )
-plot <- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",3)))
 
-plot <- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15), main.bar.color=c(rep("black",3), rep("dark grey",3)),sets.bar.color="grey")
+
+pdf(file.path(plots, "03/upset_de_coloredCelltype.pdf"), width = 7, height = 5)
+upset_colored<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",3)))
+upset_colored
+dev.off()
 
 pdf(file.path(plots, "03/upset_de.pdf"), width = 7, height = 5)
+plot <- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15), main.bar.color=c(rep("black",3), rep("dark grey",3)),sets.bar.color="grey")
 plot
 dev.off()
 
-# Genes in multiple celltypes: investigate which ones
 
+upset_colored
+plot
+```
+
+
+```{r Upsets}
+# Check ids 
 # In all 
 print("Shared in all celltypes")
 shared_all <- unique(intersect(unlist(unique(de_lists_lnc_T)), intersect(unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
@@ -480,17 +484,108 @@ unlist(lapply(b_m_shared[!is.na(b_m_shared)], get_orthologname_))
 print("Shared in T and Mono")
 t_m_shared <- setdiff(intersect(unlist(unique(de_lists_lnc_T)),unlist(unique(de_lists_lnc_my))), shared_all)
 unlist(lapply(t_m_shared[!is.na(t_m_shared)], get_orthologname_))
+```
 
 
+# Plot the expression of shared genes 
+
+```{r expression}
+
+library(cowplot)
+# Load summary
+final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
+
+# Get the genes shared across cell-types 
+shared_1 <- shared_all[1]
+shared_2 <- shared_all[2]
+de_all[de_all$primerid == shared_1,]
+de_all[de_all$primerid == shared_2,]
+
+
+# Line plot 
+plot_genes_ALL_celltypes(shared_all[1])
+plot_genes_ALL_celltypes(shared_all[2])
+
+
+
+# Add info to Seurat object to plot
+immune.combined$celltype <- Idents(immune.combined)
+
+# 1.  Dotplot modified 
+plot.data_up <- Dotplot_data(immune.combined, features = shared_all, group.by = "celltype", split.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred", rep("blue", 10)), dot.scale = 20)
+plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname_))
+plot.data_up$celltype <- unlist(lapply(as.character(plot.data_up$id),function(x) str_split(x, "_")[[1]][1]))
+plot.data_up$stage <- unlist(lapply(as.character(plot.data_up$id),function(x) str_split(x, "_")[[1]][2]))
+plot.data_up <- plot.data_up[plot.data_up$celltype != "Neutrophil", ]
+ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))+ facet_grid(cols = vars(celltype),scales = "free")+
+  theme(axis.ticks.x = element_blank(), axis.text.x =element_blank(), axis.title.y = element_blank() )
+#  2. Heatmap modified 
+heatmap_celltypes(plot.data_up)
+#  3. Dotplot standard 
+immune.combined$id_full <- paste(immune.combined$celltype, immune.combined$group, "_")
+DotPlot(immune.combined, features = shared_all, group.by = "id_full",cols = c("light grey", "dark red"), dot.scale = 5)+coord_flip()+theme_bw()
+
+# --------------------------------------------
+#     Plot expression gene
+
+# 1. Dotplot by myself 
+
+# 2. Lines colored by celltype F1BB7B
+pal_celltypes <- c("#FD6467","#AE4E4E","#F1BB7B","#D67236")
+
+plot_gene_expression_separatedlines <- function(gene, B, T, Mono){
+  B_exp <- plot_expression_gene(gene, B)[3][[1]]
+  B_exp$celltype <- "B"
+
+  T_exp <- plot_expression_gene(gene, T)[3][[1]]
+  T_exp$celltype <- "T"
+
+  Mono_exp <- plot_expression_gene(gene, mono)[3][[1]]
+Mono_exp$celltype <- "Mono"
+
+exp <- rbind(Mono_exp, B_exp, T_exp)
+exp$gene <- gene
+p <- ggplot(exp, aes(x= type, y = mean, col = celltype, group = celltype))+
+  geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+
+  theme_classic()+
+  geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+
+  geom_line()+
+  theme(legend.title = element_blank())+ylab("log(CP10K+1)")+
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+
+  theme_paper+ggtitle(get_orthologname_(gene))+ xlab("")+
+  theme(plot.title = element_text(hjust = 0.5, size = 20),axis.text = element_text(size = 15), legend.title = element_text(size = 0), plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))+scale_color_manual(values = pal_celltypes)+
+  scale_size(range = c(0, 20))+scale_size_area(limits = c(1, 100))
+
+
+p
+return(list(p, exp))
+}
+
+pdf(file.path(plots, "03/Fig1G_Annot.pdf"), width = 7, height = 6)
+p1 <- plot_gene_expression_separatedlines(shared_1, B, T, Mono)[[1]]
+dev.off()
+
+pdf(file.path(plots, "03/Fig1G_Novel.pdf"), width = 7, height = 6)
+p2 <- plot_gene_expression_separatedlines(shared_2, B, T, Mono)
+dev.off()
+
+pdf(file.path(plots, "03/Fig1G_both.pdf"), width = 12, height = 6)
+exp_full <- rbind(novel, annot)
+combined <- p1 + p2 & theme(legend.position = "right")
+combined + plot_layout(guides = "collect")
+dev.off()
+
+shae
+```
+
+
+```{r Upsets}
 # How many DE lncrnas are novel ? 
-
 table(substr(unique(lnc_de_all$primerid),1,3))
-
 
 # Which ones have the stringest FC? 
 lnc_de_all <- lnc_de_all[!is.na(lnc_de_all$primerid),]
 length(unique(lnc_de_all$primerid))
-
 lnc_de_all[order(lnc_de_all$coef),]
 
 # Get the top 5  down in Monocyetes
@@ -504,49 +599,10 @@ lnc_de_t <- lnc_de_all[lnc_de_all$celltype == "T",]
 lnc_de_t[order(lnc_de_t$coef),][1:7, ]
 unique(unlist(lapply(lnc_de_t[order(lnc_de_t$coef),][1:6, ]$primerid, get_orthologname_)))
 
-#orthologs[orthologs$orthologGeneSymbol.y == "GAS5",]
-
 # Get the top 5  down in T
 lnc_de_b<- lnc_de_all[lnc_de_all$celltype == "B",]
 lnc_de_mono[order(lnc_de_mono$coef),][1:5, ]
 unique(unlist(lapply(lnc_de_b[order(lnc_de_b$coef),][1:7, ]$primerid, get_orthologname_)))
-
-
-# ------- highest fc
-
-# Get the top 5  down in Monocyetes
-print("up mono")
-unique(unlist(lapply(lnc_de_mono[rev(order(lnc_de_mono$coef)),][1:6, ]$primerid, get_orthologname_)))
-
-# Get the top 5  down in B
-print("up T")
-unique(unlist(lapply(lnc_de_t[rev(order(lnc_de_t$coef)),][1:8, ]$primerid, get_orthologname_)))
-
-#orthologs[orthologs$orthologGeneSymbol.y == "GAS5",]
-
-# Get the top 5  down in T
-print("up b")
-unique(unlist(lapply(lnc_de_b[rev(order(lnc_de_b$coef)),][1:5, ]$primerid, get_orthologname_)))
-
-# How many are in ImmLnc? 
-
-de_names <- unlist(lapply(lnc_de_all$primerid, function(x) get_orthologname_(x)))
-length(unique(de_names))
-de_orth <- de_names[!(substr(de_names,1,3) %in% c("MST", "ENS"))]
-
-# The ones that have an ortholog, have they been reported in immlnc?
-table(unique(de_orth) %in% reported_immlnc)/length(unique(de_orth))
-
-# Not de (But expressed)
-robjectsdir<- file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
-# 3. Load stats
-df_complete <- readRDS(file.path(robjectsdir, "df_complete.rds"))
-lnc_expressed <- (unique(df_complete[df_complete$type == "lncRNA", ]$gene_id))
-lnc_expressed_notDE <- (unique(setdiff(lnc_expressed,lnc_de_all$primerid)))
-lnc_expressed_notDE_orth <- unlist(lapply(lnc_expressed_notDE, function(x) get_orthologname_(x)))
-lnc_expressed_notDE_orth <- lnc_expressed_notDE_orth[!(substr(lnc_expressed_notDE_orth,1,3) %in% c("MST", "ENS"))]
-
-table(unique(lnc_expressed_notDE_orth) %in% reported_immlnc)/length(unique(lnc_expressed_notDE_orth))
 ```
 
 
@@ -571,13 +627,13 @@ x11 <- length(cell_type_specific_lnc)
 x21 <- length(cell_type_specific_pc)
 x12 <- length(non_cell_type_specific_lnc)
 x22 <- length(non_cell_type_specific_pc)
-m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
 rownames(m_type) <- c("lncRNA","PC")
 colnames(m_type) <- c("type_specific","non_cell-type_specific")
 m_type
 fisher.test(m_type,alternative = "greater")
 
-
+#  Visualize
 col_lnc = "navy"
 col_mrna = "#8DC3A7"
 palette_plot_percentage <- c(col_lnc, col_mrna)
@@ -586,7 +642,6 @@ df <- data.frame(label = rep(c("cell-type specific"), 2))
 df$type <- c("lnc", "pc")
 df$n <- c(length(cell_type_specific_lnc)/length(all_lnc), length(cell_type_specific_pc)/length(all_pc))
 df$n <- df$n*100
-
 ggplot(df, aes(x = label, fill = type, y = n))+geom_bar(stat = "identity", position = position_dodge())+theme_paper+ylab("% cell-type specific DE genes")+xlab("")+scale_fill_manual(values= c(palette_plot_percentage))
 ```
 
@@ -639,66 +694,14 @@ x11 <- length(cell_type_specific_lnc)
 x21 <- length(cell_type_specific_pc)
 x12 <- length(non_cell_type_specific_lnc)
 x22 <- length(non_cell_type_specific_pc)
-m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = T)
+m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
 rownames(m_type) <- c("lncRNA","PC")
 colnames(m_type) <- c("type_specific","non_cell-type_specific")
 m_type
 fisher.test(m_type,alternative = "greater")
 
 ```
-# Plot the expression of shared genes 
 
-```{r expression}
-# Load summary
-final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
-
-
-# Gene 1 should go up mostly 
-shared_1 <- shared_all[2]
-de_all[de_all$primerid == shared_1,]
-
-plot_expression_gene(shared_1, mono)
-plot_expression_gene(shared_1, B)
-plot_expression_gene(shared_1, T)
-monosafe <- mono
-immune.combined$celltype <- Idents(immune.combined)
-immune.combined$group
-mono$group
-DotPlot(mono, features = shared_all[1], group.by = "group",cols = c("light grey", "dark red"))+coord_flip()+theme_bw()
-
-gene <- shared_1
-pal_celltypes <- c("#FD6467","#F1BB7B","#AE4E4E","#D67236")
-col_mono <- pal_celltypes[1]
-
-plot_genes_celltypes <- function(gene, mono, name){
-  p <- plot_expression_gene(gene, mono, "blue", name)[[1]]
-  pdf(file.path(plots, paste("03/", get_orthologname_(gene), "_", name,".pdf", sep = "")), width = 5, height = 4)
-  print(p)
-  dev.off()
-}
-
-plot_genes_ALL_celltypes <- function(gene){
-  plot_genes_celltypes(gene, mono,"monocytes")
-  plot_genes_celltypes(gene, B,"B")
-  plot_genes_celltypes(gene, T,"T")
-}
-
-plot_genes_ALL_celltypes(shared_all[1])
-plot_genes_ALL_celltypes(shared_all[1])
-plot_genes_ALL_celltypes("ENSMMUG00000058532-unknown")
-
-
-
-
-test <-final_summary[final_summary$celltype == "B", ]
-test[order(test$DE_coefficient, decreasing = TRUE),]
-
-plot_genes_ALL_celltypes("ENSMMUG00000057439-unknown")
-
-de_all[de_all$primerid =="ENSMMUG00000057439-unknown",  ]
-DotPlot(mono, features  = "ENSMMUG00000057439-unknown", group.by = "group")
-
-```
 
 
 
@@ -755,13 +758,9 @@ plot_expression_gene("MALAT1")
 dev.off()
 
 
-shared_all
 
 
-#mono@active.assay <- "RNA"
-#plot_expression_gene(get_gene_id("NEAT1"))
-#plot_expression_gene(get_gene_id("MALAT1"))
-#plot_expression_gene("SRRM2")
+
 
 
 ```

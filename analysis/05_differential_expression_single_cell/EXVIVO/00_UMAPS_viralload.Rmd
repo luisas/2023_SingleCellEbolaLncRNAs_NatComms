@@ -1,0 +1,79 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Imports 
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr); library(Seurat); library(Matrix); library(SingleCellExperiment)
+library(stringr); library(rtracklayer); library(RColorBrewer); library(scales)
+library(ggthemes); library(org.Mmu.eg.db); library(ggplot2); library(ggvenn)
+library(ggExtra); library(Gviz); library(ggpubr)
+
+# Define paths for data
+source("../../utils/00_datapaths.R")
+source("../../utils/01_lncrna_annotation_utils.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+
+```
+
+
+# Load files Ex Vivo
+```{r LoadExVivo}
+# ---------------------------------------------------
+#           Load  files EX VIVO 
+# ---------------------------------------------------
+immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+ebola_genome_percentage_df <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+immune.combined_exvivo$viral_load <- ebola_genome_percentage_df[colnames(immune.combined_exvivo),]$percentage_viral_reads
+immune.combined_exvivo$log_viralload <- log10(immune.combined_exvivo$viral_load+1)
+
+#0. --------------------------------------------
+# Plot the UMAP whole
+pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+viralload_umap_full <- Seurat::FeaturePlot(immune.combined_exvivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+viralload_umap_full
+dev.off()
+
+mono_exvivo <- subset(immune.combined_exvivo, ident = "Monocyte")
+Seurat::FeaturePlot(mono_exvivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.4, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+
+DimPlot(immune.combined_exvivo, reduction = "umap", label = TRUE, cols =c(rep("grey",3), "black"), pt.size = 0.1, label.size = 0)+theme_void()
+
+
+```
+
+
+# Load In Vivo
+```{r LoadInVivo}
+# ---------------------------------------------------
+#   Load IN VIVO 
+# ---------------------------------------------------
+
+immune.combined_invivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+ebola_genome_percentage_df_invivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+immune.combined_invivo$viral_load <- ebola_genome_percentage_df_invivo[colnames(immune.combined_invivo),]$percentage_viral_reads
+immune.combined_invivo$log_viralload <- log10(immune.combined_invivo$viral_load+1)
+
+#0. --------------------------------------------
+# Plot the UMAP whole
+pdf(file.path(plots, "06/viralload.pdf"), width = 7, height = 6)
+viralload_umap_full <- Seurat::FeaturePlot(immune.combined_invivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.1, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+viralload_umap_full
+dev.off()
+
+mono_invivo <- subset(immune.combined_invivo, ident = "Monocyte")
+Seurat::FeaturePlot(mono_invivo, features = "log_viralload", cols = c("grey", "#9A0000"), pt.size = 0.8, order = T)+theme_void()+theme(text = element_text(size = 15), title = element_blank())
+
+DimPlot(immune.combined_invivo, reduction = "umap", label = TRUE, cols =c(rep("grey",3), "black"), pt.size = 0.1, label.size = 0)+theme_void()
+
+
+immune.combined_invivo$viral_load > 0 
+```

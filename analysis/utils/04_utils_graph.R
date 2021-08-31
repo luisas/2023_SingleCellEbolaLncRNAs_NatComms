@@ -493,19 +493,19 @@ heatmap_celltypes <- function(plot.data, perc_heatmap = F){
   rownames(m) <- unlist(lapply(rownames(m), get_orthologname_))
   rownames(m_pc) <- unlist(lapply(rownames(m_pc), get_orthologname_))
   
-  p1 <- Heatmap(m, name = "Average Expression", col = col_fun, cluster_rows = T, cluster_columns = F,rect_gp = gpar(col = "white", lwd = 1),column_split = unlist(lapply(colnames(m), function(x) str_split(x, "_")[[1]][1])),
+  p1 <- Heatmap(m, name = "Average Expression", col = col_fun, cluster_rows = TRUE, cluster_columns = FALSE,rect_gp = gpar(col = "white", lwd = 1),column_split = unlist(lapply(colnames(m), function(x) str_split(x, "_")[[1]][1])),
                 cell_fun = function(j, i, x, y, width, height, fill) {
                   #grid.text(sprintf("%.1f", m_pc[i, j]), x, y, gp = gpar(fontsize = 10))
                   grid.circle(x = x, y = y, r = abs( m_pc[i, j])/200 * min(unit.c(width, height)), gp = gpar(fill = NA))
                 })
   
   col_fun = colorRamp2(c(min(m_pc), max(m_pc)), c("lightblue", "dark red"))
-  p2 <- Heatmap(m_pc, name = "Average Expression", col = col_fun, cluster_rows = F, cluster_columns = F,rect_gp = gpar(col = "white", lwd = 1),column_split = unlist(lapply(colnames(m_pc), function(x) str_split(x, "_")[[1]][1])),
+  p2 <- Heatmap(m_pc, name = "Average Expression", col = col_fun, cluster_rows = FALSE, cluster_columns = FALSE,rect_gp = gpar(col = "white", lwd = 1),column_split = unlist(lapply(colnames(m_pc), function(x) str_split(x, "_")[[1]][1])),
                 cell_fun = function(j, i, x, y, width, height, fill) {
                   #grid.text(sprintf("%.1f", m_pc[i, j]), x, y, gp = gpar(fontsize = 10))
                   grid.circle(x = x, y = y, r = abs( m_pc[i, j])/200 * min(unit.c(width, height)), gp = gpar(fill = col_fun(m_pc[i, j])))
                 })
-  if(perc_heatmap == T ){
+  if(perc_heatmap == TRUE ){
     return(list(p1, p2))
   }else{
     return(p1)
@@ -626,5 +626,13 @@ check_expressed_vs_infection <- function(gene_id, mono = mono, ebola_genome_perc
   return(list(p1,p2))
 }
 
+visualize_correlation <- function(genes,mono_live_h24_inf_exvivo,ebola_genome_percentage_df_exvivo, keepzeros = F){
+  genes_expression <-  Reduce("rbind", lapply(genes, function(gene) get_expression_summary_gene(gene, mono_live_h24_inf_exvivo, ebola_genome_percentage_df_exvivo, keepzeros)))
+  genes_expression$gene <- as.character(genes_expression$gene)
+  genes_expression$orth <- unlist(lapply(as.character(genes_expression$gene), get_orthologname_))
+  ggplot(genes_expression, aes(x = percentage_viral_reads, y = value, col = orth))+stat_smooth(size = 0.6,method = "loess", formula = y ~ x,  se = F, n = 15, span =1)+
+    theme_bw()+theme( legend.title = element_blank(),plot.title = element_text(size = 12), text = element_text(size = 17))+ 
+    xlab("viral load (log10)")+ylab("log(CP10K+1)")+scale_x_log10()+scale_color_brewer(palette = "Paired")
+}
 
 

@@ -1837,3 +1837,57 @@ get_expression <- function(gene, mono = monocyte, zeros = F ){
   }
   return(df)
 }
+
+
+
+# --------------------------------------------------------------------------------------
+plot_expression_gene <- function(gene, mono, col = "blue", title = ""){
+  neat1exp <- mono[gene,]
+  B <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
+  E <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
+  M <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
+  L <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
+  
+  neat1exp$type <- toupper(substring(neat1exp$group, 1,1))
+  
+  #name <- "baseline"
+  get_average <- function(name){
+    v <- as.vector(get(name))
+    b <- data.frame(t(Rmisc::CI(v[v>0])), type = name)
+    b$pct.exp <- PercentAbove(v,0)*100
+    return(b)
+  }
+  
+  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
+  exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
+  
+  
+  #pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
+  p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = col)+theme(legend.title = element_blank())+ylab("log(CP10K+1)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+theme_paper+ggtitle(get_orthologname_(gene))+labs(subtitle = title )+theme(plot.title = element_text(hjust = 0.5),plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))
+  #dev.off()
+  
+  
+  p2 <- DotPlot(mono, features=c(gene), group.by  = "group")+coord_flip()
+  tab <- Dotplot_data(mono, features=c(gene), group.by  = "group")
+  exp$gene <- gene
+  return(list(p,p2,exp))
+  
+}
+
+  
+  
+  plot_genes_celltypes <- function(gene, mono, name){
+    p <- plot_expression_gene(gene, mono, "blue", name)[[1]]
+    pdf(file.path(plots, paste("03/", get_orthologname_(gene), "_", name,".pdf", sep = "")), width = 5, height = 4)
+    print(p)
+    dev.off()
+    return(p)
+  }
+  
+  plot_genes_ALL_celltypes <- function(gene){
+    a <- plot_genes_celltypes(gene, mono,"monocytes")
+    b <- plot_genes_celltypes(gene, B,"B")
+    c <- plot_genes_celltypes(gene, T,"T")
+    return(list(a,b,c))
+  }
+  # --------------------------------------------------------------------------------------

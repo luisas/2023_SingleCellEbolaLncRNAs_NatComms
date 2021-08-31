@@ -55,6 +55,7 @@ FCTHRESHOLD <- log(1.23)
 ```{r readfilesDE}
 # Define Ebola genes 
 ebola_genes <- unique(ebola_ref$gene_id)
+ebola_genes <- unique(ref[seqnames(ref) == "EBOV_Kikwit",]$gene_id)
 ebola_genes_names <- paste(ebola_genes, "-unknown", sep = "")
 saveRDS(ebola_genes_names, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/ebolagenes.rds"))
 saveRDS(ebola_genes_names, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/ebolagenes.rds"))
@@ -89,6 +90,7 @@ threshold <- max(unlist(lapply(setdiff(unique(ebola_genome_percentage_df$celltyp
 
 print(paste("Threshold", threshold))
 #ebola_genome_percentage_df[ebola_genome_percentage_df$percentage_viral_reads > 0,]
+table(seqnames(ref))
 ```
 
 # --------------------------------------------------

@@ -1,0 +1,167 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Analysis on genes correlated with the viral load 
+
+
+# 0. Imports 
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr); library(Seurat); library(Matrix); library(SingleCellExperiment)
+library(stringr); library(rtracklayer); library(RColorBrewer); library(scales)
+library(ggthemes); library(org.Mmu.eg.db); library(ggplot2); library(ggvenn)
+library(ggExtra); library(Gviz); library(ggpubr); library(ggsci)
+
+
+# Define paths for data
+source("../../utils/00_datapaths.R")
+source("../../utils/01_lncrna_annotation_utils.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+source("../../utils/05_utils_corr.R")
+
+theme_paper <- theme(panel.background = element_rect(fill = "white"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=10), legend.title = element_blank())
+
+# --------------------------------
+# Set thresholds 
+RHOTHRESHOLD = 0.0
+FDRTHRESHOLD<- 0.05
+
+# ---------------------------------------------------
+#           Load  references 
+# ---------------------------------------------------
+ref <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_addedgenesNovel.gtf"))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+# files ex vivo 
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/")
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+ebola_genome_percentage_df_exvivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+
+all_lncrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "all_lncrnas.rds"))
+annotated_mrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "annotated_mrnas.rds"))
+ebola_genome_percentage_df_invivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+```
+
+
+# 1. Load viral load correaltion files 
+```{r imports}
+
+# 1. Ex vivo no ebola 
+correlations_exvivo_noebola <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/mono_infected_late_ebolaremoved_correlation.rds"))
+filtered <- filter_significant_correlations(correlations_exvivo_noebola, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD, usep = F)
+correlations_exvivo_noebola <- filtered[[1]]
+table(correlations_exvivo_noebola$type)
+sig_cor_lnc_exvivo_noebola <- filtered[[2]]
+mono_live_h24_inf_exvivo_noebola <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/mono_infected_late_ebolaremoved.rds"))
+
+# 2. In vivo no ebola
+mono_live_h24_inf_invivo_noebola <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/mono_infected_late_ebolaremoved.rds"))
+correlations_invivo_noebola <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/mono_infected_late_ebolaremoved_correlation.rds"))
+sig_cor_lnc_invivo_noebola <- filter_significant_correlations(correlations_invivo_noebola, ref, all_lncrnas_invivo, annotated_mrnas_invivo, FDRTHRESHOLD, RHOTHRESHOLD, usep = T)[[2]]
+
+
+correlations_exvivo_noebola[correlations_exvivo_noebola$qval < FDRTHRESHOLD,]
+
+exp <- mono_live_h24_inf_exvivo_noebola["STAT1",]@assays$RNA@data
+
+mask <- as.vector(exp) > 0 
+vir <- mono_live_h24_inf_exvivo_noebola$viral_load
+cor(as.vector(exp[mask]), as.vector(vir)[mask], method = c("spearman"))
+correlations_exvivo_noebola[correlations_exvivo_noebola$gene == "STAT1",]
+```
+
+
+# 2. Plots
+```{r imports}
+
+# 1. Check significance values of example of broad genes 
+test_broad_genes(correlations_exvivo_noebola)
+test_broad_genes(correlations_invivo_noebola)
+
+broad <- c("STAT1", "MX1", "MX2", "HSPA5", "DYNLL1")
+p_broad_exvivo_noebola <- visualize_correlation(broad, mono_live_h24_inf_exvivo_noebola,ebola_genome_percentage_df_exvivo, keepzeros = F)+ggtitle("EXVIVO")
+p_broad_exvivo_noebola
+
+# 2. Check how many are significantly up/down
+plot_corr_genes_stat(correlations_exvivo_noebola)
+
+# 3. Plot ex vivo genes
+genes <- unique(sig_cor_lnc_exvivo_noebola$gene)
+p_corr_exvivo_noebola <- visualize_correlation(genes, mono_live_h24_inf_exvivo_noebola,ebola_genome_percentage_df_exvivo, keepzeros = F)+ggtitle("EXVIVO")
+p_corr_exvivo_noebola
+
+
+# 4. Visualize in vivo
+visualize_correlation(sig_cor_lnc_invivo_noebola$gene, mono_live_h24_inf_exvivo_noebola,ebola_genome_percentage_df_exvivo, keepzeros = F)+ggtitle("EXVIVO")
+visualize_correlation(sig_cor_lnc_invivo_noebola$gene, mono_live_h24_inf_invivo_noebola,ebola_genome_percentage_df_invivo, keepzeros = F)+ggtitle("INVIVO")
+
+
+# test
+visualize_correlation("STAT1", mono_live_h24_inf_exvivo_noebola,ebola_genome_percentage_df_exvivo, keepzeros = T)+ggtitle("EXVIVO")
+
+mono_live_h24_inf_exvivo_noebola["STAT1", ]
+```
+# 3. Plot bystander vs infected 
+
+```{r imports}
+#------------------------ EX VIVO -----------------------------
+# 1. Load Ex vivo 
+immune.combined <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+print(table(colnames(immune.combined) == rownames(ebola_genome_percentage_df_exvivo)))
+# 2. Add infection information
+immune.combined$infection <- ebola_genome_percentage_df_exvivo$classification 
+immune.combined$viral_load <- ebola_genome_percentage_df_exvivo$percentage_viral_reads 
+# 3. Separate  infected and bystanders
+infected_cells <- rownames(ebola_genome_percentage_df_exvivo[ebola_genome_percentage_df_exvivo$classification == "Infected",])
+monocytes <- subset(immune.combined, ident = "Monocyte")
+baseline <- monocytes[,monocytes$cond == "media"]
+late <- monocytes[,monocytes$cond == "live" & monocytes$dpi == "H024"]
+infected <- late[,infected_cells]
+bystanders <- late[,setdiff(colnames(late), infected_cells)]
+# Check 
+length(unique(colnames(bystanders))) + length(unique(colnames(infected))) == length(unique(colnames(late)))
+
+
+#------------------------ IN VIVO -----------------------------
+immune.combined_invivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+print(table(colnames(immune.combined_invivo) == rownames(ebola_genome_percentage_df_invivo)))
+# 2. Add infection information
+immune.combined_invivo$infection <- ebola_genome_percentage_df_invivo$classification 
+immune.combined_invivo$viral_load <- ebola_genome_percentage_df_invivo$percentage_viral_reads 
+infected_cells <- rownames(ebola_genome_percentage_df_invivo[ebola_genome_percentage_df_invivo$classification == "Infected",])
+monocytes_invivo <- subset(immune.combined_invivo, ident = "Monocyte")
+baseline_invivo <- monocytes_invivo[,monocytes_invivo$group_dpi %in%c("DPI-04","DPI-30", "DPI000")]
+late_invivo <- monocytes_invivo[,monocytes_invivo$group_dpi %in% c("DPI005","DPI006","DPI007","DPI008")]
+infected_invivo <- late_invivo[,infected_cells]
+bystanders_invivo <- late_invivo[,setdiff(colnames(late_invivo), infected_cells)]
+# Check 
+length(unique(colnames(bystanders))) + length(unique(colnames(infected))) == length(unique(colnames(late)))
+```
+
+
+
+# Plot boxplots bystanders  vs infected 
+```{r imports}
+
+test_boxplots <- function(gene){
+  p1 <- plot_boxplot_cells(gene,baseline, bystanders, infected, "ex vivo")
+  p2 <- plot_boxplot_cells(gene,baseline_invivo, bystanders_invivo, infected_invivo, "in vivo")
+  return(list(p1,p2))
+}
+
+# Test example Broad 
+test_boxplots("MX1")
+
+# Plot for all 
+lapply(sig_cor_lnc_exvivo_noebola$gene, test_boxplots)
+```
+

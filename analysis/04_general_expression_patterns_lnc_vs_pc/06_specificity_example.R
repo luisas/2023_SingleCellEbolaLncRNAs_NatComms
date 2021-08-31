@@ -4,8 +4,8 @@ library(ggthemes)
 
 
 # 0. Palette used throughout the scripts
-col_lnc <- "#B0052D"
-col_mrna = "navy"
+col_lnc <- "#A91818"
+col_mrna = "#0D3A75"
 palette_plot_percentage <- c(col_lnc, col_mrna)
 
 
@@ -23,6 +23,7 @@ table_summary_scores[substr(table_summary_scores$gene,1,4) == "MSTR", ]$subtype 
 table_summary_scores$type_subtype <- paste(table_summary_scores$type, table_summary_scores$subtype, sep = "_")
 annotated_lnc <- table_summary_scores[table_summary_scores$type == "lnc" & table_summary_scores$subtype == "annotated",]
 novel_lnc <- table_summary_scores[table_summary_scores$type == "lnc" & table_summary_scores$subtype == "novel",]
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 
 
 

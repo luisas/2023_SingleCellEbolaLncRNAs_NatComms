@@ -1,0 +1,246 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Imports 
+
+# No sliding window 
+# Still with viral reads 
+
+```{r imports}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr); library(Seurat); library(Matrix); library(SingleCellExperiment)
+library(stringr); library(rtracklayer); library(RColorBrewer); library(scales)
+library(ggthemes); library(org.Mmu.eg.db); library(ggplot2); library(ggvenn)
+library(ggExtra); library(Gviz); library(ggpubr)
+
+# Define paths for data
+source("../../utils/00_datapaths.R")
+source("../../utils/01_lncrna_annotation_utils.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+source("../../utils/05_utils_corr.R")
+
+# --------------------------------
+# Set thresholds 
+RHOTHRESHOLD = 0.0
+FDRTHRESHOLD<- 0.05
+
+# ---------------------------------------------------
+#           Load  references 
+# ---------------------------------------------------
+ref <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames_addedgenesNovel.gtf"))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+
+# ---------------------------------------------------
+#           Load  files EX VIVO 
+# ---------------------------------------------------
+# Annotated lncRNAS and PC genes
+#immune.combined_exvivo <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/")
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
+ebola_genome_percentage_df_exvivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+mono_live_h24_inf_exvivo <- readRDS( file.path(data_path,"02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds"))
+
+
+# ---------------------------------------------------
+#   Load IN VIVO 
+# ---------------------------------------------------
+mono_live_h24_inf_invivo <- readRDS( file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_monocytes_infected_late.rds"))
+ebola_genome_percentage_df_invivo <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
+
+correlations_invivo_all <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds"))
+correlations_invivo <- correlations_invivo_all[!is.na(correlations_invivo_all$pval) & !is.na(correlations_invivo_all$pval) & correlations_invivo_all$pval < FDRTHRESHOLD & abs(correlations_invivo_all$rho) > RHOTHRESHOLD, ]
+
+
+all_lncrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "all_lncrnas.rds"))
+annotated_mrnas_invivo <- readRDS(file.path("/home/luisa/Desktop/cluster//data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/", "annotated_mrnas.rds"))
+
+
+```
+
+# ----------------------------------
+#      EX VIVO analysis 
+# ----------------------------------
+```{r LoadExVivo}
+# 1 - Correlations 
+correlations_exvivo_all <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/06_correlation/03_viralload_infected_late/ViralLoad_spearman-correlations_standard.rds"))
+correlations_exvivo <- correlations_exvivo_all[!is.na(correlations_exvivo_all$pval),]
+correlations_exvivo$qval <- p.adjust(correlations_exvivo$pval, method = "BH", n = length(correlations_exvivo$pval))
+
+
+correlations_exvivo <- filter_significant_correlations(correlations_exvivo, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD)[[1]]
+sig_cor_lnc_exvivo <- filter_significant_correlations(correlations_exvivo, ref, all_lncrnas, annotated_mrnas, FDRTHRESHOLD, RHOTHRESHOLD)[[2]]
+correlations_exvivo[correlations_exvivo$gene == "MX1",]
+
+# Check what I get for the important genes BROAD
+test_genes <- c("STAT1", "MX1", "MX2", "HSPA5", "DYNLL1")
+correlations_exvivo_all[correlations_exvivo_all$gene %in% test_genes, ]
+```
+
+
+# ----------------------------------
+#      IN VIVO analysis 
+# ----------------------------------
+```{r LoadInVivo}
+correlations_invivo <- filter_significant_correlations(correlations_invivo_all, ref, all_lncrnas_invivo, annotated_mrnas_invivo, FDRTHRESHOLD, RHOTHRESHOLD)[[1]]
+sig_cor_lnc_invivo <- filter_significant_correlations(correlations_invivo_all, ref, all_lncrnas_invivo, annotated_mrnas_invivo, FDRTHRESHOLD, RHOTHRESHOLD)[[2]]
+
+correlations_invivo_all[correlations_invivo_all$gene %in% test_genes, ]
+```
+
+
+
+
+
+# STATS 
+```{r imports}
+
+# 1 ----- How many lnc and pc are found correlated in vivo and ex vivo
+print("lnc significantly correlated ex vivo")
+length(unique(sig_cor_lnc_exvivo$gene_name))
+print("pc significantly correlated ex vivo")
+length(unique( correlations_exvivo[correlations_exvivo$type == "pc",]$gene))
+
+# proportion
+length(unique(sig_cor_lnc_exvivo$gene_name))*100/length(unique( correlations_exvivo[correlations_exvivo$type == "pc",]$gene))
+
+print("lnc significantly correlated IN vivo")
+length(unique(sig_cor_lnc_invivo$gene_name))
+print("pc significantly correlated IN vivo")
+length(unique( correlations_invivo[correlations_invivo$type == "pc",]$gene))
+length(unique(sig_cor_lnc_invivo$gene_name))*100/length(unique( correlations_invivo[correlations_invivo$type == "pc",]$gene))
+
+
+# 1b: how many novel EX VIVO
+table(substr(sig_cor_lnc_exvivo$gene,1,3))
+
+```
+
+
+
+```{r plots}
+# --------------------------------
+# 2. PLOT MAIN 
+#    Examples 
+dim_big <- 0.8
+#genes_expression <- Reduce("rbind", lapply(sig_cor_lnc_exvivo$gene, function(gene) get_expression_summary_gene(gene, mono_live_h24_inf_exvivo)))
+
+cols <- c('ENSMMUG00000064224-unknown' = 'red',  "ENSMMUG00000056793-unknown" = "#6C0202", "NDUFA10" = "grey", "HDLBP" = "black", "MX1" = "green")
+highlights <- c('ENSMMUG00000064224-unknown' ,  "ENSMMUG00000056793-unknown", "HDLBP", "NDUFA10", "MX1")
+sizes <- c('ENSMMUG00000064224-unknown' = dim_big,  "ENSMMUG00000056793-unknown" = dim_big, "NDUFA10" = dim_big, "HDLBP" = dim_big, "other" = 0.2, "MX1" = 2)
+genes_expression <-  Reduce("rbind", lapply(highlights, function(gene) get_expression_summary_gene(gene, mono_live_h24_inf_exvivo, ebola_genome_percentage_df_exvivo)))
+
+
+# 2. Plot 
+pdf(file.path(plots, "05/main_corr.pdf"), width = 9, height = 5)
+genes_expression$gene <- as.character(genes_expression$gene)
+genes_expression$id <- ifelse(genes_expression$gene %in% highlights, genes_expression$gene, "other")
+nlnc = length(unique(genes_expression$gene))
+correaltion <-ggplot(genes_expression, aes(x = percentage_viral_reads, y = value, col = gene, size = id))+stat_smooth(method = "loess", formula = y ~ x,  se = F, n = 15, span =0.7)+
+      theme_classic()+
+      theme( legend.title = element_blank(),plot.title = element_text(size = 12), text = element_text(size = 17))+ 
+      xlab("viral load")+ylab("gene expression (logCP10K)")+scale_x_log10()+
+      scale_color_manual(values = cols)+ggtitle(paste("n = ", nlnc))+
+      scale_size_manual(values = sizes)
+
+correaltion
+dev.off()
+
+
+```
+
+```{r imports}
+# 2 -----In how many cells is each of the genes expressed
+summary_exvivo <- Reduce(rbind, lapply(sig_cor_lnc_exvivo$gene, function(x) get_average(x, mono_live_h24_inf_exvivo)))
+summary_invivo <- Reduce(rbind, lapply(sig_cor_lnc_invivo$gene, function(x) get_average(x, mono_live_h24_inf_invivo)))
+
+
+# 3 --------- How big is the overlap 
+x <- list(invivo = summary_invivo$gene, exvivo = summary_exvivo$gene)
+ggvenn(
+  x, 
+  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 6
+  )
+
+# ----- Are the ones not identified in vivo missing? 
+missing_invivo <- setdiff(summary_exvivo$gene,summary_invivo$gene)
+summary_in_vivo_missing <- Reduce(rbind, lapply(missing_invivo, function(x) get_average(x, mono_live_h24_inf_invivo)))
+
+summary_invivo$found <- "in vivo - found"
+summary_in_vivo_missing$found <- "in vivo - missing"
+summary_exvivo$found <- "ex vivo"
+s <- rbind(summary_invivo, summary_in_vivo_missing, summary_exvivo)
+
+pdf(file.path(plots, "05/ditribution_cells.pdf"), width = 7, height = 6)
+ggplot(s, aes(x = n_cells, fill = found, color = found))+geom_density(alpha = 0.7)+theme_classic()+xlab("number of cells (log10)")+theme(text = element_text(size = 15))+scale_fill_brewer(palette = "Set1")+scale_color_brewer(palette = "Set1")+scale_x_log10()
+dev.off()
+
+# Significance tests
+wilcox.test(summary_invivo$n_cells, summary_exvivo$n_cells)
+wilcox.test(summary_in_vivo_missing$n_cells, summary_exvivo$n_cells)
+wilcox.test(summary_in_vivo_missing$n_cells, summary_invivo$n_cells)
+
+# ------ The one not identified ex vivo is there, low p value but not enough to be significant 
+missing_exvivo <- setdiff(summary_invivo$gene,summary_exvivo$gene)
+summary_ex_vivo_missing <- Reduce(rbind, lapply(missing_exvivo, function(x) get_average(x, mono_live_h24_inf_exvivo)))
+correlations_exvivo_all[correlations_exvivo_all$gene == summary_ex_vivo_missing$gene, ]
+```
+
+
+# Specific example
+```{r plots}
+monocytes <- subset(immune.combined, ident = "Monocyte")
+baseline <- monocytes[,monocytes$cond == "media"]
+late <- monocytes[,monocytes$cond == "live" & monocytes$dpi == "H024"]
+infected <- late[,infected_cells]
+bystanders <- late[,setdiff(colnames(late), infected_cells)]
+# Check 
+length(unique(colnames(bystanders))) + length(unique(colnames(infected))) == length(unique(colnames(late)))
+
+gene <- "MX1"
+
+get_expression_subset <- function(s, label, gene){
+  s <- subset(s, features = gene)
+  df <- data.frame(t(s@assays$RNA@data))
+  df$stage <- label
+  df$viral_load <- s$viral_load
+  df$q <- cut(df$viral_load, breaks = 4)
+  df$q <- as.numeric(df$q)
+  colnames(df) <- c("exp", "stage", "viral_load","bin")
+  return(df)
+}
+library(ggsci)
+df_plotready <- rbind(get_expression_subset(baseline,"baseline",gene), get_expression_subset(bystanders,"bystander",gene), get_expression_subset(infected,"infected",gene)) 
+df_plotready <- df_plotready[df_plotready$exp != 0,]
+
+df_plotready$p <- ifelse(df_plotready$stage == "infected", df_plotready$bin
+                         ,df_plotready$stage)
+
+ggboxplot(df_plotready, x = "stage", y = "exp", col = "black", fill = "stage",palette = c(pal_jco()(2),rep("red",4)),
+          add = "jitter")+theme_classic()+ggtitle(gene)
+
+
+ggboxplot(df_plotready, x = "p", y = "exp", col = "black", fill = "p",palette = c(pal_jco()(2),rep("red",4)),
+          add = "jitter")+theme_classic()+ggtitle(gene)
+
+
+df_plotready$bin
+
+
+max(df_plotready$viral_load)
+df_plotready[df_plotready$viral_load != 0, ]
+
+
+
+
+
+```
+

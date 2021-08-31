@@ -32,6 +32,10 @@ cis_celltype <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_i
 complete_cor <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/complete_cor.rds") )
 final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
 
+#a <- cis_celltype
+#a$pair <- paste(a$lnc, a$gene, sep = "-")
+#length(unique(a$pair))
+
 ```
 
 
