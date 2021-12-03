@@ -1,0 +1,118 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Build network based on values from grnBoost 
+
+
+## 1. Imports 
+```{r include=FALSE}
+library(dplyr)
+library(ggsci)
+library(Seurat)
+library(Matrix)
+library(stringr)
+library(rtracklayer)
+library(ggrepel)
+library(scales)
+library(GENIE3)
+library(gplots)
+library (plyr)
+library(igraph)
+library(reshape2)
+library(org.Mmu.eg.db)
+library(enrichplot)
+library(networkD3)
+
+source("../../utils/00_datapaths.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+
+# IN VIVO 
+immune.combined <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+dim(immune.combined)
+
+# Load objects 
+ref <- import(file.path(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+
+de_all<- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
+de_lnc <- de_all[de_all$type == "lnc", ]
+
+# Get DE lncRNAs gene names
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
+de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
+
+# DE per cell-type
+de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Monocyte" & de_all$type == "lnc",]$primerid)
+```
+
+
+## 1. Prepare cell-type subset 
+```{r a}
+monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+de_monocyte<- monocyte[rownames(monocyte) %in% de_all[de_all$celltype == "Monocyte",]$primerid,]
+# Universe needed for enrichment analysis (expressed genes in monocytes)
+universe_myeloids <- unique(rownames(monocyte))
+```
+
+
+
+# 2. Read in graph and clean row and col names 
+```{r a}
+# Read in 
+weightdf_myeloids <- read.table(file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/output_monocytes_de.tsv"))
+weightMat_myeloids <- acast(weightdf_myeloids, V1~V2, value.var="V3")
+
+# Check how many genes in the network
+dim(weightMat_myeloids)
+
+# Clean names 
+colnames(weightMat_myeloids) <- gsub(".unknown", "", colnames(weightMat_myeloids))
+rownames(weightMat_myeloids) <- gsub(".unknown", "", rownames(weightMat_myeloids))
+```
+
+
+# 3. Subset cluster ( only connected to lncRNAs and top % links ) and identify communities 
+
+```{r a}
+# 1. Only retain top links
+linkList <- getLinkList(weightMat_myeloids)
+max_n <- nrow(linkList)*0.9/100
+linkList <- getLinkList(weightMat_myeloids, reportMax = max_n)
+# Check which is the lowest link value accepted
+min(linkList$weight)
+
+# 2. Only retain edges connecting DE lncRNAs 
+lnc_graphs <- linkList[as.character(linkList$regulatoryGene) %in% de_lnc_mono |as.character(linkList$targetGene) %in% de_lnc_mono, ]
+Gsi <- graph.data.frame(lnc_graphs,directed = F)
+
+# 3. Cluster with louvain algorithm --> get communities 
+lou <- cluster_louvain(Gsi)
+LO = layout_with_fr(Gsi)
+
+# 4. Only keep the ones having at least 5 nodes
+Small = which(table(lou$membership) < 6)
+Keep = V(Gsi)[!(lou$membership %in% Small)]
+
+# 5. Get subgraph & plot
+gD2  = induced_subgraph(Gsi, Keep)
+lou2 = cluster_louvain(gD2)
+LO2 = LO[Keep,]
+
+# 6. Save
+#saveRDS(gD2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2.rds")
+#saveRDS(lou2, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds")
+#saveRDS(linkList, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList.rds")
+```
+
+
+
+

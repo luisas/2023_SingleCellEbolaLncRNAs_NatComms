@@ -30,41 +30,34 @@ PREFIX_EXVIVO="/gpfs/projects/bsc83/Data/Ebola/02_scRNA-Seq_PBMCs/00_scRNA-Seq_e
 # ------------------------------
 
 # --- 1. Remove Ebola reads --------
- # srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready.rds" \
- #                                                            ${PREFIX_EXVIVO}"/03_prep/ebolagenes.rds" \
- #                                                            ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
- #                                                            ${PREFIX_EXVIVO}"/03_prep/df_viralpercentage.rds" \
- #                                                            ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds"
+ srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready.rds" \
+                                                             ${PREFIX_EXVIVO}"/03_prep/ebolagenes.rds" \
+                                                             ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
+                                                            ${PREFIX_EXVIVO}"/03_prep/df_viralpercentage.rds" \
+                                                            ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds"
 
 # Run correlations without EBOV reads
-# srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds" \
-#                                                      "exvivo" \
-#                                                      ${OUTPUT_EXVIVO}"/mono_infected_late_ebolaremoved_correlation.rds"\
-#                                                      ${OUTPUT_EXVIVO}"/mono_infected_late_ebolaremoved.rds"
-#
-#
-#
-# srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
-#                                                      "exvivo" \
-#                                                      ${OUTPUT_EXVIVO}"/mono_infected_late_correlation.rds"\
-#                                                      ${OUTPUT_EXVIVO}"/mono_infected_late.rds"
+ srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_EXVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds" \
+                                                      "exvivo" \
+                                                      ${OUTPUT_EXVIVO}"/mono_infected_late_ebolaremoved_correlation.rds"\
+                                                      ${OUTPUT_EXVIVO}"/mono_infected_late_ebolaremoved.rds"
+
+
+
+
 
 # # ------------------------------
 #         IN VIVO
 # ------------------------------
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready.rds" \
-                                                           ${PREFIX_INVIVO}"/03_prep/ebolagenes.rds" \
-                                                           ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
-                                                           ${PREFIX_INVIVO}"/03_prep/df_viralpercentage.rds" \
-                                                           ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds"
+#srun singularity exec ${CONTAINER} Rscript ${SCRIPT_PREP} ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready.rds" \
+#                                                           ${PREFIX_INVIVO}"/03_prep/ebolagenes.rds" \
+#                                                           ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
+#                                                           ${PREFIX_INVIVO}"/03_prep/df_viralpercentage.rds" \
+#                                                           ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds"
 
 
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds" \
-                                                     "invivo" \
-                                                     ${OUTPUT_INVIVO}"/mono_infected_late_ebolaremoved_correlation.rds" \
-                                                     ${OUTPUT_INVIVO}"/mono_infected_late_ebolaremoved.rds"
+#srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus_noebola.rds" \
+#                                                     "invivo" \
+#                                                     ${OUTPUT_INVIVO}"/mono_infected_late_ebolaremoved_correlation.rds" \
+#                                                     ${OUTPUT_INVIVO}"/mono_infected_late_ebolaremoved.rds"
 
-srun singularity exec ${CONTAINER} Rscript ${SCRIPT} ${PREFIX_INVIVO}"/03_prep/03_immune.combined.ready_infectionstatus.rds" \
-                                                     "invivo" \
-                                                     ${OUTPUT_INVIVO}"/mono_infected_late_correlation.rds" \
-                                                     ${OUTPUT_INVIVO}"/mono_infected_late.rds"

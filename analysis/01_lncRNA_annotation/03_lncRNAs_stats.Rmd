@@ -16,8 +16,8 @@ output: html_document
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
-library(GenomicRanges); library(dplyr); library(zeallot); library(ggpubr); library(plyr); library(Gviz)
-
+library(GenomicRanges); library(dplyr); library(zeallot); 
+library(ggpubr); library(plyr); 
 
 # Define paths for data
 source(file.path("../utils/00_datapaths.R"))
@@ -213,20 +213,36 @@ dev.off()
 orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "alignScore.x")])
 novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
+
 # Add gene id 
 corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
 rownames(corr_human) <- corr_human$t
-novel_orthologs_df$transcript_id_ortholog <- unique(unlist(lapply(as.character(novel_orthologs_df$ortholog), function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-novel_orthologs_df$gene_id_ortholog <- corr_human[novel_orthologs_df$transcript_id_ortholog,]$g
-novel_orthologs_df <- unique(novel_orthologs_df[,c("gene_id","gene_id_ortholog")])
-novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$gene_id_ortholog),]
+
+#novel_orthologs_df$transcript_id_ortholog <- unique(unlist(lapply(as.character(novel_orthologs_df$ortholog), function(x) strsplit(x, '.', fixed = T)[[1]][1])))
+#novel_orthologs_df$gene_id_ortholog <- corr_human[novel_orthologs_df$transcript_id_ortholog,]$g
+#novel_orthologs_df <- unique(novel_orthologs_df[,c("gene_id","gene_id_ortholog")])
+#novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$gene_id_ortholog),]
 
 # Novel lncRNAs in macaque with human ortholog
 novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% novel_orthologs_df$gene_id,]
 length(unique(novel_with_ortholog_gr$gene_id))
+macaques_lnc_with_ortholog <- (unique(novel_with_ortholog_gr$gene_id))
+
+
+# Now get Human Ortholog ids 
+human_orthologs_names <- orthologs_full[orthologs_full$gene_id %in% macaques_lnc_with_ortholog, ]$gene_id
+
+orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+transcripts_human_novelortholog <- as.character(orthologs_full[orthologs_full$gene_id %in% macaques_lnc_with_ortholog, ]$ortholog)
+transcripts_human_novelortholog <- unique(unlist(lapply(transcripts_human_novelortholog, function(x) strsplit(x, '.', fixed = T)[[1]][1])))
+human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$transcript_id %in% transcripts_human_novelortholog,]
+length(unique(human_orth_novel$gene_id))
+length(unique(transcripts_human_novelortholog))
+length(unique(corr_human[transcripts_human_novelortholog, ]$g))
 
 # Humans to novel 
-transcripts_human_novelortholog <- as.character(orthologs[orthologs$gene_id %in% novel_with_ortholog_gr$gene_id, ]$ortholog)
+orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+transcripts_human_novelortholog <- as.character(orthologs_full[orthologs_full$gene_id %in% novel_with_ortholog_gr$gene_id, ]$ortholog)
 transcripts_human_novelortholog <- unique(unlist(lapply(transcripts_human_novelortholog, function(x) strsplit(x, '.', fixed = T)[[1]][1])))
 human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$transcript_id %in% transcripts_human_novelortholog,]
 length(unique(human_orth_novel$gene_id))
@@ -252,13 +268,11 @@ pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7
 p
 dev.off()
 
-df
+
 
 wilcox.test(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")$range, calc_transcript_length(human_orth_novel, "1.  novel lncRNA")$range, paired = T )
-
-
-
 table(substr(orthologs$lnc,1,3))
+orthologs
 ```
 
 # Separate by intergenic and antisense 

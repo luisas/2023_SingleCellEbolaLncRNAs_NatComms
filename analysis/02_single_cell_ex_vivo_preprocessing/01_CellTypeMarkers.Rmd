@@ -13,11 +13,13 @@ output: html_document
 # Imports 
 ```{r a}
 library(Seurat)
+library(spatstat)
 library(SingleCellExperiment)
 library(stringr)
 library(rtracklayer)
 library(RColorBrewer)
 library(wesanderson)
+library(Matrix)
 
 source(file.path("../utils/00_datapaths.R"))
 source("../../analysis/utils/02_sc_utils.R")
@@ -50,7 +52,6 @@ immune.combined <- immune.combined[,!mask]
 ```
 
 
-
 # -------------------------------------
 #     Metadata ordering 
 # -------------------------------------
@@ -66,6 +67,11 @@ immune.combined$sample <- paste0(immune.combined$individual_nhp," ", immune.comb
 sum(table(immune.combined$dpi))
 ```
 
+
+# ----------------------------------------
+#  Basic Pre-processing and visualization     
+# ----------------------------------------
+
 ```{r cars}
 
 immune.combined <- NormalizeData(immune.combined)
@@ -75,53 +81,53 @@ immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
 immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:20)
 immune.combined <- FindNeighbors(immune.combined, reduction = "pca",dims = 1:20 )
 immune.combined <- FindClusters(immune.combined, resolution = 0.2)
+
+# UMAP visualization
 DimPlot(immune.combined, reduction = "umap", label = TRUE)+theme_sc
 ```
 
-# -------------------------------------
-#    Visualize Data through UMAP
-# -------------------------------------
-
 
 # -------------------------------------
-#     Preprocess and identify clusters
+#    Cell-type assignment 
 # -------------------------------------
 
 ```{r cars}
-
-#pbmc.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+#pbmc.markers <- readRDS(file.path(data_path, "/05_RObjects/03_prep/markers_exvivo_normal_noHBB.rds"))
 #saveRDS(pbmc.markers, file.path(result_path,"markers_exvivo_normal.rds"))
-#test <- pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+#test <- pbmc.markers %>% group_by(cluster)
 #table(test[test$cluster %in% c(0,5,9,4),]$gene)
-#m1 <- FindMarkers(immune.combined,ident.1=1 )
-#m1  %>% top_n(n = 10, wt = avg_logFC)
+#m1<- FindMarkers(immune.combined,ident.1=2 )
+
 
 b <- c("CD79B", "MS4A1", "CD19", "IGHM")
 CD8T <- c("CD3D", "GZMB", "GNLY")
 CD4T <-  c("CD3D", "IL7R")
 t <- c(CD4T, CD8T)
 nk <- c("KLRB1", "GZMB","FCGR3")
-mono <- c("LYZ", "PSAP", "CFD") 
+mono <- c("LYZ", "PSAP", "CFD", "CD14") 
+#mono <- c("IL1B") 
+#dc <- c("IRF8", "GZMB")
+
 
 marker.genes_red <- c(nk, t,b,mono)
-saveRDS(marker.genes_red, file.path(data_path,  "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
+#saveRDS(marker.genes_red, file.path(data_path,  "02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10_NOVELFILTERTEST/05_RObjects/03_prep/marker.genes.rds"))
 
 plot_genes(immune.combined,mono,threshold= 1, title = "Monocytes marker expression", col = "purple")
 plot_genes(immune.combined, nk, threshold = 2 , title = "NK markers expression", col = "purple")
 plot_genes(immune.combined, b, threshold = 1 , title = "B markers expression", col = "purple")
 plot_genes(immune.combined, t, threshold = 2 , title = "T-Cell markers expression", col = "purple")
 
-immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T",`2` = "B", `3` = "NK",  `4` = "T", `5` = "T", `6` = "B", `7` = "Monocyte", `8` = "Monocyte", `9` = "Monocyte" )
-
+immune.combined <- RenameIdents(immune.combined, `0` = "B", `1` = "T",`2` = "NK", `3` = "B",  `4` = "B", `5` = "T", `6` = "T", `7` = "Monocyte", `8` = "Monocyte", `9` = "B", `10` = "Monocyte", `11` = "B")
 #saveRDS(immune.combined, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
-
 ```
 
 
-# Visualize Marker genes
+# -------------------------------------
+#    Visualize marker genes 
+# -------------------------------------
 
 ```{r Find markers}
-immune.combined <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+#immune.combined <- readRDS(file.path(data_path,"/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 # Visualize Markers
 DotPlot(immune.combined, features = unique(marker.genes_red), cols = c("navy", "#FFD533", "grey"), dot.scale = 12) + RotatedAxis()+theme(axis.text = element_text(size = 20), axis.title = element_blank())+ theme(panel.background = element_rect(fill = "white", colour = "black"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
@@ -139,7 +145,6 @@ DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =pal, label.size
 
 ```{r UMAPvisualization}
 
-
 theme_sc <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "black"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 
 # Day post infection 
@@ -152,6 +157,8 @@ pal4 <- c(wes_palette("Zissou1", 5)[3],"#E55039",wes_palette("Zissou1", 5)[1] )
 p4 <- DimPlot(immune.combined, reduction = "umap", group.by = "cond",cols =pal4, pt.size = 0.01)+theme_sc
 p4
 ```
+
+
 # -----------------------------
 #     Identify EbolaGenes
 #-----------------------------
@@ -163,6 +170,9 @@ FeaturePlot(immune.combined, features  = ebola_genes)
 plot_genes(immune.combined, ebola_genes,0.5, col = "#DA0202", "Cells expressing Ebola RNA", sizes.highlight = 0.4)
 ```
 
+# -------------------------------------
+#    Extract lncRNA and PC genes
+# -------------------------------------
 
 ```{r cars}
 # ------------------------------------

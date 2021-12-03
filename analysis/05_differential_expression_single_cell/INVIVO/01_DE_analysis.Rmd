@@ -440,7 +440,7 @@ dev.off()
 ```
 
 # ---------------------------------------------------------------
-#            Specificity of DE expression
+#            Specificity of DE expression -c ell type 
 # ---------------------------------------------------------------
 ```{r Upsets}
 library(UpSetR)
@@ -464,6 +464,45 @@ dev.off()
 upset_colored
 plot
 ```
+
+
+# ---------------------------------------------------------------
+#            Specificity of DE expression - stage
+# ---------------------------------------------------------------
+```{r Upsets}
+library(UpSetR)
+
+
+de_all$id <- gsub("-unknown","",de_all$primerid) 
+de_all$id <- gsub("MAMU-", "MAMU.", de_all$id, fixed = T)
+de_mono <- de_all[de_all$celltype == "Monocyte",]
+# Calc number of celltypes
+de_reduced <- unique(de_all[,c("id", "celltype")])
+de_n_celltypes <- de_reduced %>% dplyr::group_by(id) %>% dplyr::count()
+rownames(de_n_celltypes) <- de_n_celltypes$primerid
+
+
+# Cell-type
+x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))
+length(unique(unlist(x)))
+names(x)  <-  c( "T " , "B  ","Monocyte" )
+
+
+pdf(file.path(plots, "03/upset_de_coloredCelltype.pdf"), width = 7, height = 5)
+upset_colored<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",3)))
+upset_colored
+dev.off()
+
+pdf(file.path(plots, "03/upset_de.pdf"), width = 7, height = 5)
+plot <- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15), main.bar.color=c(rep("black",3), rep("dark grey",3)),sets.bar.color="grey")
+plot
+dev.off()
+
+
+upset_colored
+plot
+```
+
 
 
 ```{r Upsets}

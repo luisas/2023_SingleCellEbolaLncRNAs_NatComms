@@ -83,9 +83,18 @@ final_summary <- summary_de_graph_cis[,setdiff(colnames(summary_de_graph_cis), "
 
 
 # --------------  STORE
-write.table(final_summary, file = file.path(data_path, "00_Metadata/final_DE_summary.csv"), row.names = F, col.names = T, sep = ",")
-saveRDS(final_summary, file.path(data_path, "00_Metadata/final_DE_summary.rds"))
+#write.table(final_summary, file = file.path(data_path, "00_Metadata/final_DE_summary.csv"), row.names = F, col.names = T, sep = ",")
+#saveRDS(final_summary, file.path(data_path, "00_Metadata/final_DE_summary.rds"))
 
+# Polish Supplementary table 2
+final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
+supplementary_table <- final_summary[,c("gene_id","gene_name","subtype", "ortholog_found", "ortholog","reported_in_immlnc", "celltype","stage","DE_coefficient","DE_fdr", "direction", "community_members", "community_members_id", "cis_genes_id")]
+names(supplementary_table) <- c("gene_id","gene_name","annotation_origin", "ortholog_found", "ortholog","reported_in_immlnc", "DE_celltype","DE_stage","DE_coefficient","DE_fdr", "DE_direction", "community_members", "community_members_id", "cis_genes_id")
+
+supplementary_table$DE_coefficient <- as.character(supplementary_table$DE_coefficient)
+supplementary_table$DE_fdr <- as.character(supplementary_table$DE_fdr)
+
+write.table(supplementary_table, file = file.path(data_path, "00_Metadata/supplementary_table_2.csv"), row.names = F, col.names = T, sep = ",")
 
 ```
 

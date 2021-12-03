@@ -1,0 +1,302 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Build network based on values from grnBoost 
+
+
+## 1. Imports 
+```{r include=FALSE}
+library(dplyr)
+library(ggsci)
+library(cowplot)
+library(Seurat)
+library(circlize)
+library(Matrix)
+library(stringr)
+library(rtracklayer)
+library(ggrepel)
+library(scales)
+#library(GENIE3)
+library(gplots)
+library(Rmisc)
+library (plyr)
+library(igraph)
+library(reshape2)
+library(org.Mmu.eg.db)
+library(enrichplot)
+library(clusterProfiler)
+library(networkD3)
+
+source("../../utils/00_datapaths.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+
+# IN VIVO 
+immune.combined <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+dim(immune.combined)
+graph_info <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/Graph_communitybelonging.rds"))
+
+# Load objects 
+ref <- import(file.path(file.path(data_path,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+
+de_all<- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
+de_lnc <- de_all[de_all$type == "lnc", ]
+
+# Get DE lncRNAs gene names
+robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
+all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
+de_all$type <- ifelse(de_all$primerid %in% all_lncrnas, "lnc", "pc")
+de_lnc_names <- gsub("-unknown", "",de_all[de_all$type == "lnc", ]$primerid)
+
+# DE per cell-type
+de_lnc_mono <- gsub("-unknown", "",de_all[de_all$celltype == "Monocyte" & de_all$type == "lnc",]$primerid)
+
+# Load graph info 
+gD2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2.rds"))
+lou2 <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou.rds"))
+linkList <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList.rds"))
+```
+
+
+## 1. Prepare cell-type subset 
+```{r a}
+monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+de_monocyte<- monocyte[rownames(monocyte) %in% de_all[de_all$celltype == "Monocyte",]$primerid,]
+# Universe needed for enrichment analysis (expressed genes in monocytes)
+universe_myeloids <- unique(rownames(monocyte))
+```
+
+
+#  2. Inspect communities
+```{r a}
+
+
+do_go_community<- function(list, universe,n,de_lnc_names, genes = T, npathways=5 ){
+    set.seed(5)
+    # ---------------------------------------------
+    #       Check the enrichment per community 
+    # --------------------------------------------
+   ego <- clusterProfiler::enrichGO(gene = list,OrgDb =org.Mmu.eg.db, keyType = "SYMBOL",ont = "BP",universe =universe)
+   #ego <- clusterProfiler::enrichKEGG(gene = list, organism = "mcc", keyType = "SYMBOL", pvalueCutoff = 0.05, pAdjustMethod = "BH", universe =universe, minGSSize = 10, maxGSSize = 500, qvalueCutoff = 0.2, use_internal_data = FALSE)
+
+
+   p1 <- clusterProfiler::dotplot(ego,showCategory =5)
+   p1b <-barplot(ego,showCategory =5)
+   p2 <- heatplot(ego, showCategory =5)
+   
+   lnc_comm <- unlist(lou2[lou2$membership == n])[unlist(lou2[lou2$membership == n]) %in% de_lnc_names]
+   orth <- Reduce("rbind", lapply(lnc_comm, get_orthologname_))
+   if(genes == T ){
+     go_genes <- unique(unlist(lapply(ego@result[1:npathways, ]$geneID, function(x) str_split(x,"/")[[1]])))
+     return(go_genes)
+   }else{
+     return(list(p1,p1b,p2, orth))
+   }
+   
+}
+
+# Check community enrichments for each of them 
+community_check <- function(n, genes = F){ do_go_community(lou2$names[lou2$membership == n],universe_myeloids,n, de_lnc_mono, genes = genes) }
+
+# Leave commented the ones presenting no enrichment
+
+c1 <- community_check(1)
+c1
+c2 <- community_check(2)
+#c2
+c3 <- community_check(3)
+#c3
+c4 <- community_check(4)
+c4[1][[1]]
+c5 <- community_check(5)
+#c5
+c6 <- community_check(6)
+#c6
+c7 <- community_check(7)
+#c7
+
+
+
+# Save enrichment plots
+png(filename = file.path(data_path,"plots/04/Enrichment_ImmRespRegulation.png"),width = 470, height = 300)
+c1[1][[1]]
+dev.off()
+
+
+png(filename = file.path(data_path,"plots/04/Enrichment_innate.png"), width = 500, height = 300)
+c4[1][[1]]
+dev.off()
+
+# Save genes leading enrichments of communities
+c1_genes <- community_check(1, genes = T)
+c4_genes <- community_check(4, genes = T)
+go_genes <- c(c1_genes, c4_genes)
+
+
+saveRDS(c1_genes, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_genes_ImmRespRegu.rds"))
+saveRDS(c4_genes, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_genes_Innate.rds"))
+
+```
+
+
+# 6. Dotplot ISGs 
+
+```{r dotplotISG}
+plot_expression_gene <- function(gene, mono, col = "blue", title = ""){
+  neat1exp <- mono[gene,]
+  B <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
+  E <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
+  M <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
+  L <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
+  neat1exp$type <- toupper(substring(neat1exp$group, 1,1))
+  get_average <- function(name){
+    v <- as.vector(get(name))
+    b <- data.frame(t(Rmisc::CI(v[v>0])), type = name)
+    b$pct.exp <- PercentAbove(v,0)*100
+    return(b)
+  }
+  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
+  exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
+  exp$gene <- gene
+  return(exp)
+  
+}
+
+DefaultAssay(monocyte) <- "RNA"
+
+plot_expression_gene(genes[1], monocyte)
+```
+
+
+```{r dotplotISG}
+monocyte$group_red <- factor(toupper(substring(monocyte$group, 1,1)), levels = c("B", "E", "M", "L"))
+
+# select genes 
+genes <- c("ENSMMUG00000064224-unknown","PLAC8","ISG15","IFIT2","MX1")
+genes <- c1_genes
+# DOTPLOT standard 
+scale.func <- switch(EXPR = "radius", size = scale_size, 
+                     radius = scale_radius, stop("'scale.by' must be either 'size' or 'radius'"))
+plot.data <- Dotplot_data(monocyte, features = genes, dot.scale =25,group.by = "group",scale.by = "radius", cols = c( "blue", "red"))
+plot.data$name <- unlist(lapply(plot.data$features.plot, get_orthologname_))
+dotplot_isgs <- ggplot(plot.data, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_classic()+xlab("")+ylab("")+
+        scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+
+        scale.func(range = c(0, 13))+ggtitle("")+
+        theme(axis.text.x= element_text(size = 20, color = "black"), axis.text.y= element_text(size = 15, color = "black"))
+dotplot_isgs
+
+
+# DOTPLOT when i calculate it !!
+# ---------- Module 1 
+genes <- lnc_c4
+plot.data_up <- Reduce(rbind, lapply(genes, function(gene) plot_expression_gene(gene, monocyte)))
+plot.data_up$name <- unlist(lapply(plot.data_up$gene, get_orthologname_))
+dotplot_isgs <- ggplot(plot.data_up, aes(x = type, y = name, size= pct.exp, col = mean))+geom_point()+theme_paper+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+scale_size(range = c(5,10))+
+  theme(axis.ticks.x = element_blank(), axis.title.y = element_blank() )
+
+
+pdf(file.path(plots, "04/dotplot_isgs.pdf"), width = 8, height = 6)
+dotplot_isgs
+dev.off()
+
+
+# ----------- Module 4
+genes <- c(paste(groups(lou2)[[1]][groups(lou2)[[1]] %in% de_lnc_names], "unknown", sep = "-"), c1_genes)
+plot.data_up <- Reduce(rbind, lapply(genes, function(gene) plot_expression_gene(gene, monocyte)[3][[1]]))
+plot.data_up$name <- unlist(lapply(plot.data_up$gene, get_orthologname_))
+dotplot_leukprol <- ggplot(plot.data_up, aes(x = type, y = name, size= pct.exp, col = mean))+geom_point()+theme_paper+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+scale_size(range = c(5,10))+
+  theme(axis.ticks.x = element_blank(), axis.title.y = element_blank() )
+
+pdf(file.path(plots, "04/dotplot_leuk.pdf"), width = 8, height = 6)
+dotplot_leukprol
+dev.off()
+
+
+# --------------
+# Enrichment 1 dotplot 
+lnc_c1 <- c("ENSMMUG00000058644-unknown", "MSTRG.181325-unknown", "ENSMMUG00000061044-unknown" )
+lnc_c4 <- c("ENSMMUG00000064224-unknown", "ENSMMUG00000062255-unknown")
+DotPlot(object = monocyte, features = c1_genes, group.by = 'group_red')+coord_flip()
+DotPlot(object = monocyte, features = lnc_c1, group.by = 'group_red')+coord_flip()
+
+do_dotplot <- function(genes){
+  DotPlot(object = monocyte, features = c(genes), group.by = 'group_red')+
+  coord_flip()+
+  scale_colour_gradient(low = "#1170FF", high = "#E40000", na.value = NA)+
+  scale_size(range = c(0,10))+
+  theme(axis.ticks.x = element_blank(), axis.title = element_blank() )
+}
+
+do_dotplot(c1_genes)
+do_dotplot(lnc_c1[c(1,3,2)])
+do_dotplot(c(c1_genes, lnc_c1))
+
+
+do_dotplot(c4_genes)
+do_dotplot(lnc_c4[1])
+
+de_all[de_all$primerid == lnc_c4[1]]
+
+
+plot_expression_gene(c1_genes[1], monocyte)[3][[1]]
+mono <- monocyte
+gene <- c1_genes[1]
+neat1exp <- mono[gene,]
+B <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
+E <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
+M <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
+L <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
+  
+neat1exp$type <- toupper(substring(neat1exp$group, 1,1))
+  
+  #name <- "baseline"
+get_average <- function(name){
+    v <- as.vector(get(name))
+    b <- data.frame(t(Rmisc::CI(v[v>0])), type = name)
+    b$pct.exp <- PercentAbove(v,0)*100
+    return(b)
+}
+  
+exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
+exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
+  
+  
+#pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
+p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = col)+theme(legend.title = element_blank())+ylab("log(CP10K+1)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+theme_paper+ggtitle(get_orthologname_(gene))+labs(subtitle = title )+theme(plot.title = element_text(hjust = 0.5),plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))
+  #dev.off()
+  
+  
+p2 <- DotPlot(mono, features=c(gene), group.by  = "group")+coord_flip()
+tab <- Dotplot_data(mono, features=c(gene), group.by  = "group")
+  exp$gene <- gene
+  return(list(p,p2,exp))
+
+  
+  plot_expression_gene
+
+```
+
+
+# 7. Store information about community 
+
+```{r readfilesDE}
+# GeneID, Community number
+df <- ldply ( groups(lou2), data.frame)
+colnames(df) <- c("Community", "gene_name")
+
+saveRDS(df, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/Graph_communitybelonging.rds"))
+
+# Sort by size
+
+```
+
+
+
+

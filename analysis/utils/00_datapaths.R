@@ -1,5 +1,5 @@
 
-var = "localtorre"
+var = "crglocal"
 
 if(var == "localtorre"){
   # Luisa: Local Torre 
@@ -21,7 +21,17 @@ if(var == "localtorre"){
   gene_annotation_path <- file.path(clusterpath, "gene_annotation")
   data_path <- file.path(clusterpath, "Ebola")
   plots <- file.path(data_path,"plots")
+  
+}else if(var == "crglocal"){
+  # Cluster: GPFS 
+  clusterpath <- "/home/luisasantus/Desktop/bsc_cluster"
+  gene_annotation_path <- file.path(clusterpath, "gene_annotation")
+  data_path <- file.path(clusterpath, "Data")
+  plots <- file.path(data_path,"plots")
 }
+
+
+
 
 
 

@@ -7,8 +7,6 @@ output: html_document
 
 # Identify infected cells ex vivo
 
-
-
 # imports 
 ```{r imports}
 knitr::opts_chunk$set(echo = TRUE)
@@ -46,7 +44,7 @@ robjectsdir <- file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhem
 immune.combined <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 ebola_genes <- paste(ebola_ref$gene_id, "-unknown", sep ="")
-saveRDS(ebola_genes, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/ebola_genes.rds"))
+#saveRDS(ebola_genes, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/05_stats/ebola_genes.rds"))
 orthologs <- readRDS(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 # LncRNAs
 robjectsdir_stats <- file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
@@ -61,13 +59,16 @@ FCTHRESHOLD <- log(1.23)
 ```
 
 
+
 # Visualize EX vivo Dataset 
 ```{r Dimplotoverview}
 DimPlot(immune.combined, reduction = "umap", label = TRUE, cols =brewer.pal(4, "Set2"), label.size = 6)+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))
 ```
 
-# Determine threshold to call a cell infected 
-```{r DetermineThreshold}
+#-------------------------------
+# Threshold for infected cells
+#------------------------------
+```{r DetermineThreshold}```{r DetermineThreshold}
 # Extract normalied expression values matrix
 expression_matrix <- immune.combined@assays$RNA@counts
 colnames(expression_matrix) <- Idents(immune.combined)
@@ -80,31 +81,46 @@ ebola_genome_reads <-colSums(ebola_reads)
 total_reads <- colSums(expression_matrix)
 ebola_gene_percentage <- (ebola_reads/total_reads)*100
 ebola_genome_percentage<- (ebola_genome_reads/total_reads)*100
+log10_ebola_tpt <- log10((ebola_genome_reads/total_reads)*10000)
+
+
+# create a DF with information regarding infection statuss 
 
 ebola_genome_percentage_df <- data.frame(percentage_viral_reads = ebola_genome_percentage,
                                          celltype = names(ebola_genome_percentage),
                                          cond =immune.combined$cond, 
-                                         hour = immune.combined$dpi)
+                                         hour = immune.combined$dpi,
+                                         log10_ebola_tpt = log10_ebola_tpt)
 
+saveRDS(ebola_genome_percentage_df, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds"))
 
 # Define the threshold for the percentage of viral reads identified per cell for it to be called Infected 
 #threshold <- quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype != "Myeloid", ]$percentage_viral_reads, probs = c(0.99))
 threshold <- max(unlist(lapply(setdiff(unique(ebola_genome_percentage_df$celltype), "Monocyte"), function(x) quantile(ebola_genome_percentage_df[ebola_genome_percentage_df$celltype == x, ]$percentage_viral_reads, probs = c(0.99)))))
 
 print(paste("Threshold", threshold))
+
 ```
 
-# Discriminate infected vs Bystander cells
+
+#-------------------------------
+# Cell statuss classification
+#   (infected vs bystander)
+#------------------------------
+
 ```{r CallInfectedCells}
+#ebola_genome_percentage_df <- readRDS("//home/mariasr/cluster/02.ebola_sc/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
 
 # Separate the cells into infected and not infected based on the threshold
 ebola_genome_percentage_df$classification <- ifelse(ebola_genome_percentage_df$percentage_viral_reads >= threshold, "Infected", "Not Infected")
+
 # Check that the order of the cells is the same 
 table(colnames(immune.combined) == rownames(ebola_genome_percentage_df))
 immune.combined$infection <- ebola_genome_percentage_df$classification
-immune.combined$viraload <- ebola_genome_percentage_df$percentage_viral_reads
+immune.combined$viral_load <- ebola_genome_percentage_df$percentage_viral_reads
+immune.combined$log10_ebola_tpt <- ebola_genome_percentage_df$log10_ebola_tpt
 
-saveRDS(ebola_genome_percentage_df, "/home/luisas/Desktop/cluster/data/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/df_viralpercentage.rds")
+#saveRDS(ebola_genome_percentage_df, file.path(data_path, "05_RObjects/03_prep/df_viralpercentage.rds"))
 
 table(immune.combined[,Idents(immune.combined) == "Monocyte" ]$infection)
 table(immune.combined[,Idents(immune.combined) == "B" ]$infection)
@@ -112,8 +128,11 @@ table(immune.combined[,Idents(immune.combined) == "T" ]$infection)
 table(immune.combined[,Idents(immune.combined) == "NK" ]$infection)
 
 # Save information about infection 
-saveRDS(immune.combined, file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds"))
+saveRDS(immune.combined, file.path(data_path,"05_RObjects/03_prep/immune.combined.infectionstatus.rds"))
+```
 
+
+```{r CallInfectedCells}
 # Add information about how many cells are found per celltype and, per celltype, which is the proportion of cells infected
 # How many cells are found per celltype
 summary_celltype <- ebola_genome_percentage_df%>% dplyr::group_by(celltype) %>% tally()
@@ -130,11 +149,13 @@ percentage_cells_infected_per_celltype$perc_infected <- (percentage_cells_infect
 percentage_cells_infected_per_celltype$cond <- factor(percentage_cells_infected_per_celltype$cond , levels = c("media", "irrad", "live"))
 
 # Just visualize the threshold for calling a cell infectedimmune.combine
-ggplot(ebola_genome_percentage_df, aes( x = percentage_viral_reads , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
+ggplot(ebola_genome_percentage_df, aes( x = as.numeric(percentage_viral_reads) , col = classification, fill = classification))+geom_density( alpha = 0.6)+theme_paper+xlab("")+theme(axis.text.y = element_text(size = 8))+theme(axis.text.x = element_text(angle=45, hjust=1), axis.title.y = element_text(size = 15), axis.text.y = element_text(size =15))+scale_x_log10()+scale_fill_manual(values = c( "red", "grey"))+scale_color_manual(values = c( "red", "grey"))+xlab("Viral Load")+geom_vline(xintercept = threshold, lty =  2)
 
 ```
 
-# Visualize Infected cells 
+#-------------------------------
+# Visualize infected cells
+#------------------------------
 ```{r VisualizeInfectedCells}
 percentage_cells_infected_per_celltype$condhr <- paste(percentage_cells_infected_per_celltype$cond, percentage_cells_infected_per_celltype$hour)
 
@@ -151,18 +172,4 @@ DimPlot(immune.combined, label=F, cells.highlight= list(infected_cells), sizes.h
     labs(title = "Infected cells" )+ NoLegend()+theme_minimal()+ theme(panel.background = element_rect(fill = "white", colour = "grey50"), panel.grid.major = element_blank(), panel.grid.minor = element_blank())+theme(legend.text = element_text(size=18))+
     theme(legend.position = "none", plot.title = element_text(size = 22), axis.title = element_text(size = 18))
 
-```
-
-# RemoveEbolaGenes 
-# ---------------------------------
-#    Remove Ebola Genes  
-#----------------------------------
-```{r removeEbolaGenes}
-
-immune.combined <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/immune.combined.infectionstatus.rds"))
-length(setdiff(rownames(immune.combined), ebola_genes))
-immune.combined_ebolaremoved <- immune.combined[setdiff(rownames(immune.combined), ebola_genes),]
-immune.combined_ebolaremoved <- NormalizeData(immune.combined_ebolaremoved)
-
-saveRDS(immune.combined_ebolaremoved,file.path(data_path,"/02_scRNA-Seq_PBMCs/00_scRNA-Seq_exVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.infectionstatus_ebolaremoved.rds"))
 ```

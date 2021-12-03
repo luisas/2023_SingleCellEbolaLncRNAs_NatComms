@@ -50,7 +50,7 @@ rownames(df_ref) <- df_ref$transcript_id
 
 # Get unique dataframe
 orthologs <- merge(orthologs, df_ref, by = "lnc")
-saveRDS(orthologs,file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+#saveRDS(orthologs,file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 
 ```
 
@@ -94,7 +94,7 @@ colnames(orthologs_max_gene) <- gsub("gene_id.x","gene_id",colnames(orthologs_ma
 orthologs_max_gene <- distinct(orthologs_max_gene[,c("orthologGeneSymbol", "gene_id", "alignScore.x")])
 
 orthologs <- orthologs_max_gene
-saveRDS(orthologs_max_gene, file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+#saveRDS(orthologs_max_gene, file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 ```
 
 # Look for nice examples 
@@ -149,9 +149,9 @@ p_o <- ggplot(df, aes(x = type, fill = orth, y = freq))+geom_bar(stat = "identit
               panel.background = element_rect(fill = "white"))+
         scale_y_continuous(limits =c(0,1), labels = seq(0,1, 0.25),breaks = seq(0,1, 0.25), expand = c(0,0))
 
-pdf(file.path(plots, "01/orthologs.pdf"), width = 4.5, height = 6)
+#pdf(file.path(plots, "01/orthologs.pdf"), width = 4.5, height = 6)
 p_o
-dev.off()
+#dev.off()
 ```
 
 

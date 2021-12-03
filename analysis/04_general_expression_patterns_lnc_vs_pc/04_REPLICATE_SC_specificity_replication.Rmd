@@ -65,6 +65,8 @@ df_mrna_celltype <- readRDS(file.path(robjectsdir,"05_stats/df_mrna_celltype.rds
 df_n_cells <- rbind(df_lnc, df_mrna)
 df_celltype <- rbind(df_mrna_celltype,df_lnc_celtype )
 #saveRDS(df_celltype, file.path(robjectsdir,"df_celltype.rds"))
+df_lnc$gene_id <- as.character(df_lnc$gene_id)
+df_mrna$gene_id <- as.character(df_mrna$gene_id)
 
 
 df_lnc <- df_lnc[df_lnc$n_cells > 60, ]

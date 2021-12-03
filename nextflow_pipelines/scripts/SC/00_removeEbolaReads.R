@@ -18,7 +18,7 @@ out2 <- args[5]
 
 
 
-# 0. read in file 
+# 0. read in file
 immune.combined <- readRDS(file)
 DefaultAssay(immune.combined) <- "RNA"
 ebola_genes <- readRDS(genes)

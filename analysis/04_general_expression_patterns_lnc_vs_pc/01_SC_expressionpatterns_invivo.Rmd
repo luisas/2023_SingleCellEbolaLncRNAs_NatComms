@@ -47,8 +47,8 @@ df_complete_celltype <- df_complete_celltype[df_complete_celltype$n_cells > 30,]
 df_complete <- readRDS(file.path(robjectsdir, "df_complete.rds"))
 df_lnc <- readRDS(file.path(robjectsdir, "df_lnc.rds"))
 df_mrna <- readRDS(file.path(robjectsdir, "df_mrna.rds"))
-
-
+df_lnc$gene_id <- as.character(df_lnc$gene_id)
+df_mrna$gene_id <- as.character(df_mrna$gene_id)
 
 # Apply same filters
 df_lnc <- df_lnc[df_lnc$n_cells > 60, ]
@@ -58,6 +58,7 @@ df_mrna$type <- "Protein Coding"
 df_complete <- rbind(df_lnc, df_mrna)
 
 df_complete_celltype <- df_complete_celltype[df_complete_celltype$gene_id %in% c(df_lnc$gene_id, df_mrna$gene_id),]
+df_complete_celltype$gene_id <- as.character(df_complete_celltype$gene_id)
 df_complete_celltype$type <- "NA"
 df_complete_celltype[df_complete_celltype$gene_id %in% df_lnc$gene_id,]$type <- "lnc"
 df_complete_celltype[df_complete_celltype$gene_id %in% df_mrna$gene_id,]$type <- "pc"
