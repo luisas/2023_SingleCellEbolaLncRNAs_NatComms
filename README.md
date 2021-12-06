@@ -1,4 +1,4 @@
-# Single-cell profiling of lncRNAs during Ebola Infection
+# Single-cell profiling of lncRNAs during Ebola virus Infection
 
 This repository contains all the code used for the analyses performed in the paper XX. 
 

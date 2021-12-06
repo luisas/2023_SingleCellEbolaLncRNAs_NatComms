@@ -13,7 +13,7 @@ output: html_document
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
-library(GenomicRanges); library(dplyr); library(zeallot); library(tximport); library(ggpubr); library(plyr)
+library(GenomicRanges); library(dplyr); library(zeallot); library(ggpubr); library(plyr)
 
 # Reoccurring paths
 # Define paths for data

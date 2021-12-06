@@ -55,7 +55,7 @@ palette_expression_border <-palette_border[c(1,2,3,5)]
 
 ```
 
-# STEP 2: Check how many novel lncRNAs we can indentify compared to the reference 
+# STEP 2: Check how many novel lncRNAs we can indentify in macaque and compared the number to reference in both macaque and human 
 # Summary barplot
 ```{r summary}
 n_genes <- c(length(unique(mRNAs_ref$gene_id)), length(unique(lncRNAs_ref$gene_id)), length(unique(all_novel_lnc$gene_id)))
@@ -137,20 +137,48 @@ get_n_exons <- function(gr){
 }
 wilcox.test(get_n_exons(lncRNAs_ref)$max_exon, get_n_exons(mRNAs_ref)$max_exon)
 wilcox.test(get_n_exons(all_novel_lnc)$max_exon, get_n_exons(mRNAs_ref)$max_exon)
-
-
 # 2- -----Trancript length
-wilcox.test(calc_transcript_length(all_novel_lnc, "")$range, calc_transcript_length(mRNAs_ref, "")$range)
+wilcox.test(calc_transcript_length(all_novel_lnc, "")$range, calc_transcript_length(lncRNAs_ref, "")$range)
 wilcox.test(calc_transcript_length(lncRNAs_ref, "")$range, calc_transcript_length(mRNAs_ref, "")$range)
 wilcox.test(calc_transcript_length(lncRNAs_ref, "")$range, calc_transcript_length(mrna_ref_human, "")$range)
-
-
 # 2- -----Exon length
 wilcox.test(calc_exon_length(all_novel_lnc, "")$range, calc_exon_length(mRNAs_ref, "")$range)
 wilcox.test(calc_exon_length(lncRNAs_ref, "")$range, calc_exon_length(mRNAs_ref, "")$range)
 
 
+# ---------------- Check p-values systematically
+# ---------------- Funcitons to get p-vals 
+# N exons
+compare_n_exons <- function(x, y){return(wilcox.test(get_n_exons((eval(parse(text = x))))$max_exon, get_n_exons(eval(parse(text = y)))$max_exon)$p.val)}
+# Exon length 
+compare_exon_length <- function(x, y){return(wilcox.test(calc_exon_length(eval(parse(text = x)), "")$range, calc_exon_length(eval(parse(text = y)), "")$range)$p.val)}
+# Transcript length 
+compare_transcript_length <- function(x, y){return(wilcox.test(calc_transcript_length(eval(parse(text = x)), "")$range, calc_transcript_length(eval(parse(text = y)), "")$range)$p.val)}
 
+
+get_pval_table <- function(FUN, all_novel_lnc,
+                                lncRNAs_ref, 
+                                lncRNAs_ref_human, 
+                                mRNAs_ref, 
+                                mrna_ref_human){
+  arguments <- formalArgs(get_pval_table)
+  arguments <- (arguments[2:length(arguments)])
+  combinations <- as.data.frame(expand.grid.unique(arguments, arguments))
+  combinations$V1 <- as.character(combinations$V1)
+  combinations$V2 <- as.character(combinations$V2)
+  combinations<- cbind(combinations,pval = mapply(FUN, combinations$V1, combinations$V2) )
+  combinations$significance <- ifelse(combinations$pval < 0.05, "SIG", "NOT SIG")
+  return(combinations)
+}
+
+
+
+n_exons_pvals <- get_pval_table(compare_n_exons)
+compare_exon_length <- get_pval_table(compare_exon_length)
+compare_transcript_length <- get_pval_table(compare_transcript_length)
+n_exons_pvals
+compare_exon_length
+compare_transcript_length
 ```
 
 # Save plots
@@ -188,8 +216,9 @@ remove_one_exon <- function(gr){
   depleted <- gr[gr$gene_id %in% df_l[df_l$max_exon > 1,]$gene_id,]
   return(depleted)
 }
-l_multiexonic <- plot_stats_annotation(all_novel_lnc,remove_one_exon(lncRNAs_ref),remove_one_exon(lncRNAs_ref_human), mrna_ref_human, mRNAs_ref, palette = palette)
+l_multiexonic <- plot_stats_annotation(remove_one_exon(all_novel_lnc),remove_one_exon(lncRNAs_ref),remove_one_exon(lncRNAs_ref_human), mrna_ref_human, mRNAs_ref, palette = palette)
 l_multiexonic
+
 ```
 
 ```{r stats}
@@ -213,67 +242,59 @@ dev.off()
 orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "alignScore.x")])
 novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
+novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$alignScore.x),] 
+length(unique(novel_orthologs_df$gene_id))
+length(unique(novel_orthologs_df$orthologGeneSymbol))
 
-# Add gene id 
 corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
 rownames(corr_human) <- corr_human$t
 
-#novel_orthologs_df$transcript_id_ortholog <- unique(unlist(lapply(as.character(novel_orthologs_df$ortholog), function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-#novel_orthologs_df$gene_id_ortholog <- corr_human[novel_orthologs_df$transcript_id_ortholog,]$g
-#novel_orthologs_df <- unique(novel_orthologs_df[,c("gene_id","gene_id_ortholog")])
-#novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$gene_id_ortholog),]
+# Extract from rthologs full the human ortholog transcript 
+orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+# Extract those lines representing a novel lnc 
+orthologs_full <- orthologs_full[orthologs_full$gene_id %in% novel_orthologs_df$gene_id, ]
+orthologs_full <- unique(orthologs_full[, c("gene_id", "ortholog")])
+orthologs_full$t_orth <- unique(unlist(lapply(as.character(orthologs_full$ortholog) , function(x) strsplit(x, '.', fixed = T)[[1]][1])))
+orthologs_full$human_gene_id <- corr_human[orthologs_full$t_orth,]$g
 
-# Novel lncRNAs in macaque with human ortholog
-novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% novel_orthologs_df$gene_id,]
+orthologs_full_reduced <- orthologs_full[,c("gene_id", "human_gene_id")]
+orthologs_full_reduced <- orthologs_full_reduced[!is.na(orthologs_full_reduced$human_gene_id),]
+orthologs_full_reduced <- unique(orthologs_full_reduced[!is.na(orthologs_full_reduced$gene_id),])
+
+length(unique(orthologs_full_reduced$gene_id))
+length(unique(orthologs_full_reduced$human_gene_id))
+novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% orthologs_full_reduced$gene_id,]
+
+human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$gene_id %in% orthologs_full_reduced$human_gene_id,]
+length(unique(human_orth_novel$gene_id))
 length(unique(novel_with_ortholog_gr$gene_id))
-macaques_lnc_with_ortholog <- (unique(novel_with_ortholog_gr$gene_id))
 
+orthologs_full[orthologs_full$gene_id == "ENSG00000152931",]
+orthologs_full[orthologs_full$gene_id == "MSTRG.202113",]
+df[df$gene_id == "MSTRG.202113", ]
+test <- all_novel_lnc[all_novel_lnc$gene_id == "MSTRG.202113",]
+test <- human_orth_novel[human_orth_novel$gene_id == "ENSG00000152931",]
+calc_transcript_length(test, "")
 
-# Now get Human Ortholog ids 
-human_orthologs_names <- orthologs_full[orthologs_full$gene_id %in% macaques_lnc_with_ortholog, ]$gene_id
+gr <- test
+gr <- gr[gr$type =="exon",]
+gr
+gr <- get_only_max_transcript(gr)
+gr
+df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+df
+collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
+collapsed["type"] <- type
+return(collapsed)
 
-orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
-transcripts_human_novelortholog <- as.character(orthologs_full[orthologs_full$gene_id %in% macaques_lnc_with_ortholog, ]$ortholog)
-transcripts_human_novelortholog <- unique(unlist(lapply(transcripts_human_novelortholog, function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$transcript_id %in% transcripts_human_novelortholog,]
-length(unique(human_orth_novel$gene_id))
-length(unique(transcripts_human_novelortholog))
-length(unique(corr_human[transcripts_human_novelortholog, ]$g))
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
 
-# Humans to novel 
-orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
-transcripts_human_novelortholog <- as.character(orthologs_full[orthologs_full$gene_id %in% novel_with_ortholog_gr$gene_id, ]$ortholog)
-transcripts_human_novelortholog <- unique(unlist(lapply(transcripts_human_novelortholog, function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$transcript_id %in% transcripts_human_novelortholog,]
-length(unique(human_orth_novel$gene_id))
+humans <- import(file.path(datadir, "05_orthologs/slncky-master/annotations/hg38.gencode.v23.lncRNA.bed"))
 
-
-my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
-df <- data.frame()
-df <- rbind(df,data.frame(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")))
-df <- rbind(df,data.frame(calc_transcript_length(human_orth_novel, "2. human ortholog")))
-palette = c("#f72631", "dark grey", "#fc6d70", "grey")
-df$type <- factor(df$type)
-# remove outliers
-df <- df[df$range < 6000,]
-
-
-
-ylab <- seq(0,6,1)
-my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
-p <- ggboxplot(df,x = "type",  y = "range", fill = "type", palette = palette) +
-    labs( x = "", y = "transcript length (bp)" )+ stat_compare_means(comparisons = my_comparisons)+
-    theme(legend.position = "",axis.text.y = element_text(size = 20, color = "black"), axis.title = element_text(size = 20))
-pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7)
-p
-dev.off()
-
-
-
-wilcox.test(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")$range, calc_transcript_length(human_orth_novel, "1.  novel lncRNA")$range, paired = T )
-table(substr(orthologs$lnc,1,3))
-orthologs
+orthologs[orthologs$gene_id == "MSTRG.202113",]
+humans[humans$name == "PART1",]
 ```
+
 
 # Separate by intergenic and antisense 
 ```{r cpc2vscpan}

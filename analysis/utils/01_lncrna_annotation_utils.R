@@ -90,6 +90,8 @@ calc_transcript_length <- function(gr, type){
   df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
   collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
   collapsed["type"] <- type
+  collapsed$gene_id <- as.character(collapsed$gene_id)
+  collapsed$transcript_id <- as.character(collapsed$transcript_id)
   return(collapsed)
 }
 
@@ -411,3 +413,18 @@ plot_stats_benchmark <- function(pcvslnc, palette = c("orange","#994C00")){
 }
 
 
+expand.grid.unique <- function(x, y, include.equals=FALSE)
+{
+  x <- unique(x)
+  
+  y <- unique(y)
+  
+  g <- function(i)
+  {
+    z <- setdiff(y, x[seq_len(i-include.equals)])
+    
+    if(length(z)) cbind(x[i], z, deparse.level=0)
+  }
+  
+  do.call(rbind, lapply(seq_along(x), g))
+}
