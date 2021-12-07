@@ -296,6 +296,55 @@ humans[humans$name == "PART1",]
 ```
 
 
+
+```{r summary}
+my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
+df <- data.frame()
+df <- rbind(df,data.frame(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")))
+df$gene_id <- as.character(df$gene_id)
+# Get the second group IN ORDER 
+df <- rbind(df,data.frame(calc_transcript_length(human_orth_novel, "2. human ortholog")))
+palette = c("#f72631", "dark grey", "#fc6d70", "grey")
+df$type <- factor(df$type)
+
+# remove outliers
+df <- df[df$range < 6000,]
+ylab <- seq(0,6,1)
+my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
+p <- ggboxplot(df,x = "type",  y = "range", fill = "type", palette = palette) +
+    labs( x = "", y = "transcript length (bp)" )+ stat_compare_means(aes(label = ..p.signif..),comparisons = my_comparisons)+
+    theme(legend.position = "",axis.text.y = element_text(size = 20, color = "black"), axis.title = element_text(size = 20))
+pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7)
+p
+dev.off()
+
+table(df$type)
+# find lnc - orth pairs with length above 6k
+# lnc longer than 6k 
+long_genes <- df[df$range > 6000,]
+long_genes_df <- orthologs_full_reduced[orthologs_full_reduced$gene_id %in% long_genes$gene_id, ]
+long_genes_ids <- c(long_genes_df$gene_id, long_genes_df$human_gene_id)
+df <- df[!(df$gene_id %in% long_genes_ids),]
+
+# Do paired test 
+# order all novel lncrnas first 
+rownames(df) <- df$gene_id
+df_ranges_lnc <- df[c(orthologs_full_reduced$gene_id, orthologs_full_reduced$human_gene_id),]
+df <- df[!is.na(df$gene_id),]
+
+ranges_lnc <- df[orthologs_full_reduced$gene_id, ]$range
+ranges_lnc <- ranges_lnc[!is.na(ranges_lnc)]
+length(ranges_lnc)
+
+ranges_orth <- df[orthologs_full_reduced$human_gene_id, ]$range
+ranges_orth <- ranges_orth[!is.na(ranges_orth)]
+length(ranges_orth)
+
+wilcox.test(ranges_lnc, ranges_orth, paired = T )
+
+df[df$type]
+```
+
 # Separate by intergenic and antisense 
 ```{r cpc2vscpan}
 gffcompare <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/02_RNA-Seq_ribodepl/04_stringtie_gffcompare/merged.annotated.gtf"))
