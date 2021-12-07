@@ -1,3 +1,0 @@
-remove bedtools/2.25.0 (PATH) 
-load bedtools/2.25.0 (PATH) 
-Error: malformed BED entry at line 9259. Start Coordinate detected that is < 0. Exiting.

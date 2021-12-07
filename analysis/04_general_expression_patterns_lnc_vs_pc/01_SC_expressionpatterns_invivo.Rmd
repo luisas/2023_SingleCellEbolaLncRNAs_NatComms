@@ -323,6 +323,17 @@ dev.off()
 pdf(file.path(plots, "02/SUPPL_cellsNeutrophil.pdf"), width = 2, height = 4)
 get_cells_plot("Neutrophil", df_complete_celltype)
 dev.off()
+
+# ------------------ GET all n for plots 
+# Only retain genes considered for the plot 
+df_complete_celltype
+df_complete_celltype <- df_complete_celltype[!is.na(df_complete_celltype$medianexpr),]
+df_complete_celltype <- df_complete_celltype[!is.na(df_complete_celltype$perc_cells_expressing),]
+
+df_complete_celltype_red <- df_complete_celltype[,c("")]
+
+df_complete_celltype %>% dplyr::group_by(ident) %>% dplyr::count(type)
+
 ```
 
 
@@ -486,7 +497,7 @@ dev.off()
 ```
 
 # ------------------------------------------------------
-# Cherry pick an example 
+# Pick an example 
 # highly expressed in low proportion of cells 
 # ------------------------------------------------------
 

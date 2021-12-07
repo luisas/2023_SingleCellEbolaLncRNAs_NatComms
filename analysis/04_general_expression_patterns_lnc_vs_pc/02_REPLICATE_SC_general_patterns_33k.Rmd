@@ -373,8 +373,15 @@ plot_matching_scatter <- function(matches_perc){
   ggdraw(p2)
 }
 
-
+pdf(file.path(plots, "02/replication33k/SUPPL_scatterplot_matchedPerc.pdf"), width = 6, height = 6)
 plot_matching_scatter(matches_perc)
+dev.off()
+
+pdf(file.path(plots, "02/replication33k/SUPPL_scatterplot_matchedMedian.pdf"), width = 6, height = 6)
 plot_matching_scatter(matches_median)
+dev.off()
+
+
+
 
 ```

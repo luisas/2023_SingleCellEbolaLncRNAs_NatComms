@@ -187,7 +187,7 @@ match_plots_fun <- function(df_test, title = "specificity score"){
    color = "type", fill = "type", alpha = 0.7, 
    palette = palette_plot_percentage)+xlab("")+ylab(title)+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+theme(legend.position = "")+stat_compare_means(comparisons = my_comparisons)
   
-  
+    
   # .-------------------------------------------------------------------
   # Match by the score
   c <- df_test[complete.cases(df_test),]
@@ -237,7 +237,12 @@ stats_specificity <- function(specificity_scores, plots = F, title = "specificit
                   stat_compare_means(comparisons = my_comparisons)+xlab("")+ylab(title)+
                   theme(axis.ticks.x = element_blank(), text = element_text(size = 15), axis.line.x = element_blank())
   
-
+p1c <- ggviolin(df_tot, x = "type", y = "score",  col="black", fill = "type", alpha= 1, add = "boxplot",short.panel.labs = T) +    scale_color_manual(values = (palette_plot_percentage))+
+                  scale_fill_manual(values = (palette_plot_percentage))+
+                  theme(legend.position = "none")+
+                  stat_compare_means(comparisons = my_comparisons)+xlab("")+ylab(title)+
+                  theme(axis.ticks.x = element_blank(), text = element_text(size = 15), axis.line.x = element_blank())
+  
   
   # Add Markers
   p1 <- p1b+geom_point(data=highlight_df, aes(x=type,y=score), color='#02A237',size=3)+
@@ -246,7 +251,10 @@ stats_specificity <- function(specificity_scores, plots = F, title = "specificit
     geom_point(data=highlight_df_hk, aes(x=type,y=score), color='black',size=0.5)
   p1
   
-  
+  p7 <- p1c+geom_point(data=highlight_df, aes(x=type,y=score), color='#02A237',size=3)+
+    geom_point(data=highlight_df, aes(x=type,y=score), color='black',size=0.5)+
+    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='dark grey',size=3)+
+    geom_point(data=highlight_df_hk, aes(x=type,y=score), color='black',size=0.5)
   
   # ------------------ PLOT 2: Visualize relation to % of cells  ------------------------------
   p2 <- ggscatter(specificity_scores_summary, x = "score", y = "perc_cells_expressing",  conf.int = T, 
@@ -277,7 +285,7 @@ stats_specificity <- function(specificity_scores, plots = F, title = "specificit
     print("aalskh")
     return(list(p1,p2,p3,p4,p5,p6))
   }else{
-    return(list(p1,p2))
+    return(list(p1,p2,p7))
   }
 
 }
@@ -313,6 +321,9 @@ dev.off()
 
 get_df_summary(tau)
 
+pdf(file.path(plots,  "02/SPECIFICITY/SUPPL_S5A_alternativeViolin.pdf"), width = 3, height = 4)
+stats_tau[[3]]
+dev.off()
 
 ```
 
@@ -351,6 +362,11 @@ dev.off()
 
 pdf(file.path(plots, "02/SPECIFICITY/MAIN_2I.pdf"), width = 4, height = 6)
 match_plots[[1]]
+dev.off()
+
+
+pdf(file.path(plots,  "02/SPECIFICITY/MAIN_2H_alternativeViolin.pdf"), width = 3, height = 4)
+alt_stats[[3]]
 dev.off()
 ```
 
