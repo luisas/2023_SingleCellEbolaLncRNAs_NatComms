@@ -249,6 +249,8 @@ pdf(file.path(plots, "03/SUPPL_Neutrophils.pdf"), width = 7, height = 6)
 DimPlot(neut, pt.size = 1, group.by = "group", cols = rev(c(brewer.pal(3, "Set1"))))+ylim(c(4,12))+theme_void()+theme(legend.text = element_text(size = 13), title = element_blank())
 dev.off()
 
+
+de_all_genes
 ```
 ```{R table}
 
