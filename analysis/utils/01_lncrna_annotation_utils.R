@@ -167,7 +167,7 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
   df <- rbind(df,data.frame(calc_transcript_length(mrna_ref_human, "Annotated mRNAs - Human")))
   df <- rbind(df,data.frame(calc_transcript_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
   
-  ylab <- seq(0,10,1)
+  ylab <- seq(0,10,2)
   p <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
     labs( x = "", y = "transcript length (bp)" )+
     geom_boxplot(outlier.shape=NA, fill = alpha(palette, 1),color = "black", na.rm = TRUE) +
@@ -193,7 +193,7 @@ plot_stats_annotation <- function (novel_expressed,lncRNAs_ref,lncRNAs_ref_human
   df <- rbind(df,data.frame(calc_exon_length(mrna_ref_human, "Annotated mRNAs - Human")))
   df <- rbind(df,data.frame(calc_exon_length(mRNAs_ref, "Annotated mRNAs - Macaque")))
   
-  ylab <- seq(0,1001,200)
+  ylab <- seq(0,1001,300)
   p1 <- ggplot(df, aes(x = factor(type, level = levels),  y = range )) +
     labs( x = "", y = "exon length (bp)" )+
     geom_boxplot(outlier.shape=NA, fill = alpha(palette, 1),color = "black", na.rm = TRUE) +

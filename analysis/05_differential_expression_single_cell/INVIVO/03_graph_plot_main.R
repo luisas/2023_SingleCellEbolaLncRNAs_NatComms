@@ -40,7 +40,7 @@ go_purine_metabolism <- c("GUCY1B1", "GUCY1A1", "ADA")
 #go_leukocyte_proliferation <- c("FN1","CD74","CDKN1A","PSAP","ZFP36","GADD45B","DUSP6")
 #go_response_to_other_organism <- c("S100A9","PLAC8", "S100A8","ISG15" ,"IFIT2", "MX1")
 go_genes <- c(go_purine_metabolism,innate_genes,immresp_genes)
-go_genes <- c(go_genes, "ETS1")
+go_genes <- c(go_genes, "ETS1", "IL7R")
 
 V(gD2)$size <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono,go_genes), 5, 1.5)
 V(gD2)$shape <- ifelse(names(as.list(V(gD2))) %in% c(de_lnc_mono), "fcircle",shapes()[3] )

@@ -125,7 +125,7 @@ dev.off()
 ```{r stats}
 length(unique(all_novel_lnc$gene_id))
 length(unique(all_novel_lnc$transcript_id))
-l <- plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette = palette)
+l <- plot_stats_annotation(all_novel_lnc,lncRNAs_ref,lncRNAs_ref_human, mrna_ref_human, mRNAs_ref, palette = palette, size = 20)
 #export(all_novel_lnc, "/home/luisa/Desktop/cluster/data/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/novelOnly.gtf")
 
 
@@ -187,12 +187,12 @@ pdf(file.path(plots, "01/number_of_exons.pdf"), width = 7, height = 5)
 l[[1]]
 dev.off()
 
-pdf(file.path(plots, "01/exon_length.pdf"), width = 6, height = 5)
-l[[2]]
+pdf(file.path(plots, "01/exon_length.pdf"), width = 4.5, height = 5)
+l[[3]]
 dev.off()
 
-pdf(file.path(plots, "01/transcript_length.pdf"), width = 6, height = 5)
-l[[3]]
+pdf(file.path(plots, "01/transcript_length.pdf"), width = 4.5, height = 5)
+l[[2]]
 dev.off()
 ```
 
@@ -235,115 +235,7 @@ l_multiexonic[[3]]
 dev.off()
 ```
 
-# Check lengths of novel lncRNAs with an ortholog and their ortholog ( To check we identify full transcripts )
 
-```{r summary}
-# 2. only plot one to one ortholog
-orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
-novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "alignScore.x")])
-novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
-novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$alignScore.x),] 
-length(unique(novel_orthologs_df$gene_id))
-length(unique(novel_orthologs_df$orthologGeneSymbol))
-
-corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
-rownames(corr_human) <- corr_human$t
-
-# Extract from rthologs full the human ortholog transcript 
-orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
-# Extract those lines representing a novel lnc 
-orthologs_full <- orthologs_full[orthologs_full$gene_id %in% novel_orthologs_df$gene_id, ]
-orthologs_full <- unique(orthologs_full[, c("gene_id", "ortholog")])
-orthologs_full$t_orth <- unique(unlist(lapply(as.character(orthologs_full$ortholog) , function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-orthologs_full$human_gene_id <- corr_human[orthologs_full$t_orth,]$g
-
-orthologs_full_reduced <- orthologs_full[,c("gene_id", "human_gene_id")]
-orthologs_full_reduced <- orthologs_full_reduced[!is.na(orthologs_full_reduced$human_gene_id),]
-orthologs_full_reduced <- unique(orthologs_full_reduced[!is.na(orthologs_full_reduced$gene_id),])
-
-length(unique(orthologs_full_reduced$gene_id))
-length(unique(orthologs_full_reduced$human_gene_id))
-novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% orthologs_full_reduced$gene_id,]
-
-human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$gene_id %in% orthologs_full_reduced$human_gene_id,]
-length(unique(human_orth_novel$gene_id))
-length(unique(novel_with_ortholog_gr$gene_id))
-
-orthologs_full[orthologs_full$gene_id == "ENSG00000152931",]
-orthologs_full[orthologs_full$gene_id == "MSTRG.202113",]
-df[df$gene_id == "MSTRG.202113", ]
-test <- all_novel_lnc[all_novel_lnc$gene_id == "MSTRG.202113",]
-test <- human_orth_novel[human_orth_novel$gene_id == "ENSG00000152931",]
-calc_transcript_length(test, "")
-
-gr <- test
-gr <- gr[gr$type =="exon",]
-gr
-gr <- get_only_max_transcript(gr)
-gr
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-df
-collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed["type"] <- type
-return(collapsed)
-
-mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
-
-humans <- import(file.path(datadir, "05_orthologs/slncky-master/annotations/hg38.gencode.v23.lncRNA.bed"))
-
-orthologs[orthologs$gene_id == "MSTRG.202113",]
-humans[humans$name == "PART1",]
-```
-
-
-
-```{r summary}
-my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
-df <- data.frame()
-df <- rbind(df,data.frame(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")))
-df$gene_id <- as.character(df$gene_id)
-# Get the second group IN ORDER 
-df <- rbind(df,data.frame(calc_transcript_length(human_orth_novel, "2. human ortholog")))
-palette = c("#f72631", "dark grey", "#fc6d70", "grey")
-df$type <- factor(df$type)
-
-# remove outliers
-df <- df[df$range < 6000,]
-ylab <- seq(0,6,1)
-my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
-p <- ggboxplot(df,x = "type",  y = "range", fill = "type", palette = palette) +
-    labs( x = "", y = "transcript length (bp)" )+ stat_compare_means(aes(label = ..p.signif..),comparisons = my_comparisons)+
-    theme(legend.position = "",axis.text.y = element_text(size = 20, color = "black"), axis.title = element_text(size = 20))
-pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7)
-p
-dev.off()
-
-table(df$type)
-# find lnc - orth pairs with length above 6k
-# lnc longer than 6k 
-long_genes <- df[df$range > 6000,]
-long_genes_df <- orthologs_full_reduced[orthologs_full_reduced$gene_id %in% long_genes$gene_id, ]
-long_genes_ids <- c(long_genes_df$gene_id, long_genes_df$human_gene_id)
-df <- df[!(df$gene_id %in% long_genes_ids),]
-
-# Do paired test 
-# order all novel lncrnas first 
-rownames(df) <- df$gene_id
-df_ranges_lnc <- df[c(orthologs_full_reduced$gene_id, orthologs_full_reduced$human_gene_id),]
-df <- df[!is.na(df$gene_id),]
-
-ranges_lnc <- df[orthologs_full_reduced$gene_id, ]$range
-ranges_lnc <- ranges_lnc[!is.na(ranges_lnc)]
-length(ranges_lnc)
-
-ranges_orth <- df[orthologs_full_reduced$human_gene_id, ]$range
-ranges_orth <- ranges_orth[!is.na(ranges_orth)]
-length(ranges_orth)
-
-wilcox.test(ranges_lnc, ranges_orth, paired = T )
-
-df[df$type]
-```
 
 # Separate by intergenic and antisense 
 ```{r cpc2vscpan}
@@ -458,7 +350,7 @@ expr_plot <- plot_expression(median_expression, palette_expression)+theme(plot.t
               axis.ticks.x=element_blank(),axis.text.x = element_blank(),
               panel.background = element_rect(fill = "white"))
 
-pdf(file.path(plots, "01/median_expr.pdf"), width = 5, height = 7)
+pdf(file.path(plots, "01/median_expr.pdf"), width = 3, height = 5)
 expr_plot
 dev.off()
 

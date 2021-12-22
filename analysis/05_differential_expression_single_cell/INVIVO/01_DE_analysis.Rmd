@@ -419,23 +419,25 @@ de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "ENS"), FALSE,  TRUE
 de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "MST"), FALSE,  de_lnc$ortholog_found)
 de_lnc$ImmLnc <- ifelse(de_lnc$ortholog %in% immlnc$lncRNA_symbol, "present", "absent")
 de_lnc$ImmLnc <- factor(de_lnc$ImmLnc, levels = c( "absent","present"))
-de_lnc_red <- de_lnc[,c("ortholog","ortholog_found", "ImmLnc")]                    
-
+de_lnc_red <- de_lnc[,c("celltype","ortholog","ortholog_found", "ImmLnc")]                    
+de_lnc_red <- unique(de_lnc_red)
 # How many DE genes have an ortholog 
 de_lnc%>% dplyr::group_by(ortholog_found) %>% dplyr::summarise(n =  dplyr::n()) %>% dplyr::mutate(freq = n /sum(n))
 # How many had been prev reported by ImmLnc
 de_lnc[de_lnc$ortholog_found == TRUE, ] %>% dplyr::group_by(ImmLnc) %>% dplyr::summarise(n =  dplyr::n()) %>% dplyr::mutate(freq = n /sum(n))
 
 
-ortholog_summary <-de_lnc[de_lnc$ortholog_found == TRUE, ] %>% dplyr::group_by( celltype,ortholog_found, ImmLnc) %>% dplyr::summarise(n =  dplyr::n()) %>% dplyr::mutate(freq = n / sum(n))
+ortholog_summary <-de_lnc_red[de_lnc_red$ortholog_found == TRUE, ] %>% dplyr::group_by( celltype,ortholog_found, ImmLnc) %>% dplyr::summarise(n =  dplyr::n()) %>% dplyr::mutate(freq = n / sum(n))
 
 ortholog_summary$celltype <- gsub("B", "B cell", ortholog_summary$celltype )
 ortholog_summary$celltype <- gsub("T", "T cell", ortholog_summary$celltype )
-ortholog_summary$celltype <- factor(ortholog_summary$celltype, levels  = c("Monocyte", "B cell", "T cell"))
+ortholog_summary$celltype <- factor(ortholog_summary$celltype, levels  = c("B cell", "Monocyte","T cell"))
 pdf(file.path(plots, "03/SUPPL_orthologs.pdf"), width = 7, height = 6)
 p <- ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = n))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("# genes")+xlab("")+labs(fill = "in ImmLnc")+theme(legend.title = element_text(size = 20))+theme(text = element_text(colour = "black"))
 p
 dev.off()
+
+de_lnc[de_lnc$celltype == "Monocyte" & de_lnc$ortholog_found == TRUE ,]
 ```
 
 # ---------------------------------------------------------------

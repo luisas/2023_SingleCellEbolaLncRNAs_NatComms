@@ -1,0 +1,111 @@
+---
+title: "Sc analysis"
+author: "Luisa Santus"
+date: "1/22/2020"
+output: html_document
+---
+
+
+# Build network based on values from grnBoost 
+
+
+## 1. Imports 
+```{r include=FALSE}
+library(igraph)
+library(stringr)
+library(Seurat)
+
+source("../../utils/00_datapaths.R")
+source("../../utils/02_sc_utils.R")
+source("../../utils/04_utils_graph.R")
+
+# 0. Load needed informations 
+immune.combined <- readRDS(file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+dim(immune.combined)
+monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+monocyte$group_red <- factor(toupper(substring(monocyte$group, 1,1)), levels = c("B", "E", "M", "L"))
+orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+```
+
+```{r include=FALSE}
+# select genes to be plotted 
+lnc_innate_immune_response <- c("ENSMMUG00000064224-unknown", "ENSMMUG00000062255-unknown")
+lnc_stress_response <- c("MSTRG.181325-unknown", paste(orthologs[orthologs$orthologGeneSymbol =="MIR22HG",]$gene_id, "unknown", sep = "-"), "ENSMMUG00000058644-unknown")
+go_stress_response <- c("HBEGF","KLF4", "CD74","CDKN1A","ZFP36","GADD45B","RTN4")
+go_innate_immune_response <- c("S100A9", "S100A8","ISG15", "MX1")
+
+response_to_other_organism <-c(go_stress_response, go_stress_response)
+innate_response <-c(lnc_innate_immune_response, go_response_to_other_organism)
+
+
+```
+
+
+
+
+```{r include=FALSE}
+gene <- "ENSMMUG00000064224-unknown"
+mono <- monocyte
+plot_expression_gene <- function(gene, mono, col = "blue", title = ""){
+  
+  # Extract expression of genen in each stage
+  geneexp <- mono[gene,]
+  B <-geneexp[,geneexp$group == "baseline"]@assays$RNA@data
+  E <-geneexp[,geneexp$group == "early"]@assays$RNA@data
+  M <-geneexp[,geneexp$group == "middle"]@assays$RNA@data
+  L <-geneexp[,geneexp$group == "late"]@assays$RNA@data
+  geneexp$type <- toupper(substring(geneexp$group, 1,1))
+  
+  #name <- "baseline"
+  get_average <- function(name){
+    v <- as.vector(get(name))
+    b <- data.frame(t(Rmisc::CI(v[v>0])), type = name)
+    b$pct.exp <- PercentAbove(v,0)*100
+    return(b)
+  }
+  
+  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
+  exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
+  
+  
+  #pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
+  p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = col)+theme(legend.title = element_blank())+ylab("log(CP10K+1)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+theme_paper+ggtitle(get_orthologname_(gene))+labs(subtitle = title )+theme(plot.title = element_text(hjust = 0.5),plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))
+  #dev.off()
+  
+  
+  p2 <- DotPlot(mono, features=c(gene), group.by  = "group")+coord_flip()
+  tab <- Dotplot_data(mono, features=c(gene), group.by  = "group")
+  exp$gene <- gene
+  return(list(p,p2,exp))
+  
+}
+
+```
+
+
+
+```{r include=FALSE}
+
+## ---- Innate immune response ----
+DotPlot(object = monocyte, features = lnc_stress_response, group.by = 'group_red')+coord_flip()+scale_colour_gradient(low = "grey", high = "#8B0000", na.value = NA)+scale_size(range = c(2,10))
+
+DotPlot(object = monocyte, features = go_stress_response, group.by = 'group_red')+coord_flip()+scale_colour_gradient(low = "grey", high = "#8B0000", na.value = NA)+scale_size(range = c(2,10))
+
+plot.data_up <- Reduce(rbind, lapply(genes, function(gene) plot_expression_gene(gene, monocyte)))
+plot.data_up$name <- unlist(lapply(plot.data_up$gene, get_orthologname_))
+dotplot_isgs <- ggplot(plot.data_up, aes(x = type, y = name, size= pct.exp, col = mean))+geom_point()+theme_paper+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+scale_size(range = c(5,10))+
+  theme(axis.ticks.x = element_blank(), axis.title.y = element_blank() )
+```
+
+
+```{r include=FALSE}
+## ------ Stress response ---------
+DotPlot(object = monocyte, features = lnc_innate_immune_response, group.by = 'group_red')+coord_flip()+scale_colour_gradient(low = "grey", high = "#8B0000", na.value = NA)+scale_size(range = c(2,10))
+
+DotPlot(object = monocyte, features = go_innate_immune_response, group.by = 'group_red')+coord_flip()+scale_colour_gradient(low = "grey", high = "#8B0000", na.value = NA)+scale_size(range = c(2,10))
+```
+
+
+
+

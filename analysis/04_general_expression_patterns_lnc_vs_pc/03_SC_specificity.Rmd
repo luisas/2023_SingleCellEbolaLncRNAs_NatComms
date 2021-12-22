@@ -204,7 +204,7 @@ match_plots_fun <- function(df_test, title = "specificity score"){
 
     scores_boxplot_matched_score <- ggboxplot(matches_score, x = "type", y = "perc_cells_expressing",
    color = "type", fill = "type", alpha = 0.7, 
-   palette = palette_plot_percentage)+xlab("")+ylab(title)+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+theme(legend.position = "")+stat_compare_means(comparisons = my_comparisons)+scale_y_continuous(limits = c(0,1))
+   palette = palette_plot_percentage)+xlab("")+ylab("% cells")+theme(text = element_text(size = 20))+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x =  element_blank() )+theme(legend.position = "")+stat_compare_means(comparisons = my_comparisons)+scale_y_continuous(limits = c(0,1))
 
   
 

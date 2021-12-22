@@ -38,6 +38,11 @@ orthologs <- read.table(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation
 orthologs <- read.table(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/slncky-master/out.orthologs.top.txt"))
 names(orthologs)<- c("lnc","lncGeneSymbol","ortholog","orthologGeneSymbol","alignScore","exonID","locusID","indelRate(exon)" ,"indelRate(intron)","lncExonsAligned","orthExonsAligned","spliceConserved","spliceTotal","category(mmul10)","category(hg38)")
 
+
+
+human_reference <- import(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/gencode.v23.annotation.gtf"))
+lncRNAs_ref_human <- human_reference
+
 # Import files 
 all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
 ref <- all
@@ -52,11 +57,15 @@ rownames(df_ref) <- df_ref$transcript_id
 orthologs <- merge(orthologs, df_ref, by = "lnc")
 #saveRDS(orthologs,file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
 
+annotated_lncrnas <- (unique(all[!is.na(all$gene_biotype) & all$gene_biotype == "lncRNA", ]$gene_id))
+novel_lncrnas <- (unique(all_novel_lnc$gene_id))
+
 ```
+
 
 # Filter table to have 1 to one
 ```{r cpc2}
-orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 
 # Only keep relevant columns 
 orthologs_red <- distinct(orthologs[,c("gene_id","lnc", "orthologGeneSymbol","alignScore")])
@@ -98,9 +107,98 @@ orthologs <- orthologs_max_gene
 ```
 
 
-# How many ortholog did we identify? (GENE LEVEL)
-```{r cpc2}
+```{r summary}
+# 2. only plot one to one ortholog
+novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "alignScore.x")])
+novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
+novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$alignScore.x),] 
+length(unique(novel_orthologs_df$gene_id))
+length(unique(novel_orthologs_df$orthologGeneSymbol))
 
+corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
+rownames(corr_human) <- corr_human$t
+
+# Extract from rthologs full the human ortholog transcript 
+orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+# Extract those lines representing a novel lnc 
+orthologs_full <- orthologs_full[orthologs_full$gene_id %in% novel_orthologs_df$gene_id, ]
+orthologs_full <- unique(orthologs_full[, c("gene_id", "ortholog")])
+orthologs_full$t_orth <- unique(unlist(lapply(as.character(orthologs_full$ortholog) , function(x) strsplit(x, '.', fixed = T)[[1]][1])))
+orthologs_full$human_gene_id <- corr_human[orthologs_full$t_orth,]$g
+
+orthologs_full_reduced <- orthologs_full[,c("gene_id", "human_gene_id")]
+orthologs_full_reduced <- orthologs_full_reduced[!is.na(orthologs_full_reduced$human_gene_id),]
+orthologs_full_reduced <- distinct(orthologs_full_reduced[!is.na(orthologs_full_reduced$gene_id),])
+
+length(unique(orthologs_full_reduced$gene_id))
+length(unique(orthologs_full_reduced$human_gene_id))
+novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% orthologs_full_reduced$gene_id,]
+
+human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$gene_id %in% orthologs_full_reduced$human_gene_id,]
+length(unique(human_orth_novel$gene_id))
+length(unique(novel_with_ortholog_gr$gene_id))
+```
+
+# ----------------------------------------------------------
+#       LNC - ORTHOLOG transcript lengths (PAIRED)
+# ----------------------------------------------------------
+
+```{r summary}
+my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
+df <- data.frame()
+df <- rbind(df,data.frame(calc_transcript_length(novel_with_ortholog_gr, "1.  novel lncRNA")))
+df$gene_id <- as.character(df$gene_id)
+# Get the second group IN ORDER 
+df <- rbind(df,data.frame(calc_transcript_length(human_orth_novel, "2. human ortholog")))
+palette = c("#f72631", "dark grey", "#fc6d70", "grey")
+df$type <- factor(df$type)
+
+# remove outliers
+df <- df[df$range < 6000,]
+ylab <- seq(0,6,1)
+my_comparisons <- list( c("1.  novel lncRNA", "2. human ortholog") )
+p <- ggboxplot(df,x = "type",  y = "range", fill = "type", palette = palette) +
+    labs( x = "", y = "transcript length (bp)" )+ stat_compare_means(aes(label = ..p.signif..),comparisons = my_comparisons)+
+    theme(legend.position = "",axis.text.y = element_text(size = 20, color = "black"), axis.title = element_text(size = 20))
+pdf(file.path(plots, "01/comparison_length_ortholog.pdf"), width = 4, height = 7)
+p
+dev.off()
+
+table(df$type)
+# find lnc - orth pairs with length above 6k
+# lnc longer than 6k 
+long_genes <- df[df$range > 6000,]
+long_genes_df <- orthologs_full_reduced[orthologs_full_reduced$gene_id %in% long_genes$gene_id, ]
+long_genes_ids <- c(long_genes_df$gene_id, long_genes_df$human_gene_id)
+df <- df[!(df$gene_id %in% long_genes_ids),]
+
+# Do paired test 
+# order all novel lncrnas first 
+rownames(df) <- df$gene_id
+df_ranges_lnc <- df[c(orthologs_full_reduced$gene_id, orthologs_full_reduced$human_gene_id),]
+df <- df[!is.na(df$gene_id),]
+
+ranges_lnc <- df[orthologs_full_reduced$gene_id, ]$range
+ranges_lnc <- ranges_lnc[!is.na(ranges_lnc)]
+length(ranges_lnc)
+
+ranges_orth <- df[orthologs_full_reduced$human_gene_id, ]$range
+ranges_orth <- ranges_orth[!is.na(ranges_orth)]
+length(ranges_orth)
+
+wilcox.test(ranges_lnc, ranges_orth, paired = T )
+
+```
+
+
+
+
+# ----------------------------------------------------------
+#       How many ortholog did we identify? (GENE LEVEL)
+# ----------------------------------------------------------
+
+
+```{r cpc2}
 
 counts <- c( 
            length(novel_lncrnas)-length(novel_with_ortholog),
@@ -135,110 +233,4 @@ p_o <- ggplot(df, aes(x = type, fill = orth, y = freq))+geom_bar(stat = "identit
 #pdf(file.path(plots, "01/orthologs.pdf"), width = 4.5, height = 6)
 p_o
 #dev.off()
-```
-
-# Check lengths of novel lncRNAs with an ortholog and their ortholog ( To check we identify full transcripts )
-
-```{r summary}
-
-# 1. Raw data
-orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
-orthologs$orthologGeneSymbol <- as.character(orthologs$orthologGeneSymbol )
-
-orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
-orthologs_full <- orthologs_full[,c("ortholog", "orthologGeneSymbol", "gene_id")]
-orthologs_full$ortholog <- as.character(orthologs_full$ortholog)
-orthologs_full$orthologGeneSymbol <- as.character(orthologs_full$orthologGeneSymbol)
-human_transcripts_orthologs_set <- unique(orthologs_full$ortholog)
-
-human_reference <- import(file.path(datadir, "05_orthologs/gencode.v23.annotation.gtf"))
-# Only keep transcripts found 
-human_reference <- human_reference[human_reference$transcript_id %in% human_transcripts_orthologs_set, ]
-length(unique(human_reference$transcript_id)) == length(unique(orthologs_full$ortholog))
-
-corr_human <- distinct(data.frame(ortholog = human_reference[human_reference$type == "transcript", ]$transcript_id, ortholog_gene_id = human_reference[human_reference$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
-
-complete_orthologs_human<- distinct(merge(orthologs_full, corr_human))
-complete_orthologs_human <- unique(complete_orthologs_human[, c("gene_id", "ortholog_gene_id")])
-
-# 2. Extract only lncRNAs (novel and annotated) with human ortholog
-#novel_with_ortholog
-#annotated_with_ortholog
-length(unique(novel_with_ortholog))
-length(unique(annotated_with_ortholog))
-
-novel <- complete_orthologs_human[complete_orthologs_human$gene_id %in% novel_with_ortholog,]
-annotated <- complete_orthologs_human[complete_orthologs_human$gene_id %in% annotated_with_ortholog,]
-
-
-novel_gr <- all[all$gene_id %in% novel_with_ortholog,]
-annotated_gr <- all[all$gene_id %in% annotated_with_ortholog,]
-
-
-
-# Calculate transcripts lengths 
-novel_lengths <- data.frame(calc_transcript_length(novel_gr, "1.  novel lncRNA"), stringsAsFactors = F)
-annotated_lengths <- data.frame(calc_transcript_length(annotated_gr, "2.  annotated lncRNA"))
-
-lncrnas_lengths <- rbind(novel_lengths, annotated_lengths)
-
-
-
-```
-
-
-```{r summary}
-novel_orthologs_df <- distinct(orthologs[orthologs$gene_id %in% unique(all_novel_lnc$gene_id),c("gene_id", "orthologGeneSymbol", "alignScore.x")])
-novel_orthologs_df$orthologGeneSymbol <- as.character(novel_orthologs_df$orthologGeneSymbol)
-novel_orthologs_df <- novel_orthologs_df[!is.na(novel_orthologs_df$alignScore.x),] 
-length(unique(novel_orthologs_df$gene_id))
-length(unique(novel_orthologs_df$orthologGeneSymbol))
-
-corr_human <- distinct(data.frame(t = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$transcript_id, g = lncRNAs_ref_human[lncRNAs_ref_human$type == "transcript", ]$gene_id, stringsAsFactors = F)) 
-rownames(corr_human) <- corr_human$t
-
-# Extract from rthologs full the human ortholog transcript 
-orthologs_full <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
-# Extract those lines representing a novel lnc 
-orthologs_full <- orthologs_full[orthologs_full$gene_id %in% novel_orthologs_df$gene_id, ]
-orthologs_full <- unique(orthologs_full[, c("gene_id", "ortholog")])
-orthologs_full$t_orth <- unique(unlist(lapply(as.character(orthologs_full$ortholog) , function(x) strsplit(x, '.', fixed = T)[[1]][1])))
-orthologs_full$human_gene_id <- corr_human[orthologs_full$t_orth,]$g
-
-orthologs_full_reduced <- orthologs_full[,c("gene_id", "human_gene_id")]
-orthologs_full_reduced <- orthologs_full_reduced[!is.na(orthologs_full_reduced$human_gene_id),]
-orthologs_full_reduced <- unique(orthologs_full_reduced[!is.na(orthologs_full_reduced$gene_id),])
-
-length(unique(orthologs_full_reduced$gene_id))
-length(unique(orthologs_full_reduced$human_gene_id))
-novel_with_ortholog_gr <- all_novel_lnc[all_novel_lnc$gene_id %in% orthologs_full_reduced$gene_id,]
-
-human_orth_novel <- lncRNAs_ref_human[lncRNAs_ref_human$gene_id %in% orthologs_full_reduced$human_gene_id,]
-length(unique(human_orth_novel$gene_id))
-length(unique(novel_with_ortholog_gr$gene_id))
-
-orthologs_full[orthologs_full$gene_id == "ENSG00000152931",]
-orthologs_full[orthologs_full$gene_id == "MSTRG.202113",]
-df[df$gene_id == "MSTRG.202113", ]
-test <- all_novel_lnc[all_novel_lnc$gene_id == "MSTRG.202113",]
-test <- human_orth_novel[human_orth_novel$gene_id == "ENSG00000152931",]
-calc_transcript_length(test, "")
-
-gr <- test
-gr <- gr[gr$type =="exon",]
-gr
-gr <- get_only_max_transcript(gr)
-gr
-df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
-df
-collapsed <- df%>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width))
-collapsed["type"] <- type
-return(collapsed)
-
-mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
-
-
-
-orthologs[orthologs$gene_id == "MSTRG.202113",]
-humans[humans$name == "PART1",]
 ```

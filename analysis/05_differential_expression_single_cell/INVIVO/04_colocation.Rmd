@@ -171,23 +171,44 @@ colnames(colocation_lnc) <- c("lnc", "depc", "d")
 robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
 all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
 colocation_lnc <-colocation_lnc[colocation_lnc$lnc %in% all_lncrnas,]
+colocation_lnc <- colocation_lnc[!is.na(colocation_lnc$d),]
 
 # Only retain colocated ones
+colocation_lnc$d <- as.integer(as.character(colocation_lnc$d))
+colocation_lnc$lnc <- (as.character(colocation_lnc$lnc))
 colocation_lnc <- colocation_lnc[colocation_lnc$d < 1000000,]
 length(unique(colocation_lnc$lnc))
+
+
 
 de_all<- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
 
 
 # A: DE lncRNAs in cis to DE pc
-A <- length(unique(cis_celltype$lnc))
-# B: total # DE lncRNAs
-B <- length(unique(de_all[de_all$type == "lnc",]$primerid))
-# C: Any (DE or not DE) lncRNA in cis to DE pc
-C <- length(unique(colocation_lnc$lnc))
-# D: Total # of expressed lncRNAs 
-D <- length(unique(all_lncrnas))
+A <- (unique(cis_celltype$lnc))
+# B: DE lncRNAs not in cis
+B <- (setdiff(gsub("-unknown", "", unique(de_all[de_all$type == "lnc",]$primerid)), A))
+# C: Ca Any (DE or not DE) lncRNA in cis to DE pc
+C <- (setdiff(unique(colocation_lnc$lnc),A))
+# D: not de and not in cis 
+D <- setdiff(setdiff(setdiff(unique(all_lncrnas), A), B),C)
 
-binom.test(A,B,C/D, alternative="greater")
 
+# 1. Are DE lncRNA mor in cs that non DE lncrnas ####
+# cell-type specific
+#                   cis              not-cis
+# delncrna            x11               x12      
+# not de lncrna               x21               x22
+x11 <- length(A)
+x21 <- length(C)
+x12 <- length(B)
+x22 <- length(D)
+m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
+rownames(m_type) <- c("DE","not DE")
+colnames(m_type) <- c("cis","not cis")
+m_type
+fisher.test(m_type,alternative = "greater")
+
+colocation_lnc[colocation_lnc$d < 1000000,]
+colocation_lnc
 ```
