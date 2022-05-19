@@ -1,0 +1,249 @@
+---
+title: "01_lncrnas_plots_paper"
+author: "Luisa Santus"
+date: "4/23/2020"
+output: html_document
+  keep_md: true
+---
+
+## Check which novel lncRNAs are expressed only in infected samples.
+
+
+
+### STEP 1: Imports 
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer);  library(stringr); library(ggplot2); library(grid); library(gridExtra); library(RColorBrewer); library(readr); library(matrixStats)
+library(GenomicRanges); library(dplyr); library(zeallot); 
+library(ggpubr); library(plyr); 
+
+# Define paths for data
+source(file.path("../utils/00_datapaths.R"))
+# Import Utils
+source(file.path("../utils/01_lncrna_annotation_utils.R"))
+
+# Reoccurring paths
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+dir_counts_ref <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/")
+
+# Macaque reference
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+
+all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+# How many novel lncRNAs do i identify (Genes)
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+
+# Define palettes 
+palette <- c("#f72631", "#fc6d70","#febcbd", "#3153a3","#6f73b4")
+palette_border <- c("#ff9933","#F9DF74", rep("black",4))
+palette_extensive <- c(rep(palette[1],2), palette[seq(2,length(palette))])
+palette_expression <-palette[c(1,2,4)]
+palette_expression_extensive <-palette_extensive[c(1,2,3,5)]
+palette_expression_border <-palette_border[c(1,2,3,5)]
+
+expression <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/expression_table.rds"))
+supplementary_table <- read_csv(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/supplementary_1.csv"))
+supplementary_table <- supplementary_table[,1:12]
+
+head(expression)
+```
+
+
+# STEP 2
+
+```{r expression}
+options(scipen=999)
+supplementary_table$infection_short <- ifelse(!grepl("Not", supplementary_table$`Infection status/ Treatment`), "infected", "not infected")
+
+# number of samples
+ggplot(supplementary_table, aes(x=infection_short)) +
+  geom_histogram(alpha=1, stat = "count", position = "dodge")+theme_paper+
+  labs( x = "", y = "# of samples" )+scale_fill_manual(values=c("dark red", "grey"))+scale_color_manual(values=c("dark red", "grey"))
+
+
+# distribution of mapped reads
+ggplot(supplementary_table, aes(x=`Mapped reads`, color = infection_short, fill= infection_short)) +
+  geom_density(alpha = 0.8)+theme_paper+scale_fill_manual(values=c("dark red", "grey"))+scale_color_manual(values=c("dark red", "grey"))
+
+
+# total number of mapped reads per class 
+ggplot(supplementary_table, aes(x=`Mapped reads`, color = infection_short, fill= infection_short)) +
+  geom_histogram(alpha = 0.8)+theme_paper+scale_fill_manual(values=c("dark red", "grey"))+scale_color_manual(values=c("dark red", "grey"))
+
+
+
+collapsed <- aggregate(supplementary_table$`Mapped reads`, by=list(Category=supplementary_table$infection_short), FUN=sum)
+colnames(collapsed) <- c("type", "mapped reads (sum)")
+ggplot(data=collapsed, aes(x=`type`, y=`mapped reads (sum)`)) +
+  geom_bar(stat="identity")+theme_paper+labs(x = "")
+```
+
+
+
+# STEP 2
+
+```{r expression}
+set.seed(123)
+# infected and healthy samples 
+infected <- supplementary_table[supplementary_table$infection_short == "infected",]
+healthy <- supplementary_table[supplementary_table$infection_short == "not infected",]
+
+n_infected <- nrow(infected)
+n_healthy <- nrow(healthy)
+
+# sub sample infected samples
+n_max <- max(n_infected,n_healthy)
+n_min <- min(n_infected,n_healthy)
+
+random_subsample_indexes <- sample(1:n_max, n_min, replace=FALSE)
+
+infected[random_subsample_indexes,]
+```
+
+# STEP 3
+# Sentence in paper: " N novel lncRNAs (% of total set of novel lncRNAs) are only found expressed in infected samples.
+# Expression in infected samples 
+
+```{r expression}
+
+# remove NHP from the label so we can match with the paper labeling easily
+colnames(expression) <- unlist(lapply(colnames(expression), function(x) paste(str_split(x, "_")[[1]][1:3],collapse="_")))
+
+# extract infected samples 
+infected_samples <- sample(supplementary_table[!grepl("Not", supplementary_table$`Infection status/ Treatment`),]$Sample,n_min)
+infected_samples_noNHP <- unlist(lapply(infected_samples, function(x) paste(str_split(x, "_")[[1]][1:3],collapse="_")))
+
+# Change colNames with infection labeling
+colnames(expression) <- ifelse(colnames(expression) %in% infected_samples_noNHP, "infected", "notinfected")
+
+expressed_booleans <- ifelse(log(expression) > 1,1,0)
+grouped_expression <- ifelse(t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))>0, "Expressed","Not Expressed")
+grouped_expression_nsamples <- t(rowsum(t(expressed_booleans), group = colnames(expressed_booleans), na.rm = TRUE))
+
+head(grouped_expression)
+colnames(expression)
+
+length(infected_samples_noNHP)
+```
+
+
+```{r tissuespecificity}
+infected_samples
+# Create DF for plotting
+
+df <- as.data.frame(as.data.frame(grouped_expression, stringsAsFactors = FALSE))
+df$id <- rownames(df)
+# Add labels 
+df$type <- "0"
+df <- add_type(df, all_novel_lnc$gene_id, "novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+#df <- df[df$type %in% c("novel lncRNAs", "annotated lncRNAs"),]
+
+ggplot(df, aes(x=notinfected, color=type, fill = type)) +
+  geom_histogram(alpha=1, stat = "count", position = "dodge")+theme_paper
+
+
+ggplot(df, aes(x=infected, color=type, fill = type)) +
+  geom_histogram(alpha=1, stat = "count", position = "dodge")+theme_paper
+
+df
+```
+
+```{r tissuespecificity}
+library(UpSetR)
+
+expressed_in_infected <- df[df$infected == "Expressed",]
+expressed_in_notinfected <- df[df$notinfected == "Expressed",]
+
+
+# Novel lncRNAs
+genetype <- "novel lncRNAs"
+listInput <- list(infected = unique(expressed_in_infected[expressed_in_infected$type == genetype, ]$id), healthy = unique(expressed_in_notinfected[expressed_in_notinfected$type == genetype,]$id))
+  
+upset(fromList(listInput), order.by = "freq",
+        main.bar.color = c("grey", "grey", "dark red"),
+        mainbar.y.label = "# of genes",
+        text.scale = c(2, 1.5, 1.2, 1.0, 2, 2.15), 
+        sets.x.label = "total # of genes \n expressed in any sample \n of the category")
+grid.text(genetype,x = 0.65, y=0.97, gp=gpar(fontsize=15))
+
+
+# annotated lncRNAs
+genetype <- "annotated lncRNAs"
+listInput <- list(infected = unique(expressed_in_infected[expressed_in_infected$type == genetype, ]$id), healthy = unique(expressed_in_notinfected[expressed_in_notinfected$type == genetype,]$id))
+  
+upset(fromList(listInput), order.by = "freq",
+        main.bar.color = c("grey", "grey", "dark red"),
+        mainbar.y.label = "# of genes",
+        text.scale = c(2, 1.5, 1.2, 1.0, 2, 2.15), 
+        sets.x.label = "total # of genes \n expressed in any sample \n of the category")
+grid.text(genetype,x = 0.65, y=0.97, gp=gpar(fontsize=15))
+
+
+# Novel lncRNAs
+genetype <- "mRNAs"
+listInput <- list(infected = unique(expressed_in_infected[expressed_in_infected$type == genetype, ]$id), healthy = unique(expressed_in_notinfected[expressed_in_notinfected$type == genetype,]$id))
+  
+upset(fromList(listInput), order.by = "freq",
+        main.bar.color = c("grey", "grey", "dark red"),
+        mainbar.y.label = "# of genes",
+        text.scale = c(2, 1.5, 1.2, 1.0, 2, 2.15), 
+        sets.x.label = "total # of genes \n expressed in any sample \n of the category")
+grid.text(genetype,x = 0.65, y=0.97, gp=gpar(fontsize=15))
+```
+
+
+```{r tissuespecificity}
+tl1 <-barplot_tissues(df,"Novel lncRNAs",palette_expression[1])+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette_expression[2]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette_expression[3])
+b <- ggarrange( tl1,tl2,tl3,  ncol=1, nrow=3)
+b <- annotate_figure(b, bottom = text_grob("number of tissues in which gene is expressed", size  = 20), left = text_grob("number of genes", size = 20, rot = 90))
+
+
+
+
+df$type <- "0"
+df <- add_type(df, intergenic_lnc$gene_id, "Intergenic Novel lncRNAs")
+df <- add_type(df, antisense_lnc$gene_id, "Antisense Novel lncRNAs")
+df <- add_type(df, lncRNAs_ref$gene_id, "Annotated lncRNAs")
+df <- add_type(df, mRNAs_ref$gene_id, "mRNAs")
+df <- df[!df$type == "0",]
+
+type <-  c("Intergenic Novel lncRNAs", "Antisense Novel lncRNAs","Annotated lncRNAs", "mRNAs")
+
+tl0 <-barplot_tissues(df,"Intergenic Novel lncRNAs",palette_expression_extensive[1], palette_expression_border[1],1)+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+
+tl1 <-barplot_tissues(df,"Antisense Novel lncRNAs",palette_expression_extensive[2],  palette_expression_border[2],1)+
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl2 <-barplot_tissues(df,"Annotated lncRNAs",palette_expression_extensive[3]) +
+                          theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank())
+tl3 <-barplot_tissues(df,"mRNAs",palette_expression_extensive[4])
+b_sep <- ggarrange( tl0,tl1,tl2,tl3,  ncol=1, nrow=4)
+
+b_sep <- annotate_figure(b_sep, bottom = text_grob("number of tissues in which gene is expressed", size  = 20), left = text_grob("number of genes", size = 20, rot = 90))
+pdf(file.path(plots, "01/SUPPL_tissue_expr.pdf"), width = 7, height = 5)
+b_sep
+dev.off()
+```
+

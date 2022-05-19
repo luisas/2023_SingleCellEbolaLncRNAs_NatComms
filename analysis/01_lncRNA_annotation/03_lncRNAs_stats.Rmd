@@ -320,6 +320,10 @@ for(i in 2:length(abundances)) {
 
 expression <- dat
 expression <- as.matrix(expression)
+
+file_labels <- unlist(lapply(abundance_files, function(x) rev(str_split(x, "/")[[1]])[1]))
+colnames(expression) <- file_labels
+saveRDS(expression,file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/expression_table.rds")) 
 ```
 
 

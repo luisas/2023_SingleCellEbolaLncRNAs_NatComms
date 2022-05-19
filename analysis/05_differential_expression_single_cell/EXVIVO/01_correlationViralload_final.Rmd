@@ -124,7 +124,6 @@ plot_correlation <- function(gene,mono,ebola_genome_percentage_df_exvivo, keepze
 # genes DE 
 genes_DE <- c("MSTRG.181870-unknown","ENSMMUG00000061044-unknown", "ENSMMUG00000058644-unknown","ENSMMUG00000064224-unknown", "MSTRG.238227-unknown" )
 lapply(genes_DE, function(gene) plot_correlation(gene, mono, ebola_genome_percentage_df_exvivo, T))
-
 ```
 
 
