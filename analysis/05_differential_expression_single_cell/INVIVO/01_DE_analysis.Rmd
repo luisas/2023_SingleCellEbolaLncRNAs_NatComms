@@ -1,17 +1,12 @@
 ---
-title: "Sc analysis"
+title: "01_DE_results_newFilt"
 author: "Luisa Santus"
-date: "1/22/2020"
 output: html_document
+date: "1/22/2020"
 ---
 
-
-# Differential expression analysis IN VIVO
-
-
-# Imports and load files 
-```{r Imports, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r Imports, message=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
 library(dplyr)
 library(Seurat)
 library(wesanderson)
@@ -25,6 +20,7 @@ library(ggplot2)
 library(scales)
 library(circlize)
 library(reshape2)
+library(circlize)
 
 theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
 theme_umap <- theme(panel.background = element_rect(fill = "white"),
@@ -35,388 +31,430 @@ theme_umap <- theme(panel.background = element_rect(fill = "white"),
 
 
 # Imports
-source("../../utils/00_datapaths.R")
-source("../../utils/02_sc_utils.R")
-source("../../utils/03_de_utils.R")
-source("../../utils/04_utils_graph.R")
+#source("../../utils/00_datapaths.R")
+#source("../../utils/02_sc_utils.R")
+#source("../../utils/03_de_utils.R")
+#source("../../utils/04_utils_graph.R")
+
 
 # Gene annotation
-ref <- import(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
-ebola_ref <- import(file.path(data_path,"/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
-# Output paths
-robjectsdir <- file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/")
+laptop <- "work"
+if (laptop == "work"){
+  datadir <- "/home/mariasr/cluster/data/"
+}else{
+datadir <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+}
+robjectsdir <- paste0(datadir, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/")
+plots <- paste0(datadir, "plots_new/")
+#ref <- import(file.path(datadir, "/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+#ebola_ref <- import(file.path(datadir,"/00_RawData/pardis_shared_data/sabeti-txnomics/shared-resources/HISAT2/EBOV-Kikwit/KU182905.1.gtf"))
 
-# LncRNAs
-robjectsdir_stats <- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
-all_lncrnas <- readRDS(file.path(robjectsdir_stats, "all_lncrnas.rds"))
-annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
-
-# Seurat object
-immune.combined <- readRDS(file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
-
+all_de <- readRDS(paste0(robjectsdir, "04_DE/allCells_DE_table.rds"))
+all_de$gene_biotype <- gsub("novel_lnc", "lnc", all_de$gene_biotype)
+all_lncrnas <- readRDS(file.path(robjectsdir, "/05_stats/all_lncrnas.rds"))
+annotated_mrnas <- readRDS(file.path(robjectsdir,"/05_stats/annotated_mrnas.rds"))
 
 # Check LncPedia
-lncpedia_bed <- import(file.path(data_path,"/00_RawData/lncpedia/lncipedia_5_2_hc_hg38.bed"))
+lncpedia_bed <- import(file.path(datadir,"/00_RawData/lncpedia/lncipedia_5_2_hc_hg38.bed"))
 lncpedia <- unlist(lapply(lncpedia_bed$name, function(x) str_split(x, ":")[[1]][1]))
-lncpedia_immune <- import(file.path(data_path, "/00_RawData/lncpedia/lncpedia_immune.gtf"))
-lncpedia_infection <- import(file.path(data_path,"/00_RawData/lncpedia/lncpedia_infection.gtf"))
+lncpedia_immune <- import(file.path(datadir, "/00_RawData/lncpedia/lncpedia_immune.gtf"))
+lncpedia_infection <- import(file.path(datadir,"/00_RawData/lncpedia/lncpedia_infection.gtf"))
 
 lncpedia <- unique(c(unique(unlist(lncpedia_immune@elementMetadata[, grepl("gene", colnames(lncpedia_immune@elementMetadata))])), unique(unlist(lncpedia_infection@elementMetadata[, grepl("gene", colnames(lncpedia_infection@elementMetadata))]))))
 
-immlnc <- read.table(file.path(data_path, "00_RawData/ImmLnc/Lnc_Pathways_Sig.txt"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+immlnc <- read.table(file.path(datadir, "00_RawData/ImmLnc/Lnc_Pathways_Sig.txt"), header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 reported_immlnc <- immlnc$lncRNA_symbol
 
-orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
-mono <- subset(immune.combined, ident = "Monocyte")
-B <- subset(immune.combined, ident = "B")
-T <- subset(immune.combined, ident = "T")
-# -------------------------------------------
-#    Define threshold for the whole analysis
-# -------------------------------------------
+orthologs <- readRDS(file.path(datadir, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
 
-# Corrected q-value .05
-FDRTHRESHOLD<- 0.05
-# Fold-Change of 30%
-FCTHRESHOLD <- log(1.23)
 ```
 
-# --------------------------------------------------
-# Read in DE analysis files
-# --------------------------------------------------
-```{r readfilesDE}
-files <- iterate_files(robjectsdir, "MAST_invivo_model_*")
-get_celltype <- function(x){strsplit(basename(x), "_")[[1]][4]}
-get_stage <- function(x){strsplit(strsplit(basename(x), "_")[[1]][5], '.rds', fixed = T )[[1]][1]}
 
-# Read Rds files resulting from DE Analysis and assign to correct variable name
-mast_objects_celltype <- unlist(lapply(files, function(name) {  appendix <- paste(get_celltype(name), get_stage(name),  sep="_")
-                                varname=paste("mast", appendix,  sep="_") ;
-                                assign(varname, readRDS(name), envir = .GlobalEnv);
-                                print(varname);
-                                # Assign right comparison depending on variable name
-                                eval(parse(text=paste0(varname,"$comparison <- \"", appendix, "\"")), envir = .GlobalEnv);
-                                eval(parse(text=paste0(varname,"$celltype <- \"", get_celltype(name), "\"")), envir = .GlobalEnv);
-                                eval(parse(text=paste0(varname,"$stage <- \"", get_stage(name), "\"")), envir = .GlobalEnv);
-                                return(varname)
-                              }))
+## Prepare data  
 
-# Extract all celltypes for which some DE files were found
-celltypes<- unique(unlist(lapply(mast_objects_celltype, function(x) str_split(x, "_")[[1]][2])))
+```{r prepareHeatMap}
+de_sig <- all_de[all_de$fdr < 0.05 & abs(all_de$logFC) > 0.1, ]
 
-# Create an object per celltype ( rbind )
-mast_objects_celltype_all <- unlist(lapply(celltypes, function(celltype){
-                                    varnames_selected <-mast_objects_celltype[unlist(lapply(mast_objects_celltype,function(x) (grepl( celltype,x))))];
-                                    ex=paste("mast_",celltype, "_all <-rbind(",paste0(varnames_selected, collapse = ","), ")", sep="");
-                                    eval(parse(text=ex), envir = .GlobalEnv);
-                                    return(paste("mast_",celltype, "_all", sep = ""));
-                                    }))
+lnc_sig <- de_sig[de_sig$gene_biotype == "lnc", ]
+table(lnc_sig$celltype, lnc_sig$stage)
+pc_sig <- de_sig[de_sig$gene_biotype == "pc", ]
+table(pc_sig$celltype, pc_sig$stage)
 
-# Print names of the variables
-# mast_objects_celltype
-# mast_objects_celltype_all
-# mast_B_early
-```
+##### lnc ------
 
-```{r SelectDE}
-# -------------------------------------------------------------------------
-# Select genes
-# -------------------------------------------------------------------------
-
-get_de <- function(df_filtered,  subset = all_lncrnas, fdrthreshold = FDRTHRESHOLD, fc = FCTHRESHOLD){
-  # Only select lncrnas
-  df_filtered <- df_filtered[df_filtered$primerid %in% subset,]
-  # Only select significant ones
-  df_filtered <- df_filtered[df_filtered$fdr<fdrthreshold &abs(df_filtered$coef) > fc,]
-  return(df_filtered)
-}
+#mono 
+de_lists_lnc_mono <- list(all_de[all_de$celltype == "Monocyte" & all_de$gene_biotype == "lnc" & all_de$stage == "early", ], 
+                        all_de[all_de$celltype == "Monocyte" & all_de$gene_biotype == "lnc" & all_de$stage == "middle", ], 
+                        all_de[all_de$celltype == "Monocyte" & all_de$gene_biotype == "lnc" & all_de$stage == "late", ])
+names(de_lists_lnc_mono) <- c("lnc_Monocyte_late", "lnc_Monocyte_middle", "lnc_Monocyte_early")
 
 
-# Extract significant lnc and mrna from MAST tables for each celltype and stage
-lnc_de_objects <- unlist(lapply(mast_objects_celltype, function(x){
-                                          varname <- paste("lnc_", gsub("mast_", "", x), sep = "");
-                                          eval(parse(text=paste0(varname," <- get_de(", x, " ,subset = all_lncrnas )")), envir = .GlobalEnv);
-                                          return(varname)
-                                      }))
-
-mrna_de_objects <- unlist(lapply(mast_objects_celltype, function(x){
-                                          varname <- paste("mrna_", gsub("mast_", "", x), sep = "");
-                                          eval(parse(text=paste0(varname," <- get_de(", x, " ,subset = annotated_mrnas )")), envir = .GlobalEnv);
-                                          return(varname)
-                                      }))
-
-
-# Create one table of significant genes per celltype (Merging stages)
-de_celltype_lnc <- unlist(lapply(celltypes, function(celltype){
-                                    varnames_selected <- lnc_de_objects[unlist(lapply(lnc_de_objects,function(x) (grepl( celltype,x))))];
-                                    ex=paste("lnc_",celltype, "_all <-rbind(",paste0(varnames_selected, collapse = ","), ")", sep="");
-                                    eval(parse(text=ex), envir = .GlobalEnv);
-                                    return(paste("lnc_",celltype, "_all", sep = ""));
-                                    }))
-
-de_celltype_mrna <- unlist(lapply(celltypes, function(celltype){
-                                    varnames_selected <- mrna_de_objects[unlist(lapply(mrna_de_objects,function(x) (grepl( celltype,x))))];
-                                    ex=paste("mrna_",celltype, "_all <-rbind(",paste0(varnames_selected, collapse = ","), ")", sep="");
-                                    eval(parse(text=ex), envir = .GlobalEnv);
-                                    return(paste("mrna_",celltype, "_all", sep = ""));
-                                    }))
-
-
-# Lists with gene names only - prepare for heatmap
-# ---------------------------------------------------------------------------------------------------------------------------------------------
-de_lists_lnc_my <- list(lnc_Monocyte_late$primerid, lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid )
-names(de_lists_lnc_my) <- c("lnc_Monocyte_late", "lnc_Monocyte_middle", "lnc_Monocyte_early")
-
-
-
-#de_lists_lnc_neut <- list(lnc_Neutrophil_late$primerid, lnc_Neutrophil_middle$primerid, lnc_Neutrophil_early$primerid )
-#names(de_lists_lnc_neut) <- c("lnc_Neutrophil_late", "lnc_Neutrophil_middle", "lnc_Neutrophil_early")
-
-de_lists_lnc_T <- list(lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid )
+de_lists_lnc_T <- list(all_de[all_de$celltype == "T" & all_de$gene_biotype == "lnc" & all_de$stage == "early", ], 
+                        all_de[all_de$celltype == "T" & all_de$gene_biotype == "lnc" & all_de$stage == "middle", ], 
+                        all_de[all_de$celltype == "T" & all_de$gene_biotype == "lnc" & all_de$stage == "late", ])
 names(de_lists_lnc_T) <- c("lnc_T_late", "lnc_T_middle", "lnc_T_early")
 de_lists_lnc_T <- de_lists_lnc_T[unlist(lapply(1:length(de_lists_lnc_T), function(index) length(de_lists_lnc_T[[index]]) != 0))]
 
-de_lists_lnc_B <- list(lnc_B_late$primerid, lnc_B_middle$primerid, lnc_B_early$primerid )
+
+de_lists_lnc_B <- list(all_de[all_de$celltype == "B" & all_de$gene_biotype == "lnc" & all_de$stage == "early", ], 
+                        all_de[all_de$celltype == "B" & all_de$gene_biotype == "lnc" & all_de$stage == "middle", ], 
+                        all_de[all_de$celltype == "B" & all_de$gene_biotype == "lnc" & all_de$stage == "late", ])
 names(de_lists_lnc_B) <- c("lnc_B_late", "lnc_B_middle", "lnc_B_early")
 de_lists_lnc_B <- de_lists_lnc_B[unlist(lapply(1:length(de_lists_lnc_B), function(index) length(de_lists_lnc_B[[index]]) != 0))]
 
-de_lnc_all <- c(de_lists_lnc_my, de_lists_lnc_T, de_lists_lnc_B)
+de_lnc_all <- c(de_lists_lnc_mono, de_lists_lnc_T, de_lists_lnc_B)
 
-
-de_lists_mrna_my <- list(mrna_Monocyte_late$primerid, mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid )
-names(de_lists_mrna_my) <- c("mrna_Monocyte_late", "mrna_Monocyte_middle", "mrna_Monocyte_early")
-
-#de_lists_mrna_neu <- list(mrna_Neutrophil_late$primerid, mrna_Neutrophil_middle$primerid, mrna_Neutrophil_early$primerid )
-#names(de_lists_mrna_my) <- c("mrna_Neutrophil_late", "mrna_Neutrophil_middle", "mrna_Neutrophil_early")
-
-de_lists_mrna_T <- list(mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid )
-names(de_lists_mrna_T) <- c("mrna_T_late", "mrna_T_middle", "mrna_T_early")
-de_lists_mrna_T <- de_lists_mrna_T[unlist(lapply(1:length(de_lists_mrna_T), function(index) length(de_lists_mrna_T[[index]]) != 0))]
-
-de_lists_mrna_B <- list(mrna_B_late$primerid, mrna_B_middle$primerid, mrna_B_early$primerid )
-names(de_lists_mrna_B) <- c("mrna_B_late", "mrna_B_middle", "mrna_B_early")
-de_lists_mrna_B <- de_lists_mrna_B[unlist(lapply(1:length(de_lists_mrna_B), function(index) length(de_lists_mrna_B[[index]]) != 0))]
-
-de_mrna_all <- c(de_lists_mrna_my, de_lists_mrna_T, de_lists_mrna_B)
-
-# ---------------------------------------------------------------------------------------------------------------------------------------------
-
-
-de_lists_lnc <- list(lnc_Monocyte_late$primerid,lnc_Monocyte_middle$primerid, lnc_Monocyte_early$primerid,lnc_T_late$primerid, lnc_T_middle$primerid, lnc_T_early$primerid, lnc_B_late$primerid, lnc_B_middle$primerid, lnc_B_early$primerid)
-names(de_lists_lnc) <- c("lnc_Monocyte_late", "lnc_Monocyte_middle", "lnc_Monocyte_early","lnc_T_late", "lnc_T_middle", "lnc_T_early", "lnc_B_late", "lnc_B_middle", "lnc_B_early")
-
-
-de_lists_mrna <- list(mrna_Monocyte_late$primerid,mrna_Monocyte_middle$primerid, mrna_Monocyte_early$primerid,mrna_T_late$primerid, mrna_T_middle$primerid, mrna_T_early$primerid, mrna_B_late$primerid, mrna_B_middle$primerid, mrna_B_early$primerid )
-names(de_lists_mrna) <- c("mrna_Myeloid_late", "mrna_Myeloid_middle", "mrna_Myeloid_early","mrna_T_late", "mrna_T_middle", "mrna_T_early", "mrna_B_late", "mrna_B_middle", "mrna_B_early")
-
-de_all_genes <- unique(unlist(c(unlist(de_lists_mrna), unique(de_lists_lnc))))
-saveRDS(de_all_genes, file.path(robjectsdir, "de_all_genes.rds"))
-saveRDS(de_lnc_all, file.path(robjectsdir, "de_lnc.rds"))
+```
 
 
 
-eval(parse(text= paste("lnc_de_all <- rbind(",paste0(de_celltype_lnc, collapse = ","),")")))
-lnc_de_all <- lnc_de_all[lnc_de_all$celltype != "Neutrophil",]
-lnc_de_all$type <- "lnc"
-lnc_de_all$subtype <- ifelse(substr(lnc_de_all$primerid,1,5) == "MSTRG", "novel", "annotated")
-eval(parse(text= paste("mrna_de_all <- rbind(",paste0(de_celltype_mrna, collapse = ","),")")))
-mrna_de_all <- mrna_de_all[mrna_de_all$celltype != "Neutrophil",]
-mrna_de_all$type <- "pc"
-# Create df from stats fro seeing directinality
-mrna_de_all$subtype <- "annotated"
-de_all <- rbind(lnc_de_all, mrna_de_all)
+#-------------------------
+# Figure 4 - DE analysis 
+#-------------------------
 
-# Remove DE in neutrophils
-de_all <- de_all[de_all$celltype != "Neutrophil",]
+# Figure 4A-C: Heatmaps ###
 
-de_all$direction <- ifelse(de_all$coef < 0 , "down", "up")
-de_all$direction <- factor(de_all$direction, c("down", "up"))
-de_all$stage <- factor(de_all$stage, c("early", "middle", "late"))
+```{r Heatmap }
 
-
-#saveRDS(de_all, file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
-#saveRDS(unique(unlist(de_lists_lnc)), file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_lnc.rds"))
-
-
-# Neutrophils nly appear later on
-pal_celltypes <- brewer.pal(4, "Set2")
+#m <- readRDS(paste0(datadir,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds"))
+#palettes
 pal_celltypes <-wes_palette("GrandBudapest1", 4)
 pal_celltypes[3] <- "#AE4E4E"
 pal_celltypes <- pal_celltypes[c(2,1,3,4)]
-immune.combined$group <- factor(immune.combined$group, levels = c("baseline", "early", "middle", "late"))
-neut <- subset(immune.combined, ident = "Neutrophil")
-pdf(file.path(plots, "03/SUPPL_Neutrophils.pdf"), width = 7, height = 6)
-DimPlot(neut, pt.size = 1, group.by = "group", cols = rev(c(brewer.pal(3, "Set1"))))+ylim(c(4,12))+theme_void()+theme(legend.text = element_text(size = 13), title = element_blank())
+
+
+#T cell ----------
+#FC 0.1
+pdf(file.path(plots, "Fig4/T_FC_0.1.pdf"), width = 6, height = 12)
+FC_heatmap_subset_celltype(all_de, "T", "T cell",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 17, fcthreshold = 0.1)
+dev.off()
+
+# FC 0.2
+pdf(file.path(plots, "03/T_FC_0.2.pdf"), width = 6, height = 12)
+FC_heatmap_subset_celltype(all_de, "T", "T cell",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 17, fcthreshold = 0.2)
+dev.off()
+
+#B cell  ----------
+#FC 0.1
+pdf(file.path(plots, "03/B_FC_0.1.pdf"), width = 6, height = 12)
+FC_heatmap_subset_celltype(all_de, "B", "B cell",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 20, fcthreshold = 0.1 )
+dev.off()
+
+#FC 0.2 
+pdf(file.path(plots, "03/B_FC_0.2.pdf"), width = 6, height = 12)
+FC_heatmap_subset_celltype(all_de, "B", "B cell",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 20, fcthreshold = 0.2 )
+dev.off()
+
+# Monocytes 
+# FC 0.1
+pdf(file.path(plots, "03/Mono_FC_0.1.pdf"), width = 6, height = 20)
+FC_heatmap_subset_celltype(all_de, "Monocyte", "Monocyte",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 40, fcthreshold = 0.1 )
+dev.off()
+
+#FC 0.2
+pdf(file.path(plots, "03/Mono_FC_0.2.pdf"), width = 6, height = 20)
+FC_heatmap_subset_celltype(all_de, "Monocyte", "Monocyte",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 40, fcthreshold = 0.2 )
+dev.off()
+
+```
+
+
+# Figure 4D: Number of genes DE per cell type (Uspet) ##
+
+```{r Upset}
+fc <- 0.1
+de_sig <- all_de[all_de$fdr < 0.05 & abs(all_de$logFC) > fc, ]
+
+lnc_sig <- de_sig[de_sig$gene_biotype == "lnc", ]
+table(lnc_sig$celltype, lnc_sig$stage)
+pc_sig <- de_sig[de_sig$gene_biotype == "pc", ]
+table(pc_sig$celltype, pc_sig$stage)
+
+library(UpSetR)
+library("gridExtra")
+# lnc ---
+x = list( unique(lnc_sig[lnc_sig$celltype == "T",]$gene_name), unique(lnc_sig[lnc_sig$celltype == "B",]$gene_name), unique(lnc_sig[lnc_sig$celltype == "Monocyte",]$gene_name))
+length(unique(unlist(x)))
+names(x)  <-  c( "T " , "B  ","Monocyte" )
+
+
+#pdf(paste0(plots, "03/4D_upset_de_coloredCelltype_, ",fc, ".pdf"), width = 7, height = 5)
+upset_lnc<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",4)), sets.x.label = "DE genes", mainbar.y.label = "Number of lncRNA")<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",4)), sets.x.label = "DE genes", mainbar.y.label = "Number of lncRNA")
+#dev.off()
+
+#pc ---
+y = list( unique(pc_sig[pc_sig$celltype == "T",]$gene_name), unique(pc_sig[pc_sig$celltype == "B",]$gene_name), unique(pc_sig[pc_sig$celltype == "Monocyte",]$gene_name))
+length(unique(unlist(y)))
+names(y)  <-  c( "T " , "B  ","Monocyte" )
+#pdf(paste0(plots, "03/4D_PC_upset_de_coloredCelltype_, ",fc, ".pdf"), width = 7, height = 5)
+upset_pc <- upset(fromList(y), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",4)), sets.x.label = "DE genes", mainbar.y.label = "Number of pc")
+#dev.off()
+
+par(mfrow = c(1, 1)) 
+upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",4)), sets.x.label = "DE genes", mainbar.y.label = "Number of lncDE")
+upset(fromList(y), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",4)), sets.x.label = "DE genes", mainbar.y.label = "Number of genes")
+
+cowplot::plot_grid(upset_pc, upset_lnc)
+
+if (fc == 0.1){
+  all_ln <- length(unique(unlist(x)))
+  spec_lnc <- 144
+  no_spec_lnc <- all_ln - spec_lnc
+  all_pc <- length(unique(unlist(y)))
+  spec_pc <- 3281
+  no_spec_pc <- all_pc - spec_pc
+}else{
+  all_ln <- length(unique(unlist(x)))
+  spec_lnc <- 50 
+  no_spec_lnc <- all_ln - spec_lnc
+  all_pc <- length(unique(unlist(y)))
+  spec_pc <- 1891
+  no_spec_pc <- all_pc - spec_pc
+  
+}
+df <- data.frame("specific" = c(spec_lnc, spec_pc), "no_specific" = c(no_spec_lnc, no_spec_pc))
+fisher.test(df)
+rownames(df) <- c("lnc", "pc")
+df
+
+
+```
+
+
+# Figure 4E: Specificity lnc DE 
+
+
+```{r}
+
+#load specificity data 
+specificity_scores <- readRDS(file.path(datadir,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/04_specificity_alternativescore.rds"))
+specificity_scores$gene_id <- as.character(specificity_scores$gene)
+specificity_scores$identity <- as.character(specificity_scores$identity)
+specificity_scores$type <- "other"
+specificity_scores[specificity_scores$gene_id %in% all_lncrnas,]$type<- "lnc"
+specificity_scores[specificity_scores$gene_id %in% annotated_mrnas,]$type<- "pc"
+specificity_scores$log <- log(specificity_scores$score)
+specificity_scores_lnc <- specificity_scores[specificity_scores$type == "lnc", ]
+specificity_scores_pc <- specificity_scores[specificity_scores$type == "pc", ]
+
+# load stats info
+df_lnc <- readRDS(file.path(robjectsdir,"/05_stats/df_lnc.rds"))
+df_lnc$gene_id <- as.character(df_lnc$gene_id)
+df_lnc_celtype <- readRDS(file.path(robjectsdir,"/05_stats/df_celltype_lnc.rds"))
+df_mrna <- readRDS(file.path(robjectsdir,"/05_stats/df_mrna.rds"))
+df_mrna$gene_id <- as.character(df_mrna$gene_id)
+df_mrna_celltype <- readRDS(file.path(robjectsdir,"/05_stats/df_mrna_celltype.rds"))
+df_n_cells <- rbind(df_lnc, df_mrna)
+df_celltype <- rbind(df_mrna_celltype,df_lnc_celtype )
+
+df_test <- merge(specificity_scores, df_n_cells, by = "gene_id")
+  
+# Only keep genes that show expression in at least 30 cells.
+df_test <- df_test[df_test$n_cells > 30, ]
+df_test <- df_test[df_test$log != "Inf",]
+df_test <- df_test[!is.na(df_test$gene_id),]
+rownames(df_test) <- df_test$`Row.names`
+
+spec_info_all <- df_test
+lnc_specificity_info <- df_test[df_test$type == "lnc",]
+lnc_specificity_info$gene_name <- lnc_specificity_info$gene 
+
+pc_specificity_info <- df_test[df_test$type == "pc",]
+pc_specificity_info$gene_name <- pc_specificity_info$gene 
+
+df_test$gene_name <- df_test$gene 
+summary_de_specificity<- merge(de_sig, df_test, by = "gene_name")
+summary_de_specificity$specificity <- ifelse(summary_de_specificity$score > 0.7, "specific", "intermediate")
+summary_de_specificity[summary_de_specificity_lnc$score < 0.3,"specificity"] <- "ubiquitous"
+spec_vs_de <- summary_de_specificity %>% group_by(celltype, specificity, type) %>% count()
+colnames(spec_vs_de) <- c("de", "spec", "type", "n")
+spec_vs_de$spec <- factor(spec_vs_de$spec, levels = c("ubiquitous", "intermediate", "specific"))
+spec_vs_de$type <- gsub("pc", "protein coding", spec_vs_de$type)
+spec_vs_de$type <- gsub("lnc", "lncRNA", spec_vs_de$type)
+
+
+ggplot(spec_vs_de, aes(x = spec, y = n, fill = de))+geom_bar(stat = "identity")+theme_paper+ scale_fill_manual(values= c("#FD6467","#AE4E4E", "#F1BB7B"))+ labs(y = "# of genes DE", x = "")+theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 10),  legend.position ="none", )+facet_wrap(~type, scales = "free_y")+  theme(strip.text.x = element_text(size = 18), strip.background = element_blank(), axis.text.y = element_text(size=12), axis.title.y = element_text(size=14))
+
+
+
+# lnc ---
+summary_de_specificity_lnc <- merge(de_sig, lnc_specificity_info, by = "gene_name")
+summary_de_specificity_lnc$specificity <- ifelse(summary_de_specificity_lnc$score > 0.7, "specific", "intermediate")
+summary_de_specificity_lnc[summary_de_specificity_lnc$score < 0.3,"specificity"] <- "ubiquitous"
+summary_de_specificity_lnc <- summary_de_specificity_lnc[summary_de_specificity_lnc$gene_biotype == "lnc",]
+spec_vs_de_lnc <- summary_de_specificity_lnc %>% group_by(celltype, specificity) %>% count()
+colnames(spec_vs_de_lnc) <- c("de", "spec", "n")
+spec_vs_de_lnc$spec <- factor(spec_vs_de_lnc$spec, levels = c("ubiquitous", "intermediate", "specific"))
+
+# -------------- DE lnc
+#pdf(file.path(plots,  "03/DElnc_spec_0.1.pdf"), width = 5, height = 4)
+lnc_spec <- ggplot(spec_vs_de_lnc, aes(x = spec, y = n, fill = de))+
+       geom_bar(stat = "identity")+
+       theme_paper+
+       scale_fill_manual(values= c("#FD6467","#AE4E4E", "#F1BB7B"))+ 
+       labs(y = "# of DE lncRNAs", x = "")+theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 10),  legend.position = "none")
+#dev.off()
+
+
+
+#  protein coding 
+summary_de_specificity_pc <- merge(de_sig, pc_specificity_info, by = "gene_name")
+summary_de_specificity_pc$specificity <- ifelse(summary_de_specificity_pc$score > 0.7, "specific", "intermediate")
+summary_de_specificity_pc[summary_de_specificity_pc$score < 0.3,"specificity"] <- "ubiquitous"
+spec_vs_de_pc <- summary_de_specificity_pc %>% group_by(celltype, specificity) %>% count()
+colnames(spec_vs_de_pc) <- c("de", "spec", "n")
+spec_vs_de_pc$spec <- factor(spec_vs_de_pc$spec, levels = c("ubiquitous", "intermediate", "specific"))
+
+
+
+#pdf(file.path(plots,  "03/DEpc_spec_0.1.pdf"), width = 5, height = 4)
+pc_spec <- ggplot(spec_vs_de_pc, aes(x = spec, y = n, fill = de))+
+       geom_bar(stat = "identity")+
+       theme_paper+
+       scale_fill_manual(values= c("#FD6467","#AE4E4E", "#F1BB7B"))+ 
+       labs(y = "# of DE mRNAs", x = "")+theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 10),  legend.position = "none")
+#dev.off()
+
+plot_grid(lnc_spec, pc_spec)
+
+
+
+```
+
+
+# Figure 4F: Number of genes DE per stage (Uspet) ##
+
+```{r}
+fc <- 0.1
+de_sig <- all_de[all_de$fdr < 0.05 & abs(all_de$logFC) > fc, ]
+lnc_sig <- de_sig[de_sig$gene_biotype == "lnc", ]
+table(lnc_sig$celltype, lnc_sig$stage)
+pc_sig <- de_sig[de_sig$gene_biotype == "pc", ]
+table(pc_sig$celltype, pc_sig$stage)
+
+library(UpSetR)
+# stage
+x = list( unique(lnc_sig[lnc_sig$stage == "early",]$gene_name), unique(lnc_sig[lnc_sig$stage == "middle",]$gene_name), unique(lnc_sig[lnc_sig$stage == "late",]$gene_name))
+length(unique(unlist(x)))
+names(x)  <-  c( "early" , "middle","late" )
+
+
+pdf(paste0(plots, "03/4F_upset_de_stage_.",fc, ".pdf"), width = 7, height = 5)
+upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color="grey",  main.bar.color=c(rep("black",3), rep("dark grey",4)) ,sets.x.label = "DE genes", mainbar.y.label = "Number of lncRNA")
 dev.off()
 
 
-de_all_genes
+y =list( unique(pc_sig[lnc_sig$stage == "early",]$gene_name), unique(pc_sig[lnc_sig$stage == "middle",]$gene_name), unique(pc_sig[lnc_sig$stage == "late",]$gene_name))
+names(y)  <-  c( "early" , "middle","late" )
+pdf(paste0(plots, "03/4D_PC_upset_de_stage_",fc,".pdf.pdf"), width = 7, height = 5)
+upset(fromList(y), order.by = "freq",text.scale = c(2.5, 2.5, 1.5, 1.5, 2.5, 2.15),sets.bar.color="grey",  main.bar.color=c(rep("black",3), rep("dark grey",4)) ,sets.x.label = "DE genes", mainbar.y.label = "Number of genes")
+dev.off()
+
+
+#fisher test
+
+if (fc == 0.1){
+  all_ln <- length(unique(unlist(x)))
+  spec_lnc <- 109
+  no_spec_lnc <- all_ln - spec_lnc
+  all_pc <- length(unique(unlist(y)))
+  spec_pc <- 2554
+  no_spec_pc <- all_pc - spec_pc
+}else{
+  all_ln <- length(unique(unlist(x)))
+  spec_lnc <- 41 
+  no_spec_lnc <- all_ln - spec_lnc
+  all_pc <- length(unique(unlist(y)))
+  spec_pc <- 1587
+  no_spec_pc <- all_pc - spec_pc
+  
+}
+
+df <- data.frame("specific" = c(spec_lnc, spec_pc), "all" = c(no_spec_lnc, no_spec_pc))
+fisher.test(df)
+rownames(df) <- c("lnc", "pc")
+
+
 ```
-```{R table}
 
-summary <- de_all[,c("primerid", "coef", "fdr", "comparison","celltype", "stage", "type", "subtype", "direction")]
-colnames(summary) <- gsub("primerid", "gene_name", colnames(summary))
-summary <- summary[summary$type == "lnc",]
 
-# Prepare correspondence from reference
-corr_ref <- unique(data.frame(gname = ref[ref$type == "gene",]$gene_name, id = ref[ref$type == "gene",]$gene_id, stringsAsFactors = F))
-corr_ref <- corr_ref[corr_ref$gname %in% summary$gene_name, ]
-multiple <- corr_ref %>% dplyr::group_by(gname) %>% dplyr::tally() %>% dplyr::filter(n>1)
-rownames(corr_ref) <- corr_ref$gname
 
-# Add gene id 
-summary$gene_id <- "NA"
-summary[substr(summary$gene_name,1,3) == "MST",]$gene_id <- gsub("-unknown","", summary[substr(summary$gene_name,1,3) == "MST",]$gene_name)
-summary[summary$gene_name %in% corr_ref$gname,]$gene_id <- corr_ref[summary[summary$gene_name %in% corr_ref$gname,]$gene_name,]$id
-summary$gene_id
 
-orthologs <- unique(orthologs[,c("gene_id", "orthologGeneSymbol")])
-#m <- orthologs %>% dplyr::group_by(gene_id) %>% dplyr::tally() %>% filter(n>1)
-orthologs <-orthologs[orthologs$gene_id  %in% summary$gene_id,]
-rownames(orthologs) <- orthologs$gene_id
+# ------------------
+#   Supplementary
+# -----------------
 
-summary$ortholog <- orthologs[summary$gene_id,]$orthologGeneSymbol
-summary$ortholog_found <- FALSE
-summary[!is.na(summary$ortholog),]$ortholog_found <- TRUE
-summary$ortholog <- as.character(summary$ortholog)
-
-#write.table(summary, file.path(data_path, "plots/03/lncDE.csv"), sep = ",", row.names = F)
-```
-# -----------------------------------------------
-#     STATS DE
-# -----------------------------------------------
+# Stats 
 
 ```{r VisualizeDEnumbers}
-df_de <- lnc_de_all %>% dplyr::group_by(type,subtype, celltype) %>% dplyr::summarise(n=n_distinct(primerid))
-df_de$y_pos <- c(15+10,40+20,11+10,10,10,10)
+
+# FIG S7A: number of lncRNA DE ----
+
+lnc_de_all <- de_sig[de_sig$gene_biotype == "lnc", ]
+lnc_de_all$gene_biotype<- ifelse(startsWith(lnc_de_all$gene_name, "MSTR"), "novel", "annotated")
+
+df_de <- lnc_de_all %>% dplyr::group_by(gene_biotype,subtype, celltype) %>% dplyr::summarise(n=n_distinct(gene_id))
+df_de$y_pos <- c(15+12,40+23,11+15,10,10,10)
+df_de$color <- paste0(df_de$celltype, "_", df_de$subtype)
+
 
 immune.combined$group <- factor(immune.combined$group, levels = c("baseline", "early", "middle", "late"))
 pal_celltypes_short <- pal_celltypes[c(1,3,2)]
+pal_celltypes_short_transparency <- c(pal_celltypes_short, alpha(pal_celltypes_short, 0.5))
+names(pal_celltypes_short_transparency) <- c( "B_novel", "Monocyte_novel", "T_novel", "B_annotated", "Monocyte_annotated", "T_annotated")
 
-
-pdf(file.path(plots, "03/SUPPL_DElnc.pdf"), width = 5, height = 6)
-ggplot(df_de , aes(x = celltype,y=n, col = subtype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_manual(values = pal_celltypes_short)+scale_color_manual(values=c( "grey", "black"))+theme_paper+theme_classic()+ylab("DE lncRNAs")+xlab("")+theme(legend.position = "")+
-  geom_text(aes(y=y_pos, label=n), vjust=1.6, color="white", size=6)+theme(axis.ticks.x = element_blank(), text = element_text(size = 20), axis.line.x = element_blank()) +theme(axis.line.y.left  = element_line(color= "black"))
+pdf(file.path(plots, "Fig4/SUPPL_DElnc_0.1.pdf"), width = 5, height = 6)
+ggplot(df_de , aes(x = celltype,y=n, fill = color))+geom_bar(stat = "identity")+scale_fill_manual(values = pal_celltypes_short_transparency)+scale_color_manual(values=c( "grey", "black"))+theme_paper+theme_classic()+ylab("DE lncRNAs")+xlab("")+theme(legend.position = "")+geom_text(aes(label=n), position = position_stack(vjust = 0.75), color="white", size=6)+theme(axis.ticks.x = element_blank(), text = element_text(size = 20)) +theme(axis.line.y.left  = element_line(color= "black"))
 dev.off()
 
 
-pdf(file.path(plots, "03/SUPPL_DEpc.pdf"), width = 5, height = 6)
-ggplot(mrna_de_all %>% dplyr::group_by(type, celltype) %>% dplyr::summarise(n=n_distinct(primerid)), aes(x = celltype,y=n, col = celltype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_manual(values = pal_celltypes_short)+scale_color_manual(values = pal_celltypes_short)+theme_paper+theme_classic()+ylab("DE mRNAs")+xlab("")+theme(legend.position = "")+geom_text(aes(y=n, label=n), vjust=1.6, color="white", size=6)+theme(axis.ticks.x = element_blank(), text = element_text(size = 20), axis.line.x = element_blank()) +theme(axis.line.y.left  = element_line(color= "black"))
+
+
+# FIG S7B: number of pc DE ----
+
+mrna_de_all <- de_sig[de_sig$gene_biotype == "pc", ]
+pdf(file.path(plots, "Fig4/SUPPL_DEpc_0.1.pdf"), width = 5, height = 6)
+ggplot(mrna_de_all %>% dplyr::group_by(subtype, celltype) %>% dplyr::summarise(n=n_distinct(gene_id)), aes(x = celltype,y=n, col = celltype, fill = celltype))+geom_bar(stat = "identity")+scale_fill_manual(values = pal_celltypes_short)+scale_color_manual(values = pal_celltypes_short)+theme_paper+theme_classic()+ylab("DE mRNAs")+xlab("")+theme(legend.position = "")+geom_text(aes(y=n, label=rev(n)),position = position_stack(vjust = 0.5), color="white", size=6, )+theme(axis.ticks.x = element_blank(), text = element_text(size = 20), axis.line.x = element_blank()) +theme(axis.line.y.left  = element_line(color= "black"))
 dev.off()
 
 # How many DE lncRNAs
-length(unique(lnc_de_all$primerid))
-length(unique(mrna_de_all$primerid))
+length(unique(lnc_de_all$gene_id))
+length(unique(mrna_de_all$gene_id))
 ```
+```{r}
 
-```{r prepareDEMatrix}
-set.seed(123)
+# FIG S7C-D: directionality ----
 
-stats_complete <- rbind( mast_Monocyte_all,mast_B_all,mast_T_all  )
-
-# Convert into matrix
-m <-xtabs(coef~primerid+comparison, stats_complete)
-attr(m, "class") <- NULL
-
-m <- m[,c("Monocyte_early" ,"Monocyte_middle","Monocyte_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
-
-m_significance<-xtabs(fdr~primerid+comparison, stats_complete)
-attr(m_significance, "class") <- NULL
-m_significance <- m_significance[,c("Monocyte_early" ,"Monocyte_middle","Monocyte_late", "B_early" ,"B_middle","B_late", "T_early" ,"T_middle","T_late")]
-
-#saveRDS(stats_complete, file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/stats_complete.rds"))
-#saveRDS(m, file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/m.rds"))
-```
-
-```{r fullHeatmap}
-# -------------------------------------------------------------------------
-# Create Heatmap(s)
-# -------------------------------------------------------------------------
-de_lists_lnc <- de_lists_lnc[unlist(lapply(1:length(de_lists_lnc), function(index) length(de_lists_lnc[[index]]) != 0))]
-h1_lnc<- hm(m= m,row_title = names(de_lists_lnc)[1], features  = de_lists_lnc[1][[1]], first = TRUE, row_names = FALSE)
-hms <- lapply(2:length(de_lists_lnc), function(index) hm(m,row_title = names(de_lists_lnc)[index], features  = de_lists_lnc[index][[1]], row_names = FALSE))
-
-length(hms)
-heatmap_lnc <- h1_lnc %v% hms[[1]]%v%hms[[2]]%v%hms[[3]]%v%hms[[4]]%v%hms[[5]]%v%hms[[6]]
-heatmap_lnc
-
-# mrna ---------
-de_lists_mrna <- de_lists_mrna[unlist(lapply(1:length(de_lists_mrna), function(index) length(de_lists_mrna[[index]]) != 0))]
-h1 <- hm(m= m,row_title = names(de_lists_mrna)[1], features  = de_lists_mrna[1][[1]], first = TRUE, row_names = FALSE)
-hms_mrna <- lapply(2:length(de_lists_mrna), function(index) hm(m,row_title = names(de_lists_mrna)[index], features  = de_lists_mrna[index][[1]], row_names = FALSE))
-
-length(de_lists_mrna)
-
-heatmap_mrna <- h1 %v% hms_mrna[[1]]%v%hms_mrna[[2]]%v%hms_mrna[[3]]%v%hms_mrna[[4]]%v%hms_mrna[[5]]%v%hms_mrna[[6]]%v%hms_mrna[[7]]%v%hms_mrna[[8]]
-heatmap_mrna
-```
-
-```{r directionalityOfDysregulation}
-
-de_stats_direction_plot <- de_all %>%  dplyr::group_by(primerid, celltype,stage,type) %>% dplyr::summarise(direction = toString((direction)))
-de_stats_direction_plot <- de_all %>%  dplyr::group_by(primerid, celltype,stage,type,subtype) %>% dplyr::summarise(direction = toString((direction)))
+de_stats_direction_plot <- de_sig %>%  dplyr::group_by(gene_name, celltype,stage,gene_biotype) %>% dplyr::summarise(direction = toString((direction)))
 de_stats_direction_plot$stage_short <- factor(toupper(substr(de_stats_direction_plot$stage,1,1)), levels=c("E", "M", "L"))
 
 de_stats_direction_plot$direction <- factor(de_stats_direction_plot$direction, c("down", "up"))
 # In general, agnostic of celltype and stage, how many are up and how many are down
 
 
-
-pdf(file.path(plots, "03/SUPPL_directionalityPC.pdf"), width = 8, height = 6)
-p1<- ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "pc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("# DE mRNAs")+xlab("")
+#mRNA
+pdf(file.path(plots, "Fig4/SUPPL_directionalityPC_0.1.pdf"), width = 5, height = 3.45)
+p1<- ggplot(de_stats_direction_plot[de_stats_direction_plot$gene_biotype == "pc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c(alpha("#50C878", 0.8), alpha("#F28C28", 0.8))))+ylab("number of protein coding DE")+xlab("")+theme(strip.text.x = element_text(size = 15), strip.background = element_blank(), axis.title = element_text(size=13), axis.text = element_text(size=15), legend.text = element_text(size=15), panel.grid = element_blank())
 p1
 dev.off()
 
-pdf(file.path(plots, "03/SUPPL_directionalityLNC.pdf"), width = 8, height = 6)
-p2 <- ggplot(de_stats_direction_plot[de_stats_direction_plot$type == "lnc",], aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c("red", "navy")))+ylab("#DE lncRNAs")+xlab("")
+# lncRNA 
+pdf(file.path(plots, "Fig4/SUPPL_directionalityLNC_0.1.pdf"), width = 5, height = 3.45)
+p2 <- ggplot(de_stats_direction_plot[de_stats_direction_plot$gene_biotype == "lnc",],  aes(x = stage_short, fill = direction))+geom_bar(stat="count", position = "dodge")+theme_paper +facet_grid(. ~ celltype)+scale_fill_manual(values = rev(c(alpha("#50C878", 0.8), alpha("#F28C28", 0.8))))+ylab("number of lncRNA DE")+xlab("")+theme(strip.text.x = element_text(size = 15), strip.background = element_blank(), axis.title = element_text(size=13), axis.text = element_text(size=15), legend.text = element_text(size=15), panel.grid = element_blank())
 p2
 dev.off()
 
-p1
-p2
-```
-
-# ---------------------
-#     Heatmaps individual
-# ---------------------
-```{r heatmapTlnc}
-pal_celltypes <-wes_palette("GrandBudapest1", 4)
-pal_celltypes[3] <- "#AE4E4E"
-pal_celltypes <- pal_celltypes[c(2,1,3,4)]
-
-#pdf(filename = file.path(data_path, "/plots/03/T_lnc_FCtest.png", width = 1300, height = 1100))
-pdf(file.path(plots, "03/T_FC.pdf"), width = 6, height = 12)
-FC_heatmap_subset_celltype(m, "T", unique(unlist(de_lists_lnc_T)), "T",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 17)
-dev.off()
-```
-
-
-```{r heatmapBlnc}
-nr <- length(unique(unlist(de_lists_lnc_T)))
-#png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/B_lnc_FC.png" , width = 1300, height = 1100)
-pdf(file.path(plots, "03/B_FC.pdf"), width = 6, height = 12)
-FC_heatmap_subset_celltype(m, "B", unique(unlist(de_lists_lnc_B)), "B",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 20 )
-dev.off()
-```
-
-```{r heatmapMonolnc}
-nr <- length(unique(unlist(de_lists_lnc_my)))
-#png(filename = "/home/luisas/Desktop/cluster/data/plots/neut/Mono_lnc_FC.png" , width = 1300, height = 1300)
-pdf(file.path(plots, "03/Mono_FC.pdf"), width = 6, height = 20)
-FC_heatmap_subset_celltype(m, "Monocyte", unique(unlist(de_lists_lnc_my)), "Monocyte",  "#A0A0A0",orthologs, lncpedia, reported_immlnc, legend = TRUE, height = 40 )
-dev.off()
 
 ```
 
 
-# --------------------------------
-#       Orthologs w/ ImmLnc
-# --------------------------------
 
-```{r How many DE wi }
-# How many DE with orthologs
-de_lnc <- de_all[de_all$type == "lnc", ]
-de_lnc$ortholog <- unlist(lapply(de_lnc$primerid, get_orthologname_))
+```{r}
+
+# FIG S7F: directionality ----
+de_lnc <- de_sig[de_sig$gene_biotype == "lnc", ]
+de_lnc$ortholog <- unlist(lapply(de_lnc$gene_name, get_orthologname_))
 de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "ENS"), FALSE,  TRUE)
 de_lnc$ortholog_found <- ifelse(startsWith(de_lnc$ortholog, "MST"), FALSE,  de_lnc$ortholog_found)
 de_lnc$ImmLnc <- ifelse(de_lnc$ortholog %in% immlnc$lncRNA_symbol, "present", "absent")
@@ -434,279 +472,13 @@ ortholog_summary <-de_lnc_red[de_lnc_red$ortholog_found == TRUE, ] %>% dplyr::gr
 ortholog_summary$celltype <- gsub("B", "B cell", ortholog_summary$celltype )
 ortholog_summary$celltype <- gsub("T", "T cell", ortholog_summary$celltype )
 ortholog_summary$celltype <- factor(ortholog_summary$celltype, levels  = c("B cell", "Monocyte","T cell"))
-pdf(file.path(plots, "03/SUPPL_orthologs.pdf"), width = 7, height = 6)
-p <- ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = n))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("# genes")+xlab("")+labs(fill = "in ImmLnc")+theme(legend.title = element_text(size = 20))+theme(text = element_text(colour = "black"))
+pdf(file.path(plots, "Fig4/SUPPL_orthologs_0.1.pdf"), width = 7, height = 6)
+p <- ggplot(ortholog_summary, aes(x = celltype, fill = ImmLnc, y = n))+geom_bar(stat = "identity")+theme_paper+scale_fill_manual(values = rev(c("#000033","grey")))+ylab("# genes")+xlab("")+labs(fill = "in ImmLnc")+theme(legend.title = element_text(size = 20))+theme(text = element_text(colour = "black"), panel.grid = element_blank())
 p
 dev.off()
 
-de_lnc[de_lnc$celltype == "Monocyte" & de_lnc$ortholog_found == TRUE ,]
 ```
 
-# ---------------------------------------------------------------
-#            Specificity of DE expression - CELL TYPE 
-# ---------------------------------------------------------------
-```{r Upsets}
-library(UpSetR)
-# Cell-type
-x = list( unlist(unique(de_lists_lnc_T)), unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))
-length(unique(unlist(x)))
-names(x)  <-  c( "T " , "B  ","Monocyte" )
-
-
-pdf(file.path(plots, "03/upset_de_coloredCelltype.pdf"), width = 7, height = 5)
-upset_colored<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),sets.bar.color=pal_celltypes[c(3,1,2)],  main.bar.color=c(rep("black",3), rep("dark grey",3)))
-upset_colored
-dev.off()
-
-pdf(file.path(plots, "03/upset_de.pdf"), width = 7, height = 5)
-plot <- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15), main.bar.color=c(rep("black",3), rep("dark grey",3)),sets.bar.color="grey")
-plot
-dev.off()
-
-
-upset_colored
-plot
-```
-
-
-# ---------------------------------------------------------------
-#            Specificity of DE expression - STAGE
-# ---------------------------------------------------------------
-```{r Upsets}
-# Per celltype 
-
-celltype <- "B"
-de_spec <- de_all[, c("stage", "type", "primerid")]
-de_spec_pc <- de_spec[de_spec$type == "pc", ]
-de_spec <- de_spec[de_spec$type == "lnc", ]
-
-# Early middle late
-get_upset_stages <- function(de_spec){
-    x = list( unlist(unique(de_spec[de_spec$stage == "early", c("primerid")])), unlist(unique(de_spec[de_spec$stage == "middle", c("primerid")])),unlist(unique(de_spec[de_spec$stage == "late", c("primerid")])))
-  length(unique(unlist(x)))
-  names(x)  <-  c( "early " , "middle","late" )
-  upset_colored<- upset(fromList(x), order.by = "freq",text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),sets.bar.color="grey",  main.bar.color=c(rep("black",3), rep("dark grey",4)))
-  return(upset_colored)
-}
-
-
-get_upset_numbers<- function(de_spec){
-  de_spec_number <- de_spec %>% dplyr::group_by(primerid) %>% dplyr::count()
-  x = list( unlist(unique(de_spec_number[de_spec_number$n == 1, c("primerid")])), unlist(unique(de_spec_number[de_spec_number$n == 2, c("primerid")])),unlist(unique(de_spec_number[de_spec_number$n == 3, c("primerid")])))
-  length(unique(unlist(x)))
-  names(x)  <-  c( "1" , "2","3" )
-  upset_colored<- upset(fromList(x),
-                        text.scale = c(2.5, 2.5, 2.5, 1.0, 2, 2.15),
-                        sets.bar.color="grey",
-                        main.bar.color=c(rep("black",3)), 
-                        sets =c( "3" , "2","1" ))
-  return(upset_colored)
-}
-
-
-
-# -------------------  Save plots 
-pdf(file.path(plots, "03/upset_stages_lnc.pdf"), width = 7, height = 5)
-get_upset_stages(de_spec)
-dev.off()
-
-pdf(file.path(plots, "03/upset_stages_pc.pdf"), width = 7, height = 5)
-get_upset_stages(de_spec_pc)
-dev.off()
-
-pdf(file.path(plots, "03/upset_stages_lnc_numbers.pdf"), width = 7, height = 5)
-get_upset_numbers(de_spec)
-dev.off()
-
-pdf(file.path(plots, "03/upset_stages_pc_numbers.pdf"), width = 7, height = 5)
-get_upset_numbers(de_spec_pc)
-dev.off()
-
-
-get_upset_stages(de_spec)
-
-```
-
-
-
-
-
-```{r Upsets}
-# Check ids 
-# In all 
-print("Shared in all celltypes")
-shared_all <- unique(intersect(unlist(unique(de_lists_lnc_T)), intersect(unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my)))))
-# ENSMMUG00000064224-unknown" "MSTRG.181325-unknown"
-unlist(lapply(shared_all[!is.na(shared_all)], get_orthologname_))
-
-# In B an M 
-print("Shared in B and Mono")
-b_m_shared <- setdiff(intersect(unlist(unique(de_lists_lnc_B)),unlist(unique(de_lists_lnc_my))), shared_all)
-unlist(lapply(b_m_shared[!is.na(b_m_shared)], get_orthologname_))
-
-# In T an M 
-print("Shared in T and Mono")
-t_m_shared <- setdiff(intersect(unlist(unique(de_lists_lnc_T)),unlist(unique(de_lists_lnc_my))), shared_all)
-unlist(lapply(t_m_shared[!is.na(t_m_shared)], get_orthologname_))
-```
-
-
-# Plot the expression of shared genes 
-
-```{r expression}
-
-library(cowplot)
-# Load summary
-final_summary <- readRDS(file.path(data_path, "00_Metadata/final_DE_summary.rds"))
-
-# Get the genes shared across cell-types 
-shared_1 <- shared_all[1]
-shared_2 <- shared_all[2]
-de_all[de_all$primerid == shared_1,]
-de_all[de_all$primerid == shared_2,]
-
-
-# Line plot 
-plot_genes_ALL_celltypes(shared_all[1])
-plot_genes_ALL_celltypes(shared_all[2])
-
-
-
-# Add info to Seurat object to plot
-immune.combined$celltype <- Idents(immune.combined)
-
-# 1.  Dotplot modified 
-plot.data_up <- Dotplot_data(immune.combined, features = shared_all, group.by = "celltype", split.by = "group",scale.by = "radius", cols = c( "lightblue", "darkred", rep("blue", 10)), dot.scale = 20)
-plot.data_up$name <- unlist(lapply(plot.data_up$features.plot, get_orthologname_))
-plot.data_up$celltype <- unlist(lapply(as.character(plot.data_up$id),function(x) str_split(x, "_")[[1]][1]))
-plot.data_up$stage <- unlist(lapply(as.character(plot.data_up$id),function(x) str_split(x, "_")[[1]][2]))
-plot.data_up <- plot.data_up[plot.data_up$celltype != "Neutrophil", ]
-ggplot(plot.data_up, aes(x = id,y = name, size= pct.exp, col = avg.exp.scaled))+geom_point()+theme_paper+xlab("")+xlab("")+scale_colour_gradient(low = "lightblue", high = "dark red", na.value = NA)+theme(axis.text.x = element_text(angle = 20, vjust = 0.9, hjust=1))+ facet_grid(cols = vars(celltype),scales = "free")+
-  theme(axis.ticks.x = element_blank(), axis.text.x =element_blank(), axis.title.y = element_blank() )
-#  2. Heatmap modified 
-heatmap_celltypes(plot.data_up)
-#  3. Dotplot standard 
-immune.combined$id_full <- paste(immune.combined$celltype, immune.combined$group, "_")
-DotPlot(immune.combined, features = shared_all, group.by = "id_full",cols = c("light grey", "dark red"), dot.scale = 5)+coord_flip()+theme_bw()
-
-# --------------------------------------------
-#     Plot expression gene
-
-# 1. Dotplot by myself 
-
-# 2. Lines colored by celltype F1BB7B
-pal_celltypes <- c("#FD6467","#AE4E4E","#F1BB7B","#D67236")
-
-plot_gene_expression_separatedlines <- function(gene, B, T, Mono){
-  B_exp <- plot_expression_gene(gene, B)[3][[1]]
-  B_exp$celltype <- "B"
-
-  T_exp <- plot_expression_gene(gene, T)[3][[1]]
-  T_exp$celltype <- "T"
-
-  Mono_exp <- plot_expression_gene(gene, mono)[3][[1]]
-Mono_exp$celltype <- "Mono"
-
-exp <- rbind(Mono_exp, B_exp, T_exp)
-exp$gene <- gene
-p <- ggplot(exp, aes(x= type, y = mean, col = celltype, group = celltype))+
-  geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+
-  theme_classic()+
-  geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+
-  geom_line()+
-  theme(legend.title = element_blank())+ylab("log(CP10K+1)")+
-  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+
-  theme_paper+ggtitle(get_orthologname_(gene))+ xlab("")+
-  theme(plot.title = element_text(hjust = 0.5, size = 20),axis.text = element_text(size = 15), legend.title = element_text(size = 0), plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))+scale_color_manual(values = pal_celltypes)+
-  scale_size(range = c(0, 20))+scale_size_area(limits = c(1, 100))
-
-
-p
-return(list(p, exp))
-}
-
-pdf(file.path(plots, "03/Fig1G_Annot.pdf"), width = 7, height = 6)
-p1 <- plot_gene_expression_separatedlines(shared_1, B, T, Mono)[[1]]
-dev.off()
-
-pdf(file.path(plots, "03/Fig1G_Novel.pdf"), width = 7, height = 6)
-p2 <- plot_gene_expression_separatedlines(shared_2, B, T, Mono)
-dev.off()
-
-library(patchwork)
-pdf(file.path(plots, "03/Fig1G_both.pdf"), width = 12, height = 6)
-combined <- p1 + p2 & theme(legend.position = "right")
-combined + plot_layout(guides = "collect")
-dev.off()
-
-```
-# Fisher tests 
-
-```{r Upsets}
-# How many DE lncrnas are novel ? 
-table(substr(unique(lnc_de_all$primerid),1,3))
-
-# Which ones have the stringest FC? 
-lnc_de_all <- lnc_de_all[!is.na(lnc_de_all$primerid),]
-length(unique(lnc_de_all$primerid))
-lnc_de_all[order(lnc_de_all$coef),]
-
-# Get the top 5  down in Monocyetes
-lnc_de_mono <- lnc_de_all[lnc_de_all$celltype == "Monocyte",]
-length(unique(lnc_de_mono$primerid))
-lnc_de_mono[order(lnc_de_mono$coef),][1:5, ]
-unlist(lapply(lnc_de_mono[order(lnc_de_mono$coef),][1:5, ]$primerid, get_orthologname_))
-
-# Get the top 5  down in B
-lnc_de_t <- lnc_de_all[lnc_de_all$celltype == "T",]
-lnc_de_t[order(lnc_de_t$coef),][1:7, ]
-unique(unlist(lapply(lnc_de_t[order(lnc_de_t$coef),][1:6, ]$primerid, get_orthologname_)))
-
-# Get the top 5  down in T
-lnc_de_b<- lnc_de_all[lnc_de_all$celltype == "B",]
-lnc_de_mono[order(lnc_de_mono$coef),][1:5, ]
-unique(unlist(lapply(lnc_de_b[order(lnc_de_b$coef),][1:7, ]$primerid, get_orthologname_)))
-```
-
-
-
-```{r Fisher}
-# Unmached Fisher Exact Test 
-T_lnc <-  unlist(unique(de_lists_lnc_T)); T_pc <-  unlist(unique(de_lists_mrna_T));
-B_lnc <- unlist(unique(de_lists_lnc_B));  B_pc <-  unlist(unique(de_lists_mrna_B));
-M_lnc <- unlist(unique(de_lists_lnc_my));  M_pc <-  unlist(unique(de_lists_mrna_my));
-all_lnc <- unique(c(T_lnc, B_lnc,M_lnc )); all_pc <- unique(c(T_pc, B_pc,M_pc ));
-non_cell_type_specific_lnc <- unique(c(intersect(T_lnc, B_lnc), intersect(B_lnc,M_lnc), intersect(M_lnc, T_lnc)))
-cell_type_specific_lnc <- setdiff(all_lnc, non_cell_type_specific_lnc)
-non_cell_type_specific_pc <- unique(c(intersect(T_pc, B_pc), intersect(B_pc,M_pc), intersect(M_pc, T_pc)))
-cell_type_specific_pc <- setdiff(all_pc, non_cell_type_specific_pc)
-
-# 1. Are DE lncRNA more cell-type or cell-stage specific than DE protein-coding genes ####
-# cell-type specific
-#           cell-type_specific non_cell-type_specific
-# lncRNA            x11               x12      
-# PC                x21               x22
-x11 <- length(cell_type_specific_lnc)
-x21 <- length(cell_type_specific_pc)
-x12 <- length(non_cell_type_specific_lnc)
-x22 <- length(non_cell_type_specific_pc)
-m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
-rownames(m_type) <- c("lncRNA","PC")
-colnames(m_type) <- c("type_specific","non_cell-type_specific")
-m_type
-fisher.test(m_type,alternative = "greater")
-
-#  Visualize
-col_lnc = "navy"
-col_mrna = "#8DC3A7"
-palette_plot_percentage <- c(col_lnc, col_mrna)
-
-df <- data.frame(label = rep(c("cell-type specific"), 2))
-df$type <- c("lnc", "pc")
-df$n <- c(length(cell_type_specific_lnc)/length(all_lnc), length(cell_type_specific_pc)/length(all_pc))
-df$n <- df$n*100
-ggplot(df, aes(x = label, fill = type, y = n))+geom_bar(stat = "identity", position = position_dodge())+theme_paper+ylab("% cell-type specific DE genes")+xlab("")+scale_fill_manual(values= c(palette_plot_percentage))
-```
 
 
 # Fisher exact test when matched by the proportion of cells in which they express 
@@ -718,7 +490,7 @@ df_lnc <- readRDS(file.path(robjectsdir, "df_lnc.rds"))
 df_mrna <- readRDS(file.path(robjectsdir, "df_mrna.rds"))
 
 df_lnc <- df_lnc[df_lnc$gene_id %in% all_lnc,]
-df_mrna <- df_mrna[df_mrna$gene_id %in% all_pc,]
+df_mrna <- df_mrna[df_mrna$gene_id %in% annotated_mrnas,]
 
 set.seed(123)
 df_lnc$type <- "lnc"
@@ -738,9 +510,23 @@ matches_perc$type <- factor(matches_perc$type, levels = c("lnc", "mrna"))
 matches_perc$gene_id <- as.character(matches_perc$gene_id)
 
 # Only retain the matched one for the test 
-T_lnc <-  T_lnc[T_lnc %in% matches_perc$gene_id]; T_pc <- T_pc[T_pc %in% matches_perc$gene_id];
-B_lnc <- B_lnc[B_lnc %in% matches_perc$gene_id]; B_pc <- B_pc[B_pc %in% matches_perc$gene_id];
-M_lnc <- M_lnc[M_lnc %in% matches_perc$gene_id]; M_pc <- M_pc[M_pc %in% matches_perc$gene_id];
+
+
+fc <- 0.1
+de_sig <- all_de[all_de$fdr < 0.05 & abs(all_de$logFC) > fc, ]
+
+lnc_sig <- de_sig[de_sig$gene_biotype == "lnc", ]
+table(lnc_sig$celltype, lnc_sig$stage)
+pc_sig <- de_sig[de_sig$gene_biotype == "pc", ]
+table(pc_sig$celltype, pc_sig$stage)
+
+T_lnc <- lnc_sig[lnc_sig$celltype == "T",] ; T_pc <- pc_sig[pc_sig$celltype == "T",]
+B_lnc <-  lnc_sig[lnc_sig$celltype == "B",] ; B_pc <- pc_sig[pc_sig$celltype == "B",]
+M_lnc <-  lnc_sig[lnc_sig$celltype == "Monocyte",] ; M_pc <- pc_sig[pc_sig$celltype == "Monocyte",]
+
+T_lnc <-  T_lnc[T_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; T_pc <- T_pc[T_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
+B_lnc <- B_lnc[B_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; B_pc <- B_pc[B_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
+M_lnc <- M_lnc[M_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; M_pc <- M_pc[M_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
 
 all_lnc <- unique(c(T_lnc, B_lnc,M_lnc )); all_pc <- unique(c(T_pc, B_pc,M_pc ));
 non_cell_type_specific_lnc <- unique(c(intersect(T_lnc, B_lnc), intersect(B_lnc,M_lnc), intersect(M_lnc, T_lnc)))
@@ -763,172 +549,49 @@ colnames(m_type) <- c("type_specific","non_cell-type_specific")
 m_type
 fisher.test(m_type,alternative = "greater")
 
-```
 
-# ---------------------------- fisher stages 
-
-
-```{r Fisher}
-# Unmached Fisher Exact Test 
-
-early_lnc <-  unlist(unique(de_spec[de_spec$stage =="early", c("primerid")])); 
-early_pc <-  unlist(unique(de_spec_pc[de_spec_pc$stage =="early", c("primerid")]));
-
-middle_lnc <-  unlist(unique(de_spec[de_spec$stage =="middle", c("primerid")])); 
-middle_pc <-  unlist(unique(de_spec_pc[de_spec_pc$stage =="middle", c("primerid")]));
-
-late_lnc <-  unlist(unique(de_spec[de_spec$stage =="late", c("primerid")])); 
-late_pc <-  unlist(unique(de_spec_pc[de_spec_pc$stage =="late", c("primerid")]));
-
-all_lnc <- unique(c(early_lnc, middle_lnc,late_lnc )); all_pc <- unique(c(early_pc, middle_pc,late_pc ));
-non_stage_specific_lnc <- unique(c(intersect(early_lnc, middle_lnc), intersect(middle_lnc,late_lnc), intersect(late_lnc, early_lnc)))
-stage_specific_lnc <- setdiff(all_lnc, non_stage_specific_lnc)
-non_stage_specific_pc <- unique(c(intersect(early_pc, middle_pc), intersect(middle_pc,late_pc), intersect(late_pc, early_pc)))
-stage_specific_pc <- setdiff(all_pc, non_stage_specific_pc)
-
-# 1. Are DE lncRNA more cell-type or cell-stage specific than DE protein-coding genes ####
-# cell-type specific
-#           cell-type_specific non_cell-type_specific
-# lncRNA            x11               x12      
-# PC                x21               x22
-x11 <- length(stage_specific_lnc)
-x21 <- length(stage_specific_pc)
-x12 <- length(non_stage_specific_lnc)
-x22 <- length(non_stage_specific_pc)
-m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
-rownames(m_type) <- c("lncRNA","PC")
-colnames(m_type) <- c("stage_specific","non_stage_specific")
-m_type
-fisher.test(m_type,alternative = "greater")
-
-#  Visualize
-col_lnc = "navy"
-col_mrna = "#8DC3A7"
-palette_plot_percentage <- c(col_lnc, col_mrna)
-
-df <- data.frame(label = rep(c("stage specific"), 2))
-df$type <- c("lnc", "pc")
-df$n <- c(length(cell_type_specific_lnc)/length(all_lnc), length(cell_type_specific_pc)/length(all_pc))
-df$n <- df$n*100
-ggplot(df, aes(x = label, fill = type, y = n))+geom_bar(stat = "identity", position = position_dodge())+theme_paper+ylab("% cell-type specific DE genes")+xlab("")+scale_fill_manual(values= c(palette_plot_percentage))
 ```
 
 
-# Fisher test stage specific - matche by % cells 
+# same with stage 
+```{r}
 
-```{r Fisher}
-library(MatchIt)
-robjectsdir<- file.path(data_path,"02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
-df_lnc <- readRDS(file.path(robjectsdir, "df_lnc.rds"))
-df_mrna <- readRDS(file.path(robjectsdir, "df_mrna.rds"))
+fc <- 0.1
+de_sig <- all_de[all_de$fdr < 0.05 & abs(all_de$logFC) > fc, ]
 
-df_lnc <- df_lnc[df_lnc$gene_id %in% all_lnc,]
-df_mrna <- df_mrna[df_mrna$gene_id %in% all_pc,]
+lnc_sig <- de_sig[de_sig$gene_biotype == "lnc", ]
+table(lnc_sig$celltype, lnc_sig$stage)
+pc_sig <- de_sig[de_sig$gene_biotype == "pc", ]
+table(pc_sig$celltype, pc_sig$stage)
 
-set.seed(123)
-df_lnc$type <- "lnc"
-df_mrna$type <- "mrna"
-df_complete<- rbind(df_lnc, df_mrna)
-c <- df_complete[complete.cases(df_complete),]
-c$type = ifelse(c$type == "lnc", 1, 0)
+E_lnc <- lnc_sig[lnc_sig$stage == "early",] ; E_pc <- pc_sig[pc_sig$stage == "early",]
+mid_lnc <-  lnc_sig[lnc_sig$stage == "middle",] ; mid_pc <- pc_sig[pc_sig$stage == "middle",]
+L_lnc <-  lnc_sig[lnc_sig$stage == "late",] ; L_pc <- pc_sig[pc_sig$stage == "late",]
 
+E_lnc <-  E_lnc[E_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; E_pc <- E_pc[E_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
+mid_lnc <- mid_lnc[mid_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; mid_pc <- mid_pc[mid_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
+L_lnc <- L_lnc[L_lnc$gene_name %in% matches_perc$gene_id,]$gene_name; L_pc <- L_pc[L_pc$gene_name %in% matches_perc$gene_id,]$gene_name;
 
-# --------------- MATCH BY PROP CELLS ------
-mi_perc <- matchit(type ~ perc_cells_expressing,c)
-matches_perc <- get_matches(mi_perc, data = c)
-
-matches_perc$type = ifelse(matches_perc$type == 0, "mrna", "lnc")
-n_matches <- length(unique(matches_perc[matches_perc$type == "lnc",]$gene_id))
-matches_perc$type <- factor(matches_perc$type, levels = c("lnc", "mrna"))
-matches_perc$gene_id <- as.character(matches_perc$gene_id)
-
-# Only retain the matched one for the test 
-early_lnc <-  early_lnc[early_lnc %in% matches_perc$gene_id]; early_pc <- early_pc[early_pc %in% matches_perc$gene_id];
-middle_lnc <- middle_lnc[middle_lnc %in% matches_perc$gene_id]; middle_pc <- middle_pc[middle_pc %in% matches_perc$gene_id];
-late_lnc <- late_lnc[late_lnc %in% matches_perc$gene_id]; late_pc <- late_pc[late_pc %in% matches_perc$gene_id];
-
-all_lnc <- unique(c(early_lnc, middle_lnc,late_lnc )); all_pc <- unique(c(early_pc, middle_pc,late_pc ));
-non_stage_specific_lnc <- unique(c(intersect(early_lnc, middle_lnc), intersect(middle_lnc,late_lnc), intersect(late_lnc, early_lnc)))
-stage_specific_lnc <- setdiff(all_lnc, non_stage_specific_lnc)
-non_stage_specific_pc <- unique(c(intersect(early_pc, middle_pc), intersect(middle_pc,late_pc), intersect(late_pc, early_pc)))
-stage_specific_pc <- setdiff(all_pc, non_stage_specific_pc)
+all_lnc <- unique(c(E_lnc, mid_lnc,L_lnc )); all_pc <- unique(c(E_pc, mid_pc,L_pc ));
+non_cell_type_specific_lnc <- unique(c(intersect(E_lnc, mid_lnc), intersect(mid_lnc,L_lnc), intersect(L_lnc, E_lnc)))
+cell_type_specific_lnc <- setdiff(all_lnc, non_cell_type_specific_lnc)
+non_cell_type_specific_pc <- unique(c(intersect(E_pc, mid_pc), intersect(mid_pc,L_pc), intersect(L_pc, E_pc)))
+cell_type_specific_pc <- setdiff(all_pc, non_cell_type_specific_pc)
 
 # 1. Are DE lncRNA more cell-type or cell-stage specific than DE protein-coding genes ####
 # cell-type specific
-#           cell-type_specific non_cell-type_specific
+#           stage_specific non_stage_specific
 # lncRNA            x11               x12      
 # PC                x21               x22
-x11 <- length(stage_specific_lnc)
-x21 <- length(stage_specific_pc)
-x12 <- length(non_stage_specific_lnc)
-x22 <- length(non_stage_specific_pc)
+x11 <- length(cell_type_specific_lnc)
+x21 <- length(cell_type_specific_pc)
+x12 <- length(non_cell_type_specific_lnc)
+x22 <- length(non_cell_type_specific_pc)
 m_type <- matrix(c(x11, x12,x21,x22),2,2,byrow = TRUE)
 rownames(m_type) <- c("lncRNA","PC")
-colnames(m_type) <- c("stage_specific","non_stage_specific")
+colnames(m_type) <- c("type_specific","non_cell-type_specific")
 m_type
 fisher.test(m_type,alternative = "greater")
 
 ```
-
-
-# Is NEAT1 Downregulated? 
-
-```{r expression}
-library(cowplot)
-get_gene_id <- function(gene){
-  gene_id <- unique(ref[!is.na(ref$gene_id) & ref$gene_id %in% unique(orthologs[orthologs$orthologGeneSymbol == gene,]$gene_id),]$gene_name)
-  gene_id  <- rownames(subset(immune.combined, features = c(gene_id)))
-  return(gene_id)
-}
-
-
-plot_expression_gene <- function(gene, mono, col = "blue", title = ""){
-  neat1exp <- mono[gene,]
-  B <-neat1exp[,neat1exp$group == "baseline"]@assays$RNA@data
-  E <-neat1exp[,neat1exp$group == "early"]@assays$RNA@data
-  M <-neat1exp[,neat1exp$group == "middle"]@assays$RNA@data
-  L <-neat1exp[,neat1exp$group == "late"]@assays$RNA@data
-  
-  neat1exp$type <- toupper(substring(neat1exp$group, 1,1))
-  
-  #name <- "baseline"
-  get_average <- function(name){
-    v <- as.vector(get(name))
-    b <- data.frame(t(Rmisc::CI(v[v>0])), type = name)
-    b$pct.exp <- PercentAbove(v,0)*100
-    return(b)
-  }
-  
-  exp <- Reduce(rbind,lapply(as.character(unique(neat1exp$type)), function(x) get_average(x)))
-  exp$type <- factor(exp$type, levels = c("B", "E", "M", "L"))
-  
-  
-  #pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
-  p <- ggplot(exp, aes(x= type, y = mean))+geom_point(shape = 1,colour = "black", fill = "white", alpha = 1, stroke = 1, aes(size = pct.exp))+theme_classic()+geom_errorbar(aes(ymax = upper, ymin = lower), width=.2)+geom_smooth(method=lm, aes(fill=type), colouer = "blue")+theme(text = element_text( size = 18))+xlab("")+geom_line(group = "type", colour = col)+theme(legend.title = element_blank())+ylab("log(CP10K+1)")+theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())+theme_paper+ggtitle(get_orthologname_(gene))+labs(subtitle = title )+theme(plot.title = element_text(hjust = 0.5),plot.subtitle = element_text(hjust = 0.5), text = element_text(colour = "black"))
-  #dev.off()
-  
-
-  p2 <- DotPlot(mono, features=c(gene), group.by  = "group")+coord_flip()
-  tab <- Dotplot_data(mono, features=c(gene), group.by  = "group")
-  return(list(p,p2,tab))
-
-}
-
-
-mono$group <- factor(mono$group, levels = c("baseline", "early","middle", "late"))
-DefaultAssay(mono) <- "RNA"
-
-
-pdf(file.path(plots, "03/neatExpr.pdf"), width = 7, height = 6)
-plot_expression_gene(get_gene_id("NEAT1"), mono)
-dev.off()
-
-
-```
-
-
-
-
-
-
 

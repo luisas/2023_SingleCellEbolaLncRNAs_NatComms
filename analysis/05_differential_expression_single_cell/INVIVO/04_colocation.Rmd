@@ -71,6 +71,7 @@ plot_colocation <- function(cis_celltype_plot, celltype){
 
 plot_colocation(cis_mono, "Monocyte")
 
+
 plot_colocation(cis_B, "B")
 
 plot_colocation(cis_T, "T")
@@ -147,7 +148,7 @@ plot_s <- function(links){
 }
 plot_s( significant_plot[significant_plot$celltype == "Monocyte",])
 
-plot_s( significant_plot[significant_plot$celltype == "B",])
+
 
 
 print(plot_s( significant_plot[significant_plot$celltype == "T",]))

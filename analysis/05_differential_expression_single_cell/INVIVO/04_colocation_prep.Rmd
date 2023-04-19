@@ -38,10 +38,12 @@ annotated_mrnas <- readRDS(file.path(robjectsdir_stats,"annotated_mrnas.rds"))
 immune.combined <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
 
 # Load pre-computed colocation information 
-colocation <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_df.rds"))
+colocation <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/colocation_df_newfilt.rds"))
 
 # Load summary of DE analysis
-de_all_genes<- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/de_all_stages.rds"))
+de_all_genes<- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/04_DE/allCells_DE_table.rds"))
+de_all_genes <- de_all_genes[de_all_genes$fdr < 0.05 & abs(de_all_genes$logFC) > 0.1, ]
+de_lnc <- de_all_genes[de_all_genes$gene_biotype== "lnc", ] 
 
 # Load orthologs
 orthologs <- readRDS(file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
@@ -69,8 +71,8 @@ distances$lnc_name <- unlist(correspondence[distances$lnc, ]$genename)
 distances[substr(distances$lnc,1,4) == "MSTR",]$lnc_name <- paste(distances[substr(distances$lnc,1,4) == "MSTR",]$lnc, "-unknown", "")
 distances[substr(distances$gene,1,4) == "MSTR",]$gene_name <- paste(distances[substr(distances$gene,1,4) == "MSTR",]$lnc, "-unknown", "")
 # make sure you only retain DE genes
-distances <- distances[distances$lnc_name %in% de_all_genes[de_all_genes$type == "lnc", ]$primerid,]
-distances <- distances[distances$gene_name %in% de_all_genes[de_all_genes$type == "pc", ]$primerid,]
+distances <- distances[distances$lnc %in% de_all_genes[de_all_genes$gene_biotype == "lnc", ]$gene_id,]
+distances <- distances[distances$gene %in% de_all_genes[de_all_genes$gene_biotype == "pc", ]$gene_id,]
 
 # ----------------------------------------------------------------------------
 # 1 . Add lncRNAs orthologs (if available )
@@ -91,10 +93,10 @@ cis_B <- get_cis_celltype(distances, de_all_genes, "B")
 cis_T <- get_cis_celltype(distances, de_all_genes, "T")
 cis_celltype <- rbind(cis_mono,cis_B, cis_T)
 
-#saveRDS(cis_mono, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_mono.rds"))
-#saveRDS(cis_B, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_B.rds"))
-#saveRDS(cis_T, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_T.rds"))
-#saveRDS(cis_celltype, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_celltype.rds"))
+saveRDS(cis_mono, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_mono_newFilt.rds"))
+saveRDS(cis_B, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_B_newFilt.rds"))
+saveRDS(cis_T, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_T_newFilt.rds"))
+saveRDS(cis_celltype, file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/cis_celltype_newFilt.rds"))
 length(unique(paste(cis_celltype$lnc, cis_celltype$gene)))
 ```
 
@@ -103,12 +105,13 @@ length(unique(paste(cis_celltype$lnc, cis_celltype$gene)))
 
 ```{r colocationCelltypeCisPrep}
 mono_corr <- get_correlation_and_colocation_df(cis_mono, "Monocyte")
+cis_B <- cis_B[cis_B$lnc != "ENSMMUG00000050624",]
 B_corr <- get_correlation_and_colocation_df(cis_B, "B")
 T_corr <- get_correlation_and_colocation_df(cis_T, "T")
-complete_cor <- rbind(mono_corr,B_corr, T_corr )
+complete_cor <- rbind(mono_corr, T_corr , B_corr)
 
-#saveRDS(complete_cor,file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/complete_cor.rds") )
-#write.table(complete_cor, file.path(data_path, "plots/04/correlations_de_cis.csv"), sep = ",", row.names = F)
+saveRDS(complete_cor,file.path(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/07_colocation/complete_cor_newFilt.rds") )
+write.table(complete_cor, file.path(data_path, "plots/04/correlations_de_cis_newFilt.csv"), sep = ",", row.names = F)
 ```
 
 
@@ -227,10 +230,10 @@ plot_s <- function(links){
   my_color <- 'd3.scaleOrdinal() .domain(["type_a", "type_b", "my_unique_group"]) .range(["#69b3a2", "red", "grey"])'
 
   # Make the Network
-  p <- sankeyNetwork(Links = links, Nodes = nodes,
-                Source = "IDsource", Target = "IDtarget",
+  p <- forceNetwork(Links = links$pair, Nodes = nodes$name,
+                Source = "source", Target = "target",
                 Value = "absrho", NodeID = "name", 
-                sinksRight=FALSE, colourScale = my_color,  LinkGroup="group", NodeGroup="group")
+                sinksRight=FALSE, colourScale = my_color)#,  #LinkGroup="group", NodeGroup="group")
   p
   return(p)
 }
@@ -238,7 +241,7 @@ plot_s <- function(links){
 plot_s( significant_plot[significant_plot$celltype == "Monocyte",])
 plot_s( significant_plot[significant_plot$celltype == "B",])
 plot_s( significant_plot[significant_plot$celltype == "T",])
-
+plot
 
 
 ```
