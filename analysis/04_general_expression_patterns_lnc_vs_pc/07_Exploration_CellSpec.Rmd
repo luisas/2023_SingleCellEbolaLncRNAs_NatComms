@@ -1,0 +1,263 @@
+---
+title: "07_Exploration_CellSpec"
+author: "Maria Sopena-Rios"
+date: "11/03/2022"
+output: html_document
+---
+
+# Comparison tissue vs cell-type specificity 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(rtracklayer); library(readr) ; library(ggplot2); library(stringr); library(tispec) ; library(TissueEnrich); library(RColorBrewer); library(dplyr); library(ggsignif); library(reshape);library(clusterProfiler); library(org.Mmu.eg.db); library(ggpubr)
+```
+
+## 00. Load data 
+
+```{r data }
+# Paths ----
+laptop <- "work"
+if (laptop == "work"){
+  data_path <- "/home/mariasr/cluster/data/"
+}else{
+data_path <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+}
+
+plots_spec <- paste0(data_path, "plots_new/bulk_spec/")
+#setwd(path_to_data)
+
+# Reoccurring paths
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+dir_counts_ref <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/")
+robjectsdir <- paste0(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
+plots <- paste0(data_path, "plots_new/")
+
+# Define palettes ----
+palette_upsilon <- c("ubiquitous"= "#5F9EA0","intermediate"="blue", "specific"="#9F2B68")
+palette_upsilon_full<- c(alpha("#5F9EA0", 0.8), alpha("#5F9EA0", 0.2), alpha("blue", 0.8), alpha("blue", 0.2), alpha("#9F2B68", 0.8), alpha("#9F2B68", 0.2))
+
+palette_expression <-palette[c(1,2,4)]
+
+#Themes ---
+ theme_spec <- theme(legend.position = "top", legend.title = element_blank(), axis.text = element_text(size=11))+theme(panel.background = element_rect(fill = "white", colour = "white"),)+theme(panel.background = element_rect(fill = "white", colour = "grey50"), axis.line = element_blank(), axis.title.y = element_text(size=12))
+ 
+theme_paper <- theme(legend.title = element_blank())+theme(panel.background = element_rect(fill = "white", colour = "white"))+theme(panel.background = element_rect(fill = "white", colour = "grey50"))+theme(axis.text = element_text(size = 18), axis.title = element_text(size = 20), legend.text = element_text(size = 18))
+theme_umap <- theme(panel.background = element_rect(fill = "white"),
+                    panel.grid.major = element_blank(),
+                    legend.position = "", 
+                    panel.grid.minor = element_blank(),
+                    text = element_text(size=18))
+
+
+# Macaque gene annotation files ----
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+lncRNAs_ref_df <- as.data.frame(lncRNAs_ref)
+head(lncRNAs_ref_df)
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+mRNAs_ref_df <- as.data.frame(mRNAs_ref)
+head(mRNAs_ref_df)
+all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+all_df <- as.data.frame(all)
+# Extract novel lncRNA
+all_novel_lnc <- all_df[substr(all_df$gene_id,1,4) %in% c( "MSTR"),]
+all_novel_lnc_df <- as.data.frame(all_novel_lnc)
+head(all_novel_lnc_df)
+nrow(all_novel_lnc_df)
+unique(all_novel_lnc_df$type)
+
+#Get list of pc and mRNA 
+lnc <- c(lncRNAs_ref$gene_id, all_novel_lnc$gene_id)
+lnc <- unique(lnc)
+table(startsWith(lnc, "MSTR"))
+
+mrna <- mRNAs_ref$gene_id
+mrna <- unique(mrna)
+
+# Orthologs file ----
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+head(orthologs)
+nrow(orthologs)
+
+# Load specificity files ---
+tau <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/01_bulk_tau.rds"))
+bulk_tau <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/01_bulk_tau.rds"))
+
+# Load expression files ---
+expression_data <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/02_expression_data_tissue_infection.rds"))
+expression_data_onlytissue <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/02_expression_data_tissue_only.rds"))
+
+#palette
+palette_upsilon <- c("ubiquitous"= "#5F9EA0","intermediate"="blue", "specific"="#9F2B68")
+palette_upsilon_full<- c(alpha("#5F9EA0", 0.8), alpha("#5F9EA0", 0.2), alpha("blue", 0.8), alpha("blue", 0.2), alpha("#9F2B68", 0.8), alpha("#9F2B68", 0.2))
+
+#Themes ---
+ theme_spec <- theme(legend.position = "top", legend.title = element_blank(), axis.text = element_text(size=14, colour = "black"))+theme(panel.background = element_rect(fill = "white", colour = "white"),)+theme(panel.background = element_blank(), panel.border = element_blank(), axis.line =element_line(linewidth =0.3, color = "black"), axis.title.y = element_text(size=14))
+ 
+ 
+```
+
+# Compare Tau and Upsilon (Figure 3A)
+
+```{r}
+specificity_scores <- upsilon
+ups_HK_MK <- specificity_scores[specificity_scores$gene_name %in% c(housekeeping_genes, marker.genes), c("gene_name", "upsilon")]
+colnames(ups_HK_MK) <- c("gene", "score")
+ups_HK_MK$metric <- "upsilon"
+tau$gene <- rownames(tau)
+tau_HK_MK <- tau[tau$gene %in% c(housekeeping_genes, marker.genes), c("gene", "score")]
+tau_HK_MK$metric <- "tau"
+tau_HK_MK$metric <- factor(tau_HK_MK$metric, levels=c("upsilon", "tau"))
+HK_MK <- rbind(ups_HK_MK, tau_HK_MK)
+HK_MK$type <- ifelse(HK_MK$gene %in% marker.genes, "marker", "housekeeping")
+ggplot(HK_MK, aes(x=metric, y=score, fill=metric, color=metric)) + geom_boxplot(alpha=0.7)+facet_wrap(~type)  +theme_classic()+ scale_fill_manual(values= c("#406d4bff", "#d58716ff")) + scale_color_manual(values= c("#406d4bff", "#d58716ff")) + theme(panel.grid = element_blank(), strip.background = element_rect(fill= "#f0f0f0ff", linewidth = 0.3), strip.text = element_text(size=16), legend.position = "none", axis.line = element_line(linewidth = 0.2), axis.text.x = element_text(size=14), axis.text.y = element_text(size=13), axis.title = element_text(size=16)) + xlab("") + 
+  geom_signif(comparisons = list(c("tau", "upsilon")), map_signif_level = TRUE)
+
+hk <- HK_MK[HK_MK$type == "housekeeping",]
+mk  <- HK_MK[HK_MK$type == "marker",]
+wilcox.test(hk[hk$metric == "Upsilon",]$score, hk[hk$metric == "Tau",]$score, paired = T)
+wilcox.test(mk[mk$metric == "Upsilon",]$score, mk[mk$metric == "Tau",]$score, paired = T)
+```
+
+
+
+
+# Cell-type specificity of lncRNA (Figure 3B)
+
+```{r}
+#add gene name upsilon
+upsilon <- upsilon[upsilon$gene_name %in% all_df$gene_name,]
+df <- all_df[all_df$gene_name %in% upsilon$gene_name,]
+df <- df[!duplicated(df$gene_name),]
+dim(df)
+upsilon$gene_id <- unlist(lapply(upsilon$gene, function(name) unique(df[df$gene_name == name, "gene_id"] )))
+
+#plot number of tissue-specific genes 
+
+ups <- upsilon[upsilon$gene_name %in% lnc, ]
+ups$type <- ifelse(startsWith(as.character(ups$gene_name), "ENSM"), "annotated", "novel")
+ups$cell_spec <- ifelse(ups$upsilon > 0.7, "specific", ifelse(ups$upsilon < 0.3, "ubiquitous", "intermediate"))
+ups$cell_spec <- factor(ups$cell_spec, levels= c("ubiquitous", "intermediate","specific" ))
+ups$color <- paste0(ups$type, "_", ups$cell_spec)
+
+ups$color <- factor(ups$color,c("novel_ubiquitous", "annotated_ubiquitous", "novel_intermediate" , "annotated_intermediate", "novel_specific"  ,"annotated_specific"   ))
+
+names(palette_upsilon_full) <- levels(ups$color)
+
+ggplot(ups)+geom_bar(
+    aes(x = cell_spec, fill = color),
+    width = 0.9,
+    color = "white",
+    position = position_dodge(width = 0.9)
+  )+theme_paper+scale_fill_manual(values= palette_upsilon_full)+
+  theme(legend.position = "none", panel.background = element_rect(fil="white", linewidth = 0.5), axis.text = element_text(color="black")) + xlab("") + ylab("# of lncRNA")
+
+
+```
+
+
+
+
+#Compare Tissue-specificity and cell-type specifity (Figure 3C and S6G)
+
+```{r}
+#add gene name upsilon
+upsilon <- upsilon[upsilon$gene_name %in% all_df$gene_name,]
+df <- all_df[all_df$gene_name %in% upsilon$gene_name,]
+df <- df[!duplicated(df$gene_name),]
+dim(df)
+upsilon$gene_id <- unlist(lapply(upsilon$gene, function(name) unique(df[df$gene_name == name, "gene_id"] )))
+
+
+#load tissue-specificity metrics 
+bulk_tau <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/01_bulk_tau.rds"))
+bulk_tau$gene_id<- rownames(bulk_tau)
+
+
+#correlation upsilon - tau_bulk no filer
+s <- merge(upsilon, bulk_tau, by="gene_id")
+s$type <- ifelse(s$gene_id %in% lnc, "lnc", "pc")
+dim(s)
+ggplot(s, aes(x=upsilon, y=tau)) + geom_point()
+cor.test(s$upsilon, s$tau)
+
+s$cell_spec <- ifelse(s$upsilon > 0.7, "specific", ifelse(s$upsilon < 0.3, "ubiquitous", "intermediate"))
+s$cell_spec <- factor(s$cell_spec, levels= c("specific", "intermediate", "ubiquitous"))
+ggplot(s, aes(x=cell_spec, y=tau, fill=cell_spec)) + geom_boxplot(outlier.shape = NA)+facet_grid(~type)
+
+
+
+#load expression info 
+mean_tpm <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/tmp_tissues.rds"))
+expression_data <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/02_expression_data_tissue_infection.rds"))
+#select whole blood
+blood_tpm <- mean_tpm$Wholeblood
+#expressed genes 
+blood_expressed <- blood_tpm > 0.1
+blood_expressed <- names(blood_expressed[blood_expressed == T])
+
+#extract lncRNA
+blood_lnc <- intersect(blood_expressed, lnc)
+blood_mrna <- intersect(blood_expressed, mrna)
+length(unique(blood_lnc)) #1892
+length(lnc)
+
+
+#genes expressed in WB bulk and sc-data 
+test_lnc<- intersect(unique(pbmc_lnc_id), unique(blood_lnc))
+bulk_tau_WB <- bulk_tau[rownames(bulk_tau) %in% test_lnc, c("gene_id", "tau")] %>% as.data.frame()
+colnames(bulk_tau_WB) <- c("gene_id", "tau_bulk") 
+scores_all <- merge(upsilon, bulk_tau, by="gene_id")
+dim(scores_all)
+cor.test(scores_all[, "upsilon"], scores_all[, "tau_bulk"], method = "spearman")
+ggplot(scores_all, aes(x=tau_bulk, y=upsilon)) + geom_point() + geom_smooth(method=lm) 
+
+
+#Tau_bulk vs upsilon 
+#upsilon classification vs Tau_bulk 
+scores_all$cell_spec <- ifelse(scores_all$upsilon > 0.7, "specific", ifelse(scores_all$upsilon < 0.3, "ubiquitous", "intermediate"))
+scores_all$cell_spec <- factor(scores_all$cell_spec, levels= c("ubiquitous", "intermediate","specific" ))
+
+pdf(file.path(plots,  "02/SPECIFICITY/TauBulk.pdf"))
+ggplot(scores_all, aes(x=cell_spec, y=tau_bulk, fill=cell_spec, color=cell_spec)) + geom_boxplot(outlier.shape = NA, alpha=0.7) + theme_spec + scale_fill_manual(values=palette_upsilon) + scale_color_manual(values=palette_upsilon) + xlab("") + ylab("tissue specificity (Tau)")+theme(legend.position = "none") + theme(panel.background = element_blank(), axis.line = element_line(linewidth = 0.1))
+dev.off()
+
+#protein coding
+df_pc <- readRDS(file.path(robjectsdir, "df_mrna.rds"))
+df_pc$gene_id <- as.character(df_pc$gene_id)
+pbmc_pc <- df_pc[df_pc$n_cells > 10, ]
+pbmc_pc_id <- gsub("-unknown", "", pbmc_pc$gene_id)
+pbmc_pc_names <- unique(mRNAs_ref_df[mRNAs_ref_df$gene_name %in% pbmc_pc_id,]$gene_id)
+
+length(unique(pbmc_pc_id))
+
+
+test_pc <- intersect(unique(pbmc_pc_names), unique(blood_mrna))
+length(test_pc)
+upsilon_pc <- upsilon[upsilon$gene_id %in% test_pc,] %>% as.data.frame()
+s_pc <- merge(upsilon_pc, bulk_tau, by="gene_id")
+cor.test(s_pc[, "upsilon"], s_pc[, "tau"])
+ggplot(s_pc, aes(x=tau, y=upsilon)) + geom_point() + geom_smooth(method=lm) 
+
+s_pc$cell_spec <- ifelse(s_pc$upsilon > 0.7, "specific", ifelse(s_pc$upsilon < 0.3, "ubiquitous", "intermediate"))
+s_pc$cell_spec <- factor(s_pc$cell_spec, levels= c("ubiquitous", "intermediate","specific" ))
+pdf(file.path("TauBulk_pc.pdf"))
+ggplot(s_pc, aes(x=cell_spec, y=tau, fill=cell_spec, color=cell_spec)) + geom_boxplot(outlier.shape = NA, alpha=0.7) + theme_spec + scale_fill_manual(values=palette_upsilon) + scale_color_manual(values=palette_upsilon) + xlab("") +ylab("tissue specificity (Tau)")+theme(legend.position = "none") + theme(panel.background = element_blank(), axis.line = element_line(linewidth = 0.2, color="black"), axis.text = element_text(color="black"))
+dev.off()
+
+s_pc$tis_spec <- ifelse(s_pc$tau > 0.7, " Tau >0.7", ifelse(s_pc$tau < 0.3, "tau < 0.3", "0.3-0.7"))
+ggplot(s_pc, aes(x=tis_spec, y=upsilon)) + geom_boxplot(outlier.shape = NA) + theme_matching
+
+
+
+```
+
+
+
+
+
+
+
+
+

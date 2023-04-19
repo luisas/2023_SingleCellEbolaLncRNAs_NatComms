@@ -1,0 +1,157 @@
+---
+title: "02b_Enrichment_Networks"
+output: html_document
+author: "Luisa Santus & Maria Sopena-Rios"
+date: "2022-10-17"
+---
+
+## 1. Imports 
+```{r include=FALSE}
+library(dplyr)
+library(ggsci)
+library(cowplot)
+library(Seurat)
+library(circlize)
+library(Matrix)
+library(stringr)
+library(rtracklayer)
+library(ggrepel)
+library(scales)
+#library(GENIE3)
+library(gplots)
+library(Rmisc)
+library (plyr)
+library(igraph)
+library(reshape2)
+library(org.Mmu.eg.db)
+library(enrichplot)
+library(clusterProfiler)
+library(networkD3)
+
+#source("../../utils/00_datapaths.R")
+#source("../../utils/02_sc_utils.R")
+#source("../../utils/04_utils_graph.R")
+source("functions.R")
+
+
+#datapaths
+datadir <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+datadir <- "/gpfs/projects/bsc83/Data/Ebola/"
+robjectsdir <- paste0(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/")
+
+# IN VIVO 
+immune.combined <- readRDS(file.path(datadir, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/03_immune.combined.ready.rds"))
+dim(immune.combined)
+
+# Load objects 
+ref <- import(file.path(file.path(datadir,"/01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf")))
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+
+#DE all 
+de_all_genes <- readRDS(paste0(robjectsdir, "/04_DE/allCells_DE_table.rds"))
+de_all_genes$gene_biotype <- gsub("novel_lnc", "lnc", de_all_genes$gene_biotype)
+de_all_genes <- de_all_genes[de_all_genes$fdr < 0.05 & abs(de_all_genes$logFC) > 0.1, ]
+de_lnc <- unique(de_all_genes[de_all_genes$gene_biotype == "lnc",]$gene_name)
+de_lnc <- gsub("-unknown", "", de_lnc)
+de_pc <- unique(de_all_genes[de_all_genes$gene_biotype == "pc",]$gene_name)
+de_all_genes_names <- de_all_genes$gene_name
+
+# DE per cell-type
+de_mono <- de_all_genes[de_all_genes$cell == "Monocyte",]
+dim(de_mono)
+de_lnc_mono <- gsub("-unknown", "",de_all_genes[de_all_genes$celltype == "Monocyte" & de_all_genes$gene_biotype == "lnc",]$gene_name)
+de_pc_mono <- gsub("-unknown", "",de_all_genes[de_all_genes$celltype == "Monocyte" & de_all_genes$gene_biotype == "pc",]$gene_name)
+
+# Load graph info 
+logfc <- 0.1
+gD2 <- readRDS(file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/gD2_newFilt_0.1.rds")))
+lou2 <- readRDS(file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/lou_newFilt_0.1.rds")))
+linkList <- readRDS(file.path(data_path, paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/linkList_NewFilt_0.1.rds")))
+```
+
+
+
+## 1. Prepare cell-type subset 
+```{r a}
+monocyte <- immune.combined[,Idents(immune.combined)=="Monocyte"]
+de_monocyte<- de_mono
+# Universe needed for enrichment analysis (expressed genes in monocytes)
+universe_myeloids <- unique(rownames(monocyte))
+
+de_genes<- readRDS(paste0(robjectsdir, "04_DE/allCells_DE_table.rds"))
+
+universe_myeloids <- unique(de_genes[de_genes$celltype == "Monocyte",]$gene_name)
+
+```
+
+## 2. Inspect comunities 
+
+```{r}
+df <- ldply ( groups(lou2), data.frame)
+colnames(df) <- c("Community", "gene_name")
+
+df$type <- ifelse(df$gene_name %in% mRNAs_ref_df$gene_name, "protein_coding", "lnc")
+
+immlist <- read.csv(file="/Users/mariasopenar/Downloads/InnateDB_genes.csv")
+immlist_genes <- immlist$name
+
+int <- intersect(immlist_genes, df$gene_name)
+
+df[df$gene_name %in% int, ]$gene_name
+```
+
+
+
+## 3. GO communities 
+```{r}
+community_check <- function(n, genes = F){ do_go_community(lou2$names[lou2$membership == n],universe_myeloids,n, de_lnc_mono, genes = genes) }
+
+# Leave commented the ones presenting no enrichment
+
+genes = T
+c1 <- community_check(1)[[2]]
+saveRDS(c1, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c1.rds")))
+
+dotplot(c1)
+c1_df <- c1@result[,c("ID", "p.adjust")]
+write.table(c1_df, sep = "\t", quote = F, row.names = F, file = file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrich_table_c1.txt")))
+
+#c2 <- community_check(2)
+c3 <- community_check(3)[[2]]
+saveRDS(c3, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c3.rds")))
+dotplot(c3)
+write.csv(c3@result, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c3.csv")))
+
+c3_df <- c3@result[,c("ID", "p.adjust")]
+c3_df <- c3_df[c3_df$p.adjust < 0.05, ]
+c3_df 
+write.table(c3_df, sep = "\t", quote = F, row.names = F, file = file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrich_table_c3.txt")))
+#c4 <- community_check(4)
+c5 <- community_check(5)[[2]]
+saveRDS(c5, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c5.rds")))
+write.csv2(c5@result, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c5.csv")))
+
+dotplot(c5)
+c5_df <- c5@result[,c("ID", "p.adjust")]
+c5_df <- c5_df[c5_df$p.adjust < 0.05, ]
+c5_df 
+write.table(c5_df, sep = "\t", quote = F, row.names = F, file = file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrich_table_c5.txt")))
+
+#c6 <- community_check(6)
+c7 <- community_check(7)[[2]]
+saveRDS(c7, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c7.rds")))
+write.csv(c7@result, file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrichment_c7.csv")))
+dotplot(c7)
+c7_df <- c7@result[,c("ID", "p.adjust")]
+c7_df <- c7_df[c7_df$p.adjust < 0.05, ]
+c7_df 
+write.table(c7_df, sep = "\t", quote = F, row.names = F, file = file.path(data_path,paste0("/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/09_graph/enrich_table_c7.txt")))
+
+#c8 <- community_check(8)
+
+
+```
+
+
+
+

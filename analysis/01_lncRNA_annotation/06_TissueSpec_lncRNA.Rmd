@@ -1,0 +1,362 @@
+---
+title: "06_TissuSpecificity"
+author: "Raquel García-Pérez & Maria Sopena-Rios"
+date: "11/10/2023"
+output: html_document
+---
+
+# Check tissue Specificity of novel lncRNA 
+
+## 1. Load Data
+```{r data}
+library(rtracklayer)
+library(readr)
+library(ggplot2)
+library(stringr)
+library(tispec)
+library(ggsignif)
+
+# Paths ----
+data_path <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+#setwd(path_to_data)
+
+# Reoccurring paths
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+dir_counts_ref <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/")
+
+# Macaque gene annotation files ----
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+lncRNAs_ref_df <- as.data.frame(lncRNAs_ref)
+head(lncRNAs_ref_df)
+nrow(lncRNAs_ref_df)
+mRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+mRNAs_ref_df <- as.data.frame(mRNAs_ref)
+head(mRNAs_ref_df)
+all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+all_df <- as.data.frame(all)
+
+# How many novel lncRNA we identify
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+all_novel_lnc_df <- as.data.frame(all_novel_lnc)
+head(all_novel_lnc_df)
+nrow(all_novel_lnc_df)
+unique(all_novel_lnc_df$type)
+nrow(all_novel_lnc_df[all_novel_lnc_df$type=="transcript",])
+
+# Orthologs file ----
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid.rds"))
+head(orthologs)
+nrow(orthologs)
+
+# Define palettes ----
+palette <- c("#f72631", "#fc6d70","#febcbd", "#3153a3","#6f73b4") 
+names(palette) <- c("macaque_novel", "macaque_annotated", "human_annotated","macaque_protein_coding", "human_protein_coding")
+palette_border <- c("#ff9933","#F9DF74", rep("black",4))
+palette_extensive <- c(rep(palette[1],2), palette[seq(2,length(palette))])
+palette_expression <- palette[c(1,2,4)]
+palette_expression_extensive <- palette_extensive[c(1,2,3,5)]
+palette_expression_border <- palette_border[c(1,2,3,5)]
+
+# gene expression (TPM) ----
+expression <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/expression_table.rds"))
+#expression_original <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/expression_table.rds"))
+identical(nrow(expression), length(unique(all_df$gene_id)))
+# 39,421 genes
+
+# Clear labels 
+colnames(expression) <- gsub(".gene_abundances.tsv", "", colnames(expression)) #unlist(lapply(colnames(expression), function(x) paste(str_split(x, "_")[[1]][1:3],collapse="_")))
+table(sapply(colnames(expression)[61:119], function(x) length(unlist(str_split(x, "_")))))
+colnames(expression) <- c(colnames(expression)[1:60],
+                          unlist(lapply(colnames(expression)[61:119], function(x) paste(str_split(x, "_")[[1]][1:3],collapse="_"))))
+sum(rownames(expression) %in% all_novel_lnc_df$gene_id)
+sum(rownames(expression) %in% lncRNAs_ref_df$gene_id)
+sum(rownames(expression) %in% mRNAs_ref_df$gene_id)
+# 3979+4769+21591 -> 30,330 lncRNA and protein-coding genes
+nrow(expression[rownames(expression) %in% all_novel_lnc_df$gene_id,])
+
+# number of samples in which novel lncRNA have TPM > 1.6 [log(TPM) > 0.5; exp(0.5) = 1.648721]
+table(apply(expression[rownames(expression) %in% all_novel_lnc_df$gene_id,], 1, function(x) sum(x>round(exp(0.5),1))))
+which(apply(expression[rownames(expression) %in% all_novel_lnc_df$gene_id,], 1, function(x) sum(x>round(exp(0.5),1)))==1)
+expression["MSTRG.173258",][expression["MSTRG.173258",]!=0]
+expression["MSTRG.212900",][expression["MSTRG.212900",]!=0]
+barplot(table(apply(expression[rownames(expression) %in% all_novel_lnc_df$gene_id,], 1, function(x) sum(x>round(exp(0.5),1)))), 
+        ylab = "Number of samples with TPM > 1.65", 
+        breaks = 108)
+#log(exp(0.5))
+
+# Sample metadata ----
+options(scipen=999)
+supplementary_table <- read_csv(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/supplementary_1.csv"))
+supplementary_table <- supplementary_table[,1:12]
+head(supplementary_table)
+tail(supplementary_table)
+
+```
+
+
+## Functions
+```{r}
+avExpression_spec <- function(gene, class){
+  if (class == "specific"){
+    exp_inf <- expression_data[gene, ]
+    tis_max_inf = colnames(exp_inf)[apply(exp_inf,1,which.max)]
+    tis_max <- str_split_fixed(tis_max_inf, "_", 2)[,1]
+    avExpr <- expression_data_onlytissue[gene, tis_max]
+    #avExpr <- expression_data[gene, tis_max_inf]
+  }else{
+    exp <- expression_data[gene, ]
+    tis_max_inf = names(exp[which(exp>0.1)])
+    tis_max <- unlist(str_split_fixed(tis_max_inf, "_", 2))[,1]
+    avExpr <- expression_data_onlytissue[gene, tis_max]
+    avExpr <- as.numeric(mean(as.numeric(avExpr)))
+    
+    
+  }
+  return(c(gene, avExpr))
+  
+}
+
+
+get_max_tissue_expr <- function(gene){
+  exp <- expression_data[gene, ]
+  tis_max = colnames(exp)[apply(exp,1,which.max)]
+  return(c(gene, tis_max))
+}
+
+```
+
+## 2. Clean and explore data
+
+```{r}
+# clean metadata
+supplementary_table$Sample[61:119] <- unlist(lapply(supplementary_table$Sample[61:119], function(x) paste(str_split(x, "_")[[1]][1:3],collapse="_") ))
+unique(supplementary_table$`Infection status/ Treatment`)
+supplementary_table$infection_short <- ifelse(!grepl("Not", supplementary_table$`Infection status/ Treatment`), "infected", "not infected")
+supplementary_table$tissue_short <- sapply(supplementary_table$Tissue, function(i) unlist(strsplit(i, split = "-"))[[1]])
+table(supplementary_table$infection_short, supplementary_table$`Infection status/ Treatment`)
+table(supplementary_table$infection_short, supplementary_table$Tissue)
+table(supplementary_table$infection_short, supplementary_table$tissue_short)
+rowSums(table(supplementary_table$infection_short, supplementary_table$tissue_short))
+sum(supplementary_table$Sample %in% colnames(expression))
+
+
+# average TPM per gene and tissue (regardless of infection status)
+mean_tpm <- lapply(unique(supplementary_table$tissue_short)[1:13], function(tissue) apply(expression[, colnames(expression) %in% tissue_samples[[tissue]]], 1, mean))
+names(mean_tpm) <- unique(supplementary_table$tissue_short)[1:13]
+mean_tpm[["SpinalCord"]] <- expression[,"Zyagen_SpinalCord_D000"]
+mean_tpm_df <- do.call(cbind.data.frame, mean_tpm) # average TPM per tissue
+# remove genes without expression in any tissue; expression threshold is average tissue TPM > 0.1
+expression_df <- mean_tpm_df[!apply(mean_tpm_df, 1, function(x) sum(x<=0.1))==ncol(mean_tpm_df),] # average tissue expression < 0.1 TPM in all tissues
+str(expression_df) # 33,003 genes
+sum(rownames(expression_df) %in% unique(all_novel_lnc_df$gene_id))
+sum(rownames(expression_df) %in% unique(lncRNAs_ref_df$gene_id))
+length(unique(all_novel_lnc_df$gene_id))
+length(unique(lncRNAs_ref_df$gene_id))
+saveRDS(mean_tpm, paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/tmp_tissues.rds"))
+
+
+# novel lncRNAs more expressed than annotated lncRNAs
+m <- matrix(c(sum(rownames(expression_df) %in% unique(all_novel_lnc_df$gene_id)),
+              length(unique(all_novel_lnc_df$gene_id))-sum(rownames(expression_df) %in% unique(all_novel_lnc_df$gene_id)),
+              sum(rownames(expression_df) %in% unique(lncRNAs_ref_df$gene_id)),
+              length(unique(lncRNAs_ref_df$gene_id)) - sum(rownames(expression_df) %in% unique(lncRNAs_ref_df$gene_id))),
+            2, 2, byrow = T)
+rownames(m) <- c("novel_lncRNA", "annotated_lncRNA")
+colnames(m) <- c(c("exprressed_in_at_least_one_tissue", "not_expressed"))
+fisher.test(m[c(2,1),])
+
+#add infection status information in metadata 
+head(supplementary_table)
+supplementary_table$tissue_status <- paste0(supplementary_table$tissue_short, "_", supplementary_table$infection_short)
+table(supplementary_table$tissue_status)
+tissue_samples_status <- sapply(unique(supplementary_table$tissue_status), function(i) supplementary_table[supplementary_table$tissue_status==i,"Sample"])
+names(tissue_samples_status) <- unique(supplementary_table$tissue_status)
+str(tissue_samples_status)
+tissue_samples_status <- tissue_samples_status[c(1:19,23,20,21,22,24)]
+
+# get expression data separating by infection stage and tissue----
+mean_tpm <- lapply(names(tissue_samples_status)[c(1:20)], function(i) apply(expression[, colnames(expression) %in% tissue_samples_status[[i]]], 1, mean))
+names(mean_tpm) <- names(tissue_samples_status)[1:20]
+str(mean_tpm)
+mean_tpm[["Ovary_not infected"]] <- expression[,tissue_samples_status[["Ovary_not infected"]]]
+mean_tpm[["Skin_not infected"]] <- expression[,tissue_samples_status[["Skin_not infected"]]]
+mean_tpm[["SpinalCord_not infected"]] <- expression[,tissue_samples_status[["SpinalCord_not infected"]]]
+mean_tpm[["Testis_not infected"]] <- expression[,tissue_samples_status[["Testis_not infected"]]]
+expression_data <- do.call(cbind.data.frame, mean_tpm)
+ncol(expression_data)
+
+saveRDS(expression_data, paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/02_expression_data_tissue_infection.rds"))
+
+```
+
+## 3. Tissue Specificity (TAU) (Figure 1F)
+```{r}
+#citation("tispec")
+tissue_samples <- sapply(unique(supplementary_table$tissue_short), function(tissue) supplementary_table[supplementary_table$tissue_short==tissue,"Sample"])
+names(tissue_samples) <- unique(supplementary_table$tissue_short)
+str(tissue_samples)
+
+# calculate tau values ---
+tau <- calcTau(quantNorm(expression_df))
+str(tau)
+head(tau)
+sum(is.na(tau$tau))
+plot(density(tau$tau))
+
+#add gene-type 
+tau$type <- sapply(rownames(tau), function(gene) ifelse(gene %in% all_novel_lnc_df$gene_id,
+                                                        "novel_lncRNA",
+                                                        ifelse(gene %in% lncRNAs_ref_df$gene_id,
+                                                               "annotated_lncRNA",
+                                                               ifelse(gene %in% mRNAs_ref_df$gene_id,
+                                                                      "protein-coding", 
+                                                                      ifelse(gene %in% all_df$gene_id,"other")))))
+#check genes match 
+identical(rownames(tau), rownames(expression_df))
+expression_df$type <- tau$type
+
+#saveRDS(tau, paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/06_bulk_specificity/01_bulk_tau.rds") )
+
+# Plot tau values lncRNAs vs mRNA (Figure 1F)
+ggplot(data = tau, aes(x = number_of_expressed_tissues, col = type, fill = type)) +
+  geom_bar() + 
+  facet_grid(type~., scales = "free") +
+  ylab("number of genes") +
+  scale_x_continuous(breaks = c(1:14)) +
+  scale_color_manual(values = c("#f72631", "#fc6d70", "#3153a3")) +
+  scale_fill_manual(values = c("#f72631", "#fc6d70", "#3153a3")) +
+  theme_classic() 
+```
+
+## 4. Expression across tissues (Figure S3A)
+```{r}
+library(reshape2)
+library(ggpubr)
+get_box_stats <- function(y, upper_limit = 4) {
+  return(data.frame(
+    y = upper_limit,
+    label = paste(
+      "n =", length(y)
+    )
+  ))
+}
+    
+d <- melt(expression_df)
+head(d)
+# only genes expressed in tissue
+d <- d[d$value > 0.1,]
+d$variable <- factor(d$variable)
+d <- d[d$type!="other",]
+d$y <- log10(d$value)
+d$type <- factor(d$type, levels = c("novel_lncRNA", "annotated_lncRNA", "protein-coding"), order = T)
+d$variable <- factor(d$variable)
+
+# expression novel vs annotated across tissues (Figure S3A) ---
+ggplot(d) +
+  geom_boxplot(aes(x=type, y = log10(value))) +
+  facet_grid(~variable)
+my_comparisons <- list( c("novel_lncRNA", "annotated_lncRNA"), c("novel_lncRNA", "protein-coding"), c("annotated_lncRNA", "protein-coding") )
+ggboxplot(d, x = "type", y = "y", col = "type", palette =  c("#f72631", "#fc6d70", "#3153a3"),
+          outlier.shape = NA) +
+  stat_compare_means(comparisons = my_comparisons,  label = "p.signif") +
+  facet_grid(~variable) +
+  ylab("log10 average tissue TPM") +
+  xlab('') + rremove("x.ticks") + rremove("x.text") +
+  stat_summary(fun.data = get_box_stats, geom = "text",
+               hjust = 0.5, vjust = 0.5, size = 2, angle = 90) 
+
+```
+
+## 5. Classify genes (Figure 1G)
+
+```{r}
+# 1. classify genes accordig to TAU ---
+# tau < 0.3 --> ubiquitous
+# tau =< 0.7 >= 0.3 --> intermediate
+# tau > 0.3 --> specific
+tau_short <- tau[,c(1, ncol(tau))]
+tau_short$classification <- ifelse(tau_short$tau > 0.8, "specific", ifelse(tau_short$tau < 0.3, "ubiquitous", "intermediate"))
+tau_short$classification <- factor(tau_short$classification, levels= c("ubiquitous", "intermediate", "specific"))
+
+#selct only lncRNA 
+tau_short<- tau_short[tau_short$type != "other",]
+tau_short$type <- factor(tau_short$type, levels = c("novel_lncRNA", "annotated_lncRNA", "protein-coding"))
+table(tau_short$classification)
+
+```
+
+
+# 6. Number of tissues a gene is expressed (Figure S3B) 
+
+```{r}
+# Compare number of tissues in which they are expressed (Figure S3B) ----
+table(tau$type)[c("annotated_lncRNA", "novel_lncRNA", "other", "protein-coding")]
+tau$number_of_expressed_tissues <- apply(expression_df[,1:14], 1, function(x) sum(x>0.1))
+head(tau)
+tau <- tau[tau$type != "other",]
+tau$type <- factor(tau$type, levels = c("novel_lncRNA", "annotated_lncRNA", "protein-coding"), order = T)
+
+ggplot(data = tau, aes(x = number_of_expressed_tissues, col = type, fill = type)) +
+  geom_bar() + 
+  facet_grid(type~., scales = "free") +
+  ylab("number of genes") +
+  scale_x_continuous(breaks = c(1:14)) +
+  scale_color_manual(values = c("#f72631", "#fc6d70", "#3153a3")) +
+  scale_fill_manual(values = c("#f72631", "#fc6d70", "#3153a3")) +
+  theme_classic() 
+
+```
+
+## 7. Get expression per tissue-specificy type (Figure 1H)
+
+```{r}
+exp_all = lapply(rownames(tau_short), function(gene) avExpression_spec(gene, ifelse(gene %in% spec_genes, "specific", "not-specific")))
+exp_all_df = do.call(rbind.data.frame, exp_all)
+#colnames(exp_all_df) = c("gene", "Tissue","expression")
+colnames(exp_all_df) = c("gene","expression")
+exp_all_df$expression <- as.numeric(exp_all_df$expression )
+exp_all_df$tau <- tau_short$tau
+exp_all_df$type <- "protein\ncoding"
+exp_all_df[exp_all_df$gene %in% novel_lnc,]$type <- "novel\nlncRNA"
+exp_all_df[exp_all_df$gene %in% annotated_lnc,]$type <- "annotated\nlncRNA"
+exp_all_df$type <- factor(exp_all_df$type, levels=c("novel\nlncRNA", "annotated\nlncRNA", "protein\ncoding"))
+exp_all_df$class <- ifelse(exp_all_df$tau > 0.7, "tissue-specific", ifelse(exp_all_df$tau < 0.3,"ubiquitous", "intermediate"))
+exp_all_df$class <- factor(exp_all_df$class,levels = c("tissue-specific", "intermediate", "ubiquitous") )
+
+
+ggplot(exp_all_df, aes(x=type, y=log10(expression), fill=type)) + geom_boxplot(outlier.shape = NA)  + facet_grid(~class)+ scale_fill_manual(values=palette[c(1,2,4)])  +theme_classic() + xlab("")+ylab("Maximum expression (log10(TPM))")+
+  theme_spec + theme(strip.text.x = element_text(size = 15), strip.background = element_blank()) +theme_spec + theme(strip.text.x = element_text(size = 15), strip.background = element_blank()) +
+  geom_signif(comparisons = list(c("novel\nlncRNA", "annotated\nlncRNA")), map_signif_level = TRUE)
+
+```
+
+
+# 8. Numbers of tissue-specific novel and annotated genes (Figure S3C)
+
+```{r}
+#get the tissue for which a gene has its higher expression 
+max_expr = lapply(rownames(tau_short), function(gene) get_max_tissue_expr(gene))
+max_expr_df = do.call(rbind.data.frame, max_expr)
+colnames(max_expr_df) = c("gene", "Tissue")
+max_expr_df$tau <- tau_short$tau
+max_expr_df$type <- "protein-coding"
+max_expr_df[max_expr_df$gene %in% novel_lnc,]$type <- "novel_lnc"
+max_expr_df[max_expr_df$gene %in% annotated_lnc,]$type <- "annotated_lnc"
+max_expr_df$Tis_simpl <- unlist(str_split_fixed(max_expr_df$Tissue, "_", 2))[,1]
+max_expr_df$class <- ifelse(max_expr_df$tau > 0.8, "specific", ifelse(tau_short$tau < 0.3, "ubiquitous", "intermediate"))
+
+#Novel tissue-specific
+ggplot(max_expr_df[max_expr_df$type%in% c("novel_lnc") & max_expr_df$class%in% c("specific") ,], aes(x=Tis_simpl, fill=type)) + geom_bar(stat="count", position = "stack")+ theme(axis.text.x = element_text(angle = 90)) +theme_spec + xlab("") + ylab("Number of lncRNA")+scale_fill_manual(values=palette[1])+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), strip.background = element_rect(fill= F, linewidth = 0.1), strip.text = element_text(size = 14), legend.position = "none")+ggtitle("novel")
+
+#Annotated tissue-specific
+ggplot(max_expr_df[max_expr_df$type%in% c("annotated_lnc") & max_expr_df$class%in% c("specific"),], aes(x=Tis_simpl, fill=type)) + geom_bar(stat="count", position = "stack")+ theme(axis.text.x = element_text(angle = 90)) +theme_spec + xlab("") + ylab("Number of lncRNA")+scale_fill_manual(values=palette[2])+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), strip.background = element_rect(fill= F, linewidth = 0.1), strip.text = element_text(size = 14), legend.position = "none")+ggtitle("annotated")
+
+```
+
+
+
+

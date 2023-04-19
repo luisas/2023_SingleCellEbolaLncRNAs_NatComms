@@ -1,0 +1,334 @@
+---
+title: "CellSpec_GenomicFeatures"
+output: html_document
+date: "2022-11-10"
+author: "Maria Sopena-Rios"
+---
+
+
+# Check genomic features for cell-type specific genes
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer); library(readr) ; library(ggplot2); library(stringr); library(tispec) ; library(TissueEnrich); library(RColorBrewer); library(dplyr); library(ggsignif)
+```
+
+## 00. Load data 
+
+```{r data }
+# Paths ----
+laptop <- "work"
+if (laptop == "work"){
+  data_path <- "/home/mariasr/cluster/data/"
+}else{
+data_path <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+}
+
+plots_spec <- paste0(data_path, "plots_new/bulk_spec/")
+plots_upsilon <- paste0(data_path, "plots_new/upsilon/")
+#setwd(path_to_data)
+
+# Reoccurring paths
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+dir_counts_ref <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/04_quantification/")
+robjectsdir <- paste0(data_path, "/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/")
+
+# Define palettes ----
+palette_spec<- brewer.pal(5, "Greys")
+names(palette_spec) <- c("Tissue-Enriched", "Tissue-Enhanced","Group-Enriched", "Mixed", "Expressed-In-All")
+palette_upsilon <-  c("ubiquitous"= alpha("#5F9EA0", 0.7),"intermediate"=alpha("blue", 0.7), "specific"=alpha("#9F2B68", 0.7))
+
+#Themes ---
+ theme_spec <- theme(legend.position = "top", legend.title = element_blank(), axis.text = element_text(size=11))+theme(panel.background = element_rect(fill = "white", colour = "white"),)+theme(panel.background = element_rect(fill = "white", colour = "grey50"), axis.line = element_blank(), axis.title.y = element_text(size=12))
+
+# Macaque gene annotation files ----
+lncRNAs_ref <- import(file.path(datadir, "/01_PreliminaryFiles_rheMac10/gene_annotations/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+lncRNAs_ref_df <- as.data.frame(lncRNAs_ref)
+head(lncRNAs_ref_df)
+mRNAs_ref <- import(file.path(datadir, "/01_PreliminaryFiles_rheMac10/gene_annotations/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+mRNAs_ref_df <- as.data.frame(mRNAs_ref)
+head(mRNAs_ref_df)
+all <- import(file.path(datadir,"/01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV_and_novel_genenames.gtf"))
+all_df <- as.data.frame(all)
+# Extract novel lncRNA
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+all_novel_lnc_df <- as.data.frame(all_novel_lnc)
+head(all_novel_lnc_df)
+nrow(all_novel_lnc_df)
+unique(all_novel_lnc_df$type)
+
+#Get list of pc and mRNA 
+lnc <- c(lncRNAs_ref$gene_id, all_novel_lnc)
+lnc <- unique(lnc)
+mrna <- mRNAs_ref$gene_id
+mrna <- unique(mrna)
+
+# Orthologs file ----
+orthologs <- readRDS(file.path(data_path, "/01_bulk_RNA-Seq_lncRNAs_annotation/05_orthologs/orthologs_geneid_ready.rds"))
+head(orthologs)
+nrow(orthologs)
+
+marker.genes <- readRDS(file.path(data_path, "02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/03_prep/marker.genes.rds"))
+marker.genes_id <- unique(all_df[all_df$gene_name %in% marker.genes,]$gene_id)
+housekeeping_genes <- c("RRN18S", "RPLP0", "GAPDH", "ACTB", "PGK1", "RPL13A", "ARBP", "B2M", "YWHAZ", "SDHA", "TFRC", "GUSB", "HMBS", "HPRT1", "TBP")
+housekeeping_genes_id <- unique(all_df[all_df$gene_name %in% housekeeping_genes,]$gene_id)
+
+```
+
+
+```{r specificity scores }
+# Load specificity scores 
+specificity_scores <- readRDS(file.path(data_path,"/02_scRNA-Seq_PBMCs/01_scRNA-Seq_inVivo_rhemac10/05_RObjects/05_stats/00_specificity/04_specificity_alternativescore.rds"))
+specificity_scores$ortholog <- unlist(lapply(specificity_scores$gene_id, function(gene) get_orthologname_(gene)))
+s_score <- specificity_scores
+s_score$classification <- ifelse(s_score$upsilon > 0.7, "specific", ifelse(s_score$upsilon < 0.3, "ubiquitous", "intermediate"))
+s_score <- s_score[!is.na(s_score),]
+
+#get the specific genes 
+all_spec <- all[all$gene_name %in% s_score[s_score$classification == "specific",]$gene_name,]
+all_spec[startsWith(prefix = "MSTR", x = all_spec$gene_id),]$gene_biotype <- "lncRNA"
+all_spec <- all_spec[!is.na(all_spec$gene_biotype),]
+lnc_spec <- all_spec[all_spec$gene_biotype == "lncRNA", ]
+pc_spec <- all_spec[all_spec$gene_biotype == "protein_coding", ]
+
+# get the ubiquitous genes 
+all_ubi <- all[all$gene_name %in% s_score[s_score$classification == "ubiquitous",]$gene_name,]
+all_ubi[startsWith(prefix = "MSTR", x = all_ubi$gene_id),]$gene_biotype <- "lncRNA"
+all_ubi <- all_ubi[!is.na(all_ubi$gene_biotype),]
+lnc_ubi <- all_ubi[all_ubi$gene_biotype == "lncRNA", ]
+pc_ubi <- all_ubi[all_ubi$gene_biotype == "protein_coding", ]
+
+# get the intermediate genes 
+all_int <- all[all$gene_name %in% s_score[s_score$classification == "intermediate",]$gene_name,]
+all_int[startsWith(prefix = "MSTR", x = all_int$gene_id),]$gene_biotype <- "lncRNA"
+all_int <- all_int[!is.na(all_int$gene_biotype),]
+lnc_int <- all_int[all_int$gene_biotype == "lncRNA", ]
+pc_int <- all_int[all_int$gene_biotype == "protein_coding", ]
+
+```
+
+
+## Exon lentgh (Figure S6C) ---
+
+```{r}
+
+levels <- c("Cell-specific lncRNA", "Cell-specific mRNA", "Ubiquitous lncRNA", "Ubiquitous mRNA")
+get_only_max_transcript <- function(gr){
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+  if (nrow(gene_with_multiple_isoforms) == 0) {
+    return(gr)
+  }else{
+     collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
+  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
+  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
+  return(gr)
+  }
+ 
+}
+
+
+calc_exon_length <- function(gr, classification){
+  gr <- gr[gr$type =="exon",]
+  #gr <- get_only_max_transcript(gr)
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "exon_number" = gr$exon_number, "range_width" = width(ranges(gr)), "type"=gr$gene_biotype )
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, exon_number, type) %>% dplyr::summarize("range" = sum(range_width))
+  collapsed["classification"] <- classification
+  
+  return(collapsed)
+}
+
+df <- data.frame()
+df <- rbind(df,data.frame(calc_exon_length(all_spec, "specific")))
+df <- rbind(df,data.frame(calc_exon_length(all_ubi, "ubiquitous")))
+df <- rbind(df,data.frame(calc_exon_length(all_int, "intermediate")))
+#df[df$gene_id %in% marker.genes_id,]$classification <- "marker\ngenes"
+#df[df$gene_id %in% housekeeping_genes_id,]$classification <- "housekeeping\ngenes"
+df$classification <- factor(df$classification, levels = c("ubiquitous", "intermediate", "specific"))
+#df$classification <- factor(df$classification, levels = c("ubiquitous", "intermediate", "specific", "housekeeping\ngenes", "marker\ngenes"))
+
+#xlab <- paste0(levels(df$classification), "\nn=", table(df$classification))
+
+
+#df$classification <- factor(df$classification, levels = c("ubiquitous", "intermediate", "specific", "marker\ngenes", "housekeeping\ngenes"))
+
+pdf(file.path(plots_upsilon,  "/Upsilon_ExonLenght_nosignif.pdf"), width = 8.40, height = 6.65)
+ylab <- seq(0,1001,300)
+ggplot(df, aes(x = classification,  y = range, fill=classification )) + geom_boxplot(outlier.shape=NA, na.rm = TRUE) + theme_classic()+ ylab("Exon length (log10)") +xlab("")+ theme_spec+ facet_wrap(~type, scales = "free_x") + scale_y_log10() + scale_fill_manual( values = palette_upsilon) + theme(strip.text = element_text(size = 13), strip.background = element_blank(), axis.text.x = element_text(size=11)) +  geom_signif(comparisons = list(c("specific", "ubiquitous")), map_signif_level = TRUE) +  geom_signif(comparisons = list(c("specific", "intermediate")), map_signif_level = TRUE)  #+ scale_x_discrete(labels= xlab)
+dev.off()
+
++ geom_signif(comparisons = list(c("specific", "ubiquitous")), map_signif_level = TRUE, y_position = c(500,550)) +  geom_signif(comparisons = list(c("specific", "intermediate")), map_signif_level = TRUE, y_position = c(400,450)) + #geom_signif(comparisons = list(c("intermediate", "ubiquitous")), map_signif_level = TRUE, y_position = c(550,600))
+
+df_pc <- df[df$type == "protein_coding",]
+wilcox.test(df_pc[df_pc$classification == "ubiquitous", "range"], df_pc[df_pc$classification == "specific", "range"], alternative = "greater" )
+wilcox.test(df_pc[df_pc$classification == "intermediate", "range"], df_pc[df_pc$classification == "specific", "range"],  alternative = "greater")
+
+df_lnc <- df[df$type == "lncRNA",]
+wilcox.test(df_lnc[df_lnc$classification == "ubiquitous", "range"], df_lnc[df_lnc$classification == "specific", "range"], alternative = "greater")
+wilcox.test(df_lnc[df_lnc$classification == "intermediate", "range"], df_lnc[df_lnc$classification == "specific", "range"], alternative = "greater")
+wilcox.test(df_lnc[df_lnc$classification == "ubiquitous", "range"], df_lnc[df_lnc$classification == "intermediate", "range"], alternative = "two.sided")
+
+
+wilcox.test(df_pc[df_pc$classification == "ubiquitous" | df_pc$classification == "housekeeping\ngenes", "range"], df_pc[df_pc$classification == "specific" | df_pc$classification == "marker\ngenes", "range"])
+
+wilcox.test(df_pc[df_pc$classification == "housekeeping\ngenes", "range"], df_pc[df_pc$classification == "marker\ngenes", "range"])
+
+```
+
+## Transcript length (Figure S6D)
+
+```{r}
+calc_transcript_length <- function(gr, classification){
+  gr <- gr[gr$type =="exon",]
+  gr <- get_only_max_transcript(gr)
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)), "type"=gr$gene_biotype)
+  collapsed <- df%>% dplyr::group_by(gene_id,transcript_id, type) %>% dplyr::summarize("range" = sum(range_width))
+  collapsed["classification"] <- classification
+  collapsed$gene_id <- as.character(collapsed$gene_id)
+  collapsed$transcript_id <- as.character(collapsed$transcript_id)
+  return(collapsed)
+}
+
+df <- data.frame()
+df <- rbind(df,data.frame(calc_transcript_length(all_spec, "specific")))
+df <- rbind(df,data.frame(calc_transcript_length(all_ubi, "ubiquitous")))
+df <- rbind(df,data.frame(calc_transcript_length(all_int, "intermediate")))
+#df[df$gene_id %in% housekeeping_genes_id,]$classification <- "housekeeping\ngenes"
+#df[df$gene_id %in% marker.genes_id,]$classification <- "marker\ngenes"
+df$classification <- factor(df$classification, levels = c("ubiquitous", "intermediate", "specific"))
+#df$classification <- factor(df$classification, levels = c("ubiquitous", "intermediate", "specific", "housekeeping\ngenes", "marker\ngenes"))
+
+xlab <- paste0(levels(df$classification), "\n(n=", table(df$classification), ")")
+
+
+pdf(file.path(plots_upsilon,  "/Upsilon_TranscriptLenght.pdf"), width = 8.40, height = 6.65)
+  ylab <- seq(0,40,2)
+ggplot(df, aes(x = classification,  y = range, fill=classification )) + geom_boxplot(outlier.shape=NA, na.rm = TRUE) + theme_classic()+ ylab("Transcript length (log10)") +xlab("")+ theme_spec+ facet_wrap(~type, scales = "free_x") + scale_y_log10() + scale_fill_manual( values = palette_upsilon) + theme(strip.text = element_text(size = 13), strip.background = element_blank(), axis.text.x = element_text(size=11))+ geom_signif(comparisons = list(c("specific", "ubiquitous")), map_signif_level = TRUE) +  geom_signif(comparisons = list(c("specific", "intermediate")), map_signif_level = TRUE) #+ scale_x_discrete(labels= xlab)
+#+ scale_fill_manual( values = c(alpha("white", 1),palette_upsilon, alpha("black", 1))) + scale_y_continuous(limits = c(0,40000),breaks = 10^3 * ylab, expand = c(0,0)) +  theme(strip.text = element_text(size = 13), strip.background = element_blank()) 
+dev.off()
+
+df_pc <- df[df$type == "protein_coding",]
+wilcox.test(df_pc[df_pc$classification == "ubiquitous", "range"], df_pc[df_pc$classification == "specific", "range"])
+wilcox.test(df_pc[df_pc$classification == "intermediate", "range"], df_pc[df_pc$classification == "specific", "range"])
+
+df_lnc <- df[df$type == "lncRNA",]
+wilcox.test(df_lnc[df_lnc$classification == "ubiquitous", "range"], df_lnc[df_lnc$classification == "specific", "range"])
+wilcox.test(df_lnc[df_lnc$classification == "intermediate", "range"], df_lnc[df_lnc$classification == "specific", "range"])
+
+```
+
+## Number of exons per gene (Figure S6E)
+
+```{r}
+
+get_n_exons <- function(gr){
+  df <- data.frame("gene_id" = gr$gene_id,"exon_number" = as.numeric(gr$exon_number))
+  number_exons <- df %>% dplyr::group_by(gene_id) %>%dplyr::summarize(max_exon = max(exon_number))
+  return(number_exons)
+}
+
+
+barplot_exon_count <- function(gr, type, col, border_color, border=NA, size= 0){
+  ## extract the number of exons
+  gr <- gr[gr$type =="exon",]
+  gr <- get_only_max_transcript(gr)
+  df_l <- data.frame(get_nr_exons(gr))
+  df_l$type <- type
+  
+  h <- ggplot(df_l, aes(x=max_exon, fill=type, col = type)) + 
+    geom_histogram(position="identity", binwidth =1)+xlim(1,15)
+  
+  h_plotdata <- ggplot_build(h)$data[[1]]
+  h_plotdata$group <- as.factor(h_plotdata$group)
+  levels(h_plotdata$group) <- c(type)
+  sizes <- c(rep(1.5,2),rep(0.5,4))
+  ## plot with geom_bar
+  p1 <-ggplot(h_plotdata, aes(x=x, y=y, fill = group, size = group)) +
+    geom_bar(stat = "identity", width = 0.8) +
+    theme(legend.title=element_blank())+
+    labs(y = "", x = "")+
+    theme(legend.title=element_blank())+ theme(legend.position = "none")+
+    scale_x_continuous( labels = as.character(h_plotdata$x), breaks = (h_plotdata$x)) + 
+    theme(plot.title = element_text(hjust = 0.5), axis.text = element_text(size =10))+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+    scale_fill_manual(values=alpha(c(col), 0.5))+scale_y_continuous(expand = c(0,1),breaks = c(max(h_plotdata$y)))+
+    scale_size_manual(values = c(size))+
+    theme(panel.grid.major = element_blank(), axis.text = element_text(colour = "black", size = 8),
+          panel.grid.minor = element_blank(),
+          axis.line = element_line(colour = "black", linewidth = 0.1), axis.ticks = element_line(colour = "black", linewidth = 0.1),
+          axis.line.y = element_line())+theme(axis.ticks.length=unit(.2, "cm"))
+
+  return(p1)
+}
+
+
+#lncRNA 
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_lnc_Specific.pdf"), width = 3.20, height = 1.04)
+ p1 <- barplot_exon_count(lnc_ubi, "specific", palette_upsilon[3],palette_upsilon[3])+
+                    theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank(), text  =element_text(size = 10))
+dev.off()
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_lnc_Intermidiate.pdf"), width = 3.20, height = 1.04)
+
+p2 <- barplot_exon_count(lnc_int, "intermediate", palette_upsilon[2],palette_upsilon[3])+
+                    theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank(), text  =element_text(size = 10))
+dev.off()
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_lnc_Ubi.pdf"), width = 3.20, height = 1.04)
+p3 <- barplot_exon_count(lnc_spec, "ubiquitous", palette_upsilon[1],palette_upsilon[3])
+dev.off()
+
+
+ggpubr::ggarrange(p1, p2, p3, ncol=1)  
+
+#protein_coding 
+
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_pc_Specific.pdf"), width = 3.20, height = 1.04)
+ p4 <- barplot_exon_count(pc_ubi, "specific", palette_upsilon[3],palette_upsilon[3])+
+                    theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank(), text  =element_text(size = 10))
+dev.off()
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_pc_Intermidiate.pdf"), width = 3.20, height = 1.04)
+
+p5 <- barplot_exon_count(pc_int, "intermediate", palette_upsilon[2],palette_upsilon[3])+
+                    theme(axis.ticks.x = element_blank(),
+                          axis.text.x = element_blank(),
+                          axis.line.x = element_blank(), text  =element_text(size = 10))
+dev.off()
+pdf(file.path(plots_upsilon,  "/Upsilon_NExons_pc_Ubi.pdf"), width = 3.20, height = 1.04)
+p6 <- barplot_exon_count(pc_spec, "ubiquitous", palette_upsilon[1],palette_upsilon[3])
+dev.off()
+
+
+g1 <-ggpubr::ggarrange(p1, p2, p3, ncol=1)  
+g2 <-ggpubr::ggarrange(p4, p5, p6, ncol=1)  
+
+plot <- ggpubr::ggarrange(g1, g2, ncol = 2)
+
+#wilcoxon
+
+get_pval_nexons <- function(df1, df2){
+  gr1 <- df1[df1$type =="exon",]
+  gr1 <- get_only_max_transcript(gr1)
+  gr1 <- data.frame(get_nr_exons(gr1))
+  
+  gr2 <- df2[df2$type =="exon",]
+  gr2 <- get_only_max_transcript(gr2)
+  gr2 <- data.frame(get_nr_exons(gr2))
+  wc <- wilcox.test(gr2$max_exon, gr1$max_exon)
+  return(wc)}
+
+get_pval_nexons(lnc_ubi, lnc_spec)
+get_pval_nexons(lnc_int, lnc_spec)
+get_pval_nexons(lnc_int, lnc_ubi)
+get_pval_nexons(pc_ubi, pc_spec)
+get_pval_nexons(pc_int, pc_spec)
+get_pval_nexons(pc_ubi, pc_int)
+
+```
+

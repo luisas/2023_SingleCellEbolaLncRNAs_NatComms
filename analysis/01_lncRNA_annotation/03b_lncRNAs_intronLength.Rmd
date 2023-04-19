@@ -1,0 +1,211 @@
+---
+title: "03b_lncRNA_intronLength"
+author: "Maria Sopena-Rios"
+date: "10/29/2023"
+output: html_document
+---
+
+# Intron legth differences between lncRNA and mRNA 
+## This feature is investigated for novel lncRNAs compared to human and macaque annotate lncRNAs and mRNAs
+
+
+## Import data 
+```{r data}
+library(GenomicFeatures); library(rtracklayer); library(dplyr)
+
+#Get intron length 
+
+#paths 
+laptop <- "work"
+if (laptop == "work"){
+  data_path <- "/home/mariasr/cluster/data/"
+}else{
+  data_path <- "/Users/mariasopenar/cluster/02.ebola_sc/data/"
+}
+
+plots_spec <- paste0(data_path, "plots_new/bulk_spec/")
+plots_upsilon <- paste0(data_path, "plots_new/upsilon/")
+#setwd(path_to_data)
+
+# Reoccurring paths
+datadir <- file.path(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/")
+
+#load annotations in different formats 
+
+## Macaque 
+#annot_granges <-  import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/rheMac10_EBOV_and_novel_genenames.gtf"))
+#we will only use the longest transcript per gene 
+all <- import(file.path(data_path,"01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/rheMac10_EBOV_and_novel_genenames.gtf"))
+annot_max_trancript <- get_only_max_transcript(all) 
+annot_max_trancript[startsWith(annot_max_trancript$gene_id, "MSTRG"),]$gene_biotype <- "novel_lncRNA"
+annot_max_trancript <- annot_max_trancript[annot_max_trancript$gene_biotype %in% c("lncRNA", "protein_coding", "novel_lncRNA"), ]
+annot_txdb <- makeTxDbFromGRanges(annot_max_trancript)
+anot_df <- annot_max_trancript %>% as.data.frame()
+unique(anot_df$gene_biotype)
+
+#load annotation for lncRNA and PC ###
+#pc ---
+mRNAs_ref <- import(file.path(datadir, "/01_PreliminaryFiles_rheMac10/gene_annotations/Macaca_mulatta.Mmul_10.100_known_proteincoding.gtf"))
+mRNAs_ref <- mRNAs_ref[!is.na(mRNAs_ref$gene_biotype)]
+mRNAs_ref <- mRNAs_ref[mRNAs_ref$gene_biotype == "protein_coding"]
+mRNAs_ref_df <- as.data.frame(mRNAs_ref)
+mrna_txdb <- makeTxDbFromGRanges(mRNAs_ref)
+
+
+#lnc annotated ---
+lncRNAs_ref <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/Macaca_mulatta.Mmul_10.100_known_lncrna.gtf"))
+lncRNAs_ref_df <- as.data.frame(lncRNAs_ref)
+lncrna_txdb <- makeTxDbFromGRanges(lncRNAs_ref)
+
+head(lncRNAs_ref_df)
+
+#lnc novel ---
+all_novel_lnc <- all[substr(all$gene_id,1,4) %in% c( "MSTR"),]
+all_novel_lnc_df <- as.data.frame(all_novel_lnc)
+lncrna_novel_txdb <- makeTxDbFromGRanges(all_novel_lnc)
+
+head(all_novel_lnc_df)
+
+## Human 
+lncRNAs_ref_human <- import(file.path(datadir, "/01_PreliminaryFiles_rheMac10/gene_annotations/Homo_sapiens.GRCh38.100_known_lncrna.gtf"))
+lncRNAs_ref_human_max <- get_only_max_transcript(lncRNAs_ref_human)
+lncRNAs_ref_human_max_txdb <- makeTxDbFromGRanges(lncRNAs_ref_human_max)
+
+mrna_ref_human <- import(file.path(datadir, "01_PreliminaryFiles_rheMac10/gene_annotations/Homo_sapiens.GRCh38.100_known_proteincoding.gtf"))
+mrna_ref_human_max <- get_only_max_transcript(mrna_ref_human)
+mrna_ref_human_max_txdb <- makeTxDbFromGRanges(mrna_ref_human_max)
+mrna_ref_human_df <- mrna_ref_human %>% as.data.frame()
+human_annot_df <- rbind(as.data.frame(lncRNAs_ref_human), mrna_ref_human_df[, ! colnames(mrna_ref_human_df) %in% c("protein_id", "protein_version", "ccds_id")])
+
+```
+
+## Fuctions
+
+```{r function, echo=FALSE}
+#functions ##
+get_only_max_transcript <- function(gr){
+  df <- data.frame("gene_id" = gr$gene_id,"transcript_id" = gr$transcript_id, "range_width" = width(ranges(gr)))
+  gene_with_multiple_isoforms <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number > 1)
+  collapsed <-df %>% dplyr::group_by(gene_id,transcript_id) %>% dplyr::summarize("range" = sum(range_width)) %>% dplyr::group_by(gene_id) %>% dplyr::slice(which.max(range))
+  gene_with_one_isoform <-df[!duplicated(df$transcript_id),] %>% dplyr::group_by(gene_id) %>% dplyr::summarize(number=dplyr::n()) %>% dplyr::filter(number == 1) 
+  gr <- gr[gr$transcript_id %in% collapsed$transcript_id ,]
+  return(gr)
+}
+
+```
+
+
+## Prepare data
+
+```{r}
+#Prepare data for macaque 
+#extract introns using the function intronsByTrancipts --
+#introns <- intronsByTranscript(annot_txdb, use.names=TRUE) %>% as.data.frame()
+introns_mrna <- intronsByTranscript(mrna_txdb, use.names=TRUE) %>% as.data.frame()
+introns_lnc <- intronsByTranscript(lnc, use.names=TRUE) %>% as.data.frame()
+introns_lnc_novel <-  intronsByTranscript(lncrna_novel_txdb, use.names=TRUE) %>% as.data.frame()
+
+
+#Obtain a df with correpondance gene-transcript 
+gene_transcript <- anot_df[!duplicated(anot_df$transcript_id),]
+gene_transcript <- gene_transcript[!is.na(gene_transcript$transcript_id),]
+gene_transcript <- gene_transcript[, c("gene_id", "transcript_id", "gene_biotype")]
+
+#add gene name and biotype in the introns file 
+introns$gene <-unlist(lapply(introns$group_name, function(name) gene_transcript[gene_transcript$transcript_id == name, "gene_id"] ))
+#add gene biotype 
+introns$type <- unlist(lapply(introns$group_name, function(name) gene_transcript[gene_transcript$transcript_id == name, "gene_biotype"] ))
+introns$type <- gsub("lncRNA", "annotated_lncRNA", introns$type)
+introns$spec <- "macaque"
+
+#saveRDS(introns, paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_macaque.rds"))
+
+#prepare data for human 
+introns_h <- intronsByTranscript(mrna_ref_human_max_txdb, use.names=TRUE) %>% as.data.frame()
+introns_h_lnc <- intronsByTranscript(lncRNAs_ref_human_max_txdb, use.names=TRUE) %>% as.data.frame()
+
+#Obtain a df with correpondance gene-transcript 
+gene_transcript_h <- human_annot_df[!duplicated(human_annot_df$transcript_id),]
+gene_transcript_h <- gene_transcript_h[!is.na(gene_transcript_h$transcript_id),]
+gene_transcript_h <- gene_transcript_h[, c("gene_id", "transcript_id", "gene_biotype")]
+
+#add gene name and biotype in the introns file 
+introns_h$gene <-unlist(lapply(introns_h$group_name, function(name) gene_transcript_h[gene_transcript_h$transcript_id == name, "gene_id"] ))
+#add gene biotype 
+introns_h$type <- unlist(lapply(introns_h$group_name, function(name) gene_transcript_h[gene_transcript_h$transcript_id == name, "gene_biotype"] ))
+unique(introns_h$type)
+introns_h <- introns_h[!is.na(introns_h$type), ]
+introns_h$spec <- "human"
+
+introns_h_lnc$gene <-unlist(lapply(introns_h_lnc$group_name, function(name) gene_transcript_h[gene_transcript_h$transcript_id == name, "gene_id"] ))
+introns_h_lnc$type <- "lncRNA"
+introns_h_lnc$spec <- "human"
+introns_human <- rbind(introns_h_lnc, introns_h)
+
+#saveRDS(introns_human, paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_human.rds"))
+
+```
+
+## Plot results
+
+```{r}
+introns <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_macaque.rds"))
+introns_human <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_human.rds"))
+
+all_introns <- rbind(introns, introns_human)
+all_introns$classification <- paste0(all_introns$spec, "\n", all_introns$type)
+all_introns$classification <- gsub("_lncRNA", "", all_introns$classification)
+all_introns$classification <- gsub("protein_coding", "", all_introns$classification)
+
+all_introns$classification <- factor(all_introns$classification, levels = c("macaque\nnovel", "macaque\nannotated", "human\nlncRNA", "macaque\n", "human\n"))
+xlabs <- paste(levels(all_introns$classification),"\nn=",table(all_introns$classification),sep="")
+
+#pal <- palette[c(1,2,4)]
+ggplot(all_introns, aes(x = classification,  y = width, fill=classification ))+ geom_boxplot(outlier.shape=NA, fill = alpha(palette, 1),color = "black", na.rm = TRUE) +
+theme(axis.text.y = element_text(size = 14, color = "black"), axis.title = element_text(size = 15), axis.text.x = element_text(size=12, color = "black"))+ylab("intron length (log10)")+
+  theme(panel.background = element_rect(fill = "white"))+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.line.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank(), 
+        axis.line.y = element_line()) + scale_y_log10()+ scale_x_discrete(labels=xlabs)
+
+  #+ theme(strip.text = element_text(size = 13), strip.background = element_blank()) 
+
+wilcox.test(introns[all_introns$type == "novel_lncRNA",]$width, introns[introns$type == "protein_coding",]$width)
+wilcox.test(introns[all_introns$type == "novel_lncRNA",]$width, introns[introns$type == "annotated_lncRNA",]$width)
+
+
+
+# separate by intergentic and antisense
+
+introns_macaque <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_macaque.rds"))
+introns_macaque[introns_macaque$gene %in% antisense_ids,]$type <- "novel_antisense"
+introns_macaque[introns_macaque$gene %in% intergenic_ids,]$type <- "novel_intergenic"
+
+introns_human <- readRDS(paste0(data_path, "01_bulk_RNA-Seq_lncRNAs_annotation/03_novel_lncRNAs_list/introns_human.rds"))
+
+all_introns <- rbind(introns_macaque, introns_human)
+all_introns$classification <- paste0(all_introns$spec, "\n", all_introns$type)
+all_introns$classification <- factor(all_introns$classification, levels = c( "macaque\nnovel_intergenic" , "macaque\nnovel_antisense" , "macaque\nannotated_lncRNA",  "human\nlncRNA", "macaque\nprotein_coding", "human\nprotein_coding" ))
+
+
+xlabs <- paste(levels(all_introns$classification),"\nn=",table(all_introns$classification),sep="")
+
+#pal <- palette[c(1,2,4)]
+ggplot(all_introns, aes(x = classification,  y = width, fill=classification ))+ geom_boxplot(outlier.shape=NA,color = "black", na.rm = TRUE) +
+  theme(axis.text.y = element_text(size = 14, color = "black"), axis.title = element_text(size = 15), axis.text.x = element_text(size=12, color = "black"))+ylab("intron length (log10)")+
+  theme(panel.background = element_rect(fill = "white"))+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.line.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank(), 
+        axis.line.y = element_line(), legend.position = "none") +   scale_y_continuous(limits = c(0,13000), breaks = c(0, 3000, 6000, 9000, 12000))
+
+                    
+```
+
