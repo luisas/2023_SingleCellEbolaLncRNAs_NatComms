@@ -13,7 +13,7 @@ module load nextflow/19.03.0
 module load singularity
 
 
-srun nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/01_preprocess_and_denovoassembly.nf \
+nextflow run /gpfs/projects/bsc83/Projects/Ebola/code/ebola/nextflow_pipelines/01_preprocess_and_denovoassembly.nf \
                   --strandness "RF" \
                   --umis "false" \
                   --output_dir_name "02_RNA-Seq_ribodepl" \
