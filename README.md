@@ -5,8 +5,8 @@
 Code for the paper: "In vivo single-cell profiling of lncRNAs during Ebola virus infection".
 
 Main developers: 
-@luisas
-@mariasr3
+[@luisas](https://github.com/luisas)
+[@mariasr3](https://github.com/mariasr3)
 
 ### Repository organization: 
 
